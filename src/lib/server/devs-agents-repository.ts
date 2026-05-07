@@ -38,15 +38,23 @@ export function mapCompartmentRow(row: Row): DevsCompartment {
 export function mapUserAgentRow(row: Row): DevsAgent {
   const template = firstNestedRow(row.agent_templates);
   const activeVersion = firstNestedRow(row.agent_skill_versions);
-  const draftNeeds = Array.isArray(row.draft_input_contracts)
-    ? asNeeds(row.draft_input_contracts)
-    : asNeeds(activeVersion?.input_contracts);
-  const draftProduces = Array.isArray(row.draft_output_contracts)
-    ? asProduces(row.draft_output_contracts)
-    : asProduces(activeVersion?.output_contracts);
+  const draftUpdatedAt = asOptionalString(row.draft_updated_at);
+  const hasDraft = Boolean(draftUpdatedAt);
   const publishedNeeds = asNeeds(activeVersion?.input_contracts);
   const publishedProduces = asProduces(activeVersion?.output_contracts);
-  const draftUpdatedAt = asOptionalString(row.draft_updated_at);
+  const draftNeeds = hasDraft
+    ? asNeedsWithFallback(row.draft_input_contracts, activeVersion?.input_contracts)
+    : publishedNeeds;
+  const draftProduces = hasDraft
+    ? asProducesWithFallback(row.draft_output_contracts, activeVersion?.output_contracts)
+    : publishedProduces;
+  const publishedSkillContent =
+    asOptionalString(activeVersion?.skill_content) ??
+    asOptionalString(template?.default_skill_content) ??
+    "";
+  const draftSkillContent = hasDraft
+    ? asOptionalString(row.draft_skill_content) ?? publishedSkillContent
+    : publishedSkillContent;
 
   return {
     id: String(row.id),
@@ -66,15 +74,8 @@ export function mapUserAgentRow(row: Row): DevsAgent {
     enabled: Boolean(row.enabled ?? true),
     archived: Boolean(row.archived),
     activeSkillVersionId: asOptionalString(row.active_skill_version_id),
-    publishedSkillContent:
-      asOptionalString(activeVersion?.skill_content) ??
-      asOptionalString(template?.default_skill_content) ??
-      "",
-    draftSkillContent:
-      asOptionalString(row.draft_skill_content) ??
-      asOptionalString(activeVersion?.skill_content) ??
-      asOptionalString(template?.default_skill_content) ??
-      "",
+    publishedSkillContent,
+    draftSkillContent,
     draftNeeds,
     draftProduces,
     publishedNeeds,
@@ -211,6 +212,14 @@ function asNeeds(value: unknown): DevsNeed[] {
 
 function asProduces(value: unknown): DevsProduces[] {
   return Array.isArray(value) ? (value as DevsProduces[]) : [];
+}
+
+function asNeedsWithFallback(value: unknown, fallback: unknown): DevsNeed[] {
+  return Array.isArray(value) ? (value as DevsNeed[]) : asNeeds(fallback);
+}
+
+function asProducesWithFallback(value: unknown, fallback: unknown): DevsProduces[] {
+  return Array.isArray(value) ? (value as DevsProduces[]) : asProduces(fallback);
 }
 
 function asOptionalString(value: unknown): string | undefined {

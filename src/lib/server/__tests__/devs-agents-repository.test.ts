@@ -141,6 +141,54 @@ describe("devs agents repository helpers", () => {
     });
   });
 
+  it("mirrors published contracts into draft shape when no draft exists", () => {
+    const publishedNeeds = [
+      {
+        key: "guidebook",
+        label: "Guidebook",
+        acceptedRoles: ["guidebook"],
+        required: true,
+        includeMode: "full",
+      },
+    ];
+    const publishedProduces = [
+      {
+        key: "research",
+        label: "Research",
+        role: "research_output",
+      },
+    ];
+
+    const agent = mapUserAgentRow({
+      id: "agent-2",
+      compartment_id: "compartment-1",
+      template_id: "template-1",
+      name: "Published Agent",
+      is_custom: false,
+      active_skill_version_id: "version-2",
+      draft_skill_content: null,
+      draft_input_contracts: [],
+      draft_output_contracts: [],
+      draft_updated_at: null,
+      agent_templates: {
+        template_key: "published-agent",
+        source_path: "skills/published-agent/SKILL.md",
+        content_hash: "hash-2",
+        default_skill_content: "template skill",
+      },
+      agent_skill_versions: {
+        id: "version-2",
+        skill_content: "published skill",
+        input_contracts: publishedNeeds,
+        output_contracts: publishedProduces,
+      },
+    });
+
+    expect(agent.state).toBe("published");
+    expect(agent.draftNeeds).toEqual(publishedNeeds);
+    expect(agent.draftProduces).toEqual(publishedProduces);
+  });
+
   it("returns the next publish version number", () => {
     expect(nextVersionNumber([])).toBe(1);
     expect(nextVersionNumber([{ version_number: 1 }, { version_number: 4 }])).toBe(5);
