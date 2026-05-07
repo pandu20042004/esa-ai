@@ -1,0 +1,1608 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [7 0 R 9 0 R 11 0 R 13 0 R 15 0 R 17 0 R 19 0 R 21 0 R 23 0 R 25 0 R 27 0 R 29 0 R 31 0 R 33 0 R 35 0 R 37 0 R 39 0 R 41 0 R 43 0 R 45 0 R] /Count 20 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+6 0 obj
+<< /Length 5772 >>
+stream
+0.45 0.48 0.54 rg BT /F1 8 Tf 44.00 24.00 Td (ESAI Full PRD - Page 1) Tj ET
+0.05 0.07 0.11 rg BT /F2 20 Tf 44.00 797.89 Td (ESAI Premium Dashboard - Full PRD and Implementation Handoff) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 761.89 Td (Date: 2026-05-07) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 746.39 Td (Source prototype: esai-premium-redesign-2.html) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 730.89 Td (Audience: Codex / implementation agent, product owner, frontend engineer, backend engineer) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 715.39 Td (Status: UI/UX prototype implemented; production backend integration pending) Tj ET
+0.84 0.87 0.91 RG 0.7 w 44.00 701.89 m 551.28 701.89 l S
+0.06 0.09 0.13 rg BT /F2 13 Tf 44.00 685.89 Td (1. Product Summary) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 657.89 Td (ESAI Premium Dashboard is an academic competition workflow platform for Indonesian students,) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 645.39 Td (university competition teams, essay/KTI writers, and academic users. The product helps users) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 632.89 Td (manage competitions, guidebooks, files, AI agents, writing outputs, citations, calendar) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 620.39 Td (deadlines, and analytics in one structured workflow.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 598.89 Td (The prototype is a high-fidelity HTML/React design artifact. It is not yet a production app.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 586.39 Td (The production implementation should use a modern Next.js App Router app with Supabase) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 573.89 Td (persistence, storage, auth, and AI model execution via CLI and API-key-based providers.) Tj ET
+0.84 0.87 0.91 RG 0.7 w 44.00 560.39 m 551.28 560.39 l S
+0.06 0.09 0.13 rg BT /F2 13 Tf 44.00 544.39 Td (2. Product Goals) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 516.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 516.39 Td (Reduce confusing workflows by separating each major job into a clear section.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 501.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 501.89 Td (Make competition progress visible through dashboard cards and a dependency-aware) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 489.39 Td (stage pipeline.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 474.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 474.89 Td (Make agent work file-based, so each agent consumes specific input files and produces) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 462.39 Td (specific output files.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 447.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 447.89 Td (Let users choose whether agent inputs come from previous agent outputs or) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 435.39 Td (user-uploaded files.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 420.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 420.89 Td (Let users edit outputs in a document-style workspace, not only through chat.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 406.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 406.39 Td (Let users validate citations by comparing generated output against uploaded journal) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 393.89 Td (PDFs.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 379.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 379.39 Td (Keep AI assistant contextual, available, and non-overlapping with the active work) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 366.89 Td (surface.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 352.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 352.39 Td (Provide a Devs area for style profile, custom agents, settings, and BYOK model) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 339.89 Td (configuration.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 325.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 325.39 Td (Persist all real user, competition, file, chat, and agent state through Supabase.) Tj ET
+0.84 0.87 0.91 RG 0.7 w 44.00 312.89 m 551.28 312.89 l S
+0.06 0.09 0.13 rg BT /F2 13 Tf 44.00 296.89 Td (3. Primary Users) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 268.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 268.89 Td (Indonesian university students joining essay, KTI, PKM, PIMNAS, Gemastik, or similar) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 256.39 Td (competitions.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 241.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 241.89 Td (Academic writing teams that need structured ideation, research, drafting, design,) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 229.39 Td (and review.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 214.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 214.89 Td (Users who need AI assistance but must keep track of sources, uploaded PDFs, and) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 202.39 Td (generated files.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 187.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 187.89 Td (Power users who want to customize agents, skills, required input files, and produced) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 175.39 Td (output files.) Tj ET
+0.84 0.87 0.91 RG 0.7 w 44.00 162.89 m 551.28 162.89 l S
+0.06 0.09 0.13 rg BT /F2 13 Tf 44.00 146.89 Td (4. Current Prototype Scope) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 118.89 Td (Implemented in the prototype:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 97.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 97.39 Td (Dashboard with competition cards.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 82.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 82.89 Td (Add Competition wizard.) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 6 0 R >>
+endobj
+8 0 obj
+<< /Length 6014 >>
+stream
+0.45 0.48 0.54 rg BT /F1 8 Tf 44.00 24.00 Td (ESAI Full PRD - Page 2) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 797.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 797.89 Td (Calendar with month/week/day/list event manager.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 783.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 783.39 Td (Competition Workbench with pipeline stages.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 768.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 768.89 Td (Agent workspace with file dependency controls and A/B/C dummy agent questions.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 754.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 754.39 Td (Stage output document preview, fullscreen editing, save, and version history.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 739.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 739.89 Td (AI Assistant side section and chat composer.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 725.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 725.39 Td (Devs menu with Style Builder, Agents, Settings, and BYOK Models.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 710.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 710.89 Td (Style Builder document-mode flow with two source options:) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 696.39 Td (- Upload PDF for analysis.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 680.89 Td (- Upload style_profile.md.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 665.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 665.39 Td (Custom agent setup with skills .md, required input file, and produced output file.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 650.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 650.89 Td (Validity-Checker with minimal side-by-side output/input comparison and Vault.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 636.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 636.39 Td (Analytical Board and separate Analytical Dashboard.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 621.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 621.89 Td (Theme controls: light/dark mode and accent color.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 601.39 Td (Not implemented yet:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 579.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 579.89 Td (Real Supabase auth.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 565.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 565.39 Td (Real Supabase database persistence.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 550.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 550.89 Td (Real Supabase Storage uploads.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 536.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 536.39 Td (Real AI execution.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 521.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 521.89 Td (Real PDF parsing or OCR.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 507.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 507.39 Td (Real journal citation verification.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 492.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 492.89 Td (Real calendar persistence.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 478.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 478.39 Td (Real CLI process execution from backend routes.) Tj ET
+0.84 0.87 0.91 RG 0.7 w 44.00 465.89 m 551.28 465.89 l S
+0.06 0.09 0.13 rg BT /F2 13 Tf 44.00 449.89 Td (5. Information Architecture) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 421.89 Td (5.1 Main Navigation) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 399.89 Td (The production sidebar should include:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 378.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 378.39 Td (Dashboard) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 363.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 363.89 Td (Calendar) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 349.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 349.39 Td (Devs) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 334.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 334.89 Td (Validity-Checker) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 320.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 320.39 Td (Final Outputs) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 305.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 305.89 Td (AI Assistant trigger) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 291.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 291.39 Td (User profile block that opens Analytical Board) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 270.89 Td (Do not add a separate "My Competitions" page because Dashboard already owns that job.) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 249.39 Td (5.2 Dashboard) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 227.39 Td (Purpose: Select and manage competitions.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 205.89 Td (Required UI:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 184.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 184.39 Td (Competition cards in portrait ratio.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 169.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 169.89 Td (Poster/image area.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 155.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 155.39 Td (Title, category, institution, progress, deadline, current stage.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 140.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 140.89 Td (Add competition action.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 126.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 126.39 Td (Future: edit/delete/archive via compact action menu.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 105.89 Td (Production behavior:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 84.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 84.39 Td (Pull competition cards from Supabase.) Tj ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 8 0 R >>
+endobj
+10 0 obj
+<< /Length 5280 >>
+stream
+0.45 0.48 0.54 rg BT /F1 8 Tf 44.00 24.00 Td (ESAI Full PRD - Page 3) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 797.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 797.89 Td (Card click sets selected competition and opens Workbench.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 783.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 783.39 Td (Draft add-competition form data should persist locally while the modal is open and) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 770.89 Td (should be saved to Supabase only on submit.) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 750.39 Td (5.3 Calendar) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 728.39 Td (Purpose: Manage deadlines and stage events.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 706.89 Td (Current prototype behavior:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 685.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 685.39 Td (Month, week, day, and list views.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 670.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 670.89 Td (Search.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 656.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 656.39 Td (Category and tag filters.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 641.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 641.89 Td (New event modal.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 627.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 627.39 Td (Event create/edit/delete dummy behavior.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 612.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 612.89 Td (Upcoming events below the calendar.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 592.39 Td (Production behavior:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 570.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 570.89 Td (Calendar events should be generated from:) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 556.39 Td (- Competition deadline.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 540.89 Td (- Guidebook extracted timeline.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 525.39 Td (- User-created events.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 509.89 Td (- Agent-generated next-step tasks.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 494.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 494.39 Td (Calendar must persist to Supabase.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 479.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 479.89 Td (Calendar event rows should link back to competition and optionally stage.) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 459.39 Td (5.4 Competition Workbench) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 437.39 Td (Purpose: Run the staged competition workflow.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 415.89 Td (Core layout:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 394.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 394.39 Td (Collapsible pipeline rail.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 379.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 379.89 Td (Compact stage workspace.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 365.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 365.39 Td (Agent chat.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 350.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 350.89 Td (Stage output preview.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 336.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 336.39 Td (Fullscreen output editor.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 321.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 321.89 Td (AI Assistant as a side section when enabled.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 301.39 Td (Important UX rules:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 279.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 279.89 Td (Pipeline dots must be connected.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 265.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 265.39 Td (Collapsed rail must show all stages, including locked ones.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 250.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 250.89 Td (Collapsed stage markers should show the first letter of each agent/stage.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 236.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 236.39 Td (Selected stage should remain readable and show current progress with outline only.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 221.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 221.89 Td (Avoid redundant top headers in the workspace because users can infer context from) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 209.39 Td (selected stage and file controls.) Tj ET
+0.84 0.87 0.91 RG 0.7 w 44.00 196.89 m 551.28 196.89 l S
+0.06 0.09 0.13 rg BT /F2 13 Tf 44.00 180.89 Td (6. Stage Dependency Workflow) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 152.89 Td (Agents are connected. Each agent demands specific input files before it can run and produces) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 140.39 Td (specific output files to unlock the next agent.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 118.89 Td (Stage Required Input Output Produced Notes) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 103.39 Td (--- --- --- ---) Tj ET
+endstream
+endobj
+11 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 10 0 R >>
+endobj
+12 0 obj
+<< /Length 5336 >>
+stream
+0.45 0.48 0.54 rg BT /F1 8 Tf 44.00 24.00 Td (ESAI Full PRD - Page 4) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 797.89 Td (Main Agent Onboarding 00_style_profile.md, guidebook, competition metadata) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 785.39 Td (01_onboarding_map.md Can start from template buttons to reduce typing.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 769.89 Td (Ideation 01_onboarding_map.md 02_ideation_options.md Locked until onboarding output exists.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 754.39 Td (Research 02_ideation_options.md 03_research_brief.md Must follow selected idea.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 738.89 Td (Writing 03_research_brief.md, optional user essay draft 04_draft_essay.md Can use uploaded) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 726.39 Td (essay as context.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 710.89 Td (Flowchart 04_draft_essay.md 05_flowchart.png / .md spec Extracts concept flow after writing) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 698.39 Td (stabilizes.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 682.89 Td (Prototype 05_flowchart output 06_prototype_spec.html Produces prototype spec.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 667.39 Td (UI Design 06_prototype_spec.html 07_ui_mockup.html Produces design artifact.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 651.89 Td (Supervisor Draft + previous outputs 08_supervisor_review.md Final judge-style review.) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 630.39 Td (6.1 Input File Provenance) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 608.39 Td (Every stage input file can come from:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 586.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 586.89 Td (Agent Output) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 572.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 572.39 Td (User Upload) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 557.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 557.89 Td (Devs) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 543.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 543.39 Td (System Template) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 522.89 Td (The Input file button should show:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 501.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 501.39 Td (File name.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 486.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 486.89 Td (Provenance chip.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 472.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 472.39 Td (Source detail, for example Agent Output - Ideation Agent or User Upload - Ari.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 451.89 Td (When clicked, it opens a picker with:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 430.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 430.39 Td (From Vault tab.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 415.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 415.89 Td (Uploaded by User tab.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 401.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 401.39 Td (Upload .md button.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 386.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 386.89 Td (Use as input action.) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 366.39 Td (6.2 Agent Questions) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 344.39 Td (Agents may ask user questions before continuing.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 322.89 Td (Prototype supports dummy A/B/C prompts:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 301.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 301.39 Td (Agent question.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 286.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 286.89 Td (Options A, B, C.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 272.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 272.39 Td (Selected option highlight.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 257.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 257.89 Td (Result summary.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 237.39 Td (Production behavior:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 215.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 215.89 Td (The agent response may include a structured needs_user_choice object.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 201.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 201.39 Td (UI opens a choice prompt only when the agent explicitly asks.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 186.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 186.89 Td (The selected answer is saved to the agent run and used as context for continuation.) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 166.39 Td (6.3 End-of-Stage Handoff) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 144.39 Td (At the end of each stage, agent asks:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 122.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 122.89 Td (Use this .md file for the next stage?) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 108.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 108.39 Td (Review first?) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 93.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 93.89 Td (Use this MD?) Tj ET
+endstream
+endobj
+13 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 12 0 R >>
+endobj
+14 0 obj
+<< /Length 5177 >>
+stream
+0.45 0.48 0.54 rg BT /F1 8 Tf 44.00 24.00 Td (ESAI Full PRD - Page 5) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 797.89 Td (Production behavior:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 776.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 776.39 Td (User approval should mark the output as approved.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 761.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 761.89 Td (Only approved outputs should unlock the next stage by default.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 747.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 747.39 Td (Users can override input using manual upload, but this should be visibly marked as) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 734.89 Td (user override.) Tj ET
+0.84 0.87 0.91 RG 0.7 w 44.00 722.39 m 551.28 722.39 l S
+0.06 0.09 0.13 rg BT /F2 13 Tf 44.00 706.39 Td (7. Devs Menu) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 678.39 Td (The Devs menu contains four sections:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 656.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 656.89 Td (Style Builder) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 642.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 642.39 Td (Agents) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 627.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 627.89 Td (Settings) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 613.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 613.39 Td (BYOK Models) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 592.89 Td (7.1 Style Builder) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 570.89 Td (Purpose: Create or edit 00_style_profile.md.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 549.39 Td (Only two source options are allowed:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 527.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 527.89 Td (Upload PDF for analysis.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 513.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 513.39 Td (Upload style_profile.md.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 492.89 Td (The Style Builder should use document-mode layout like fullscreen stage output:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 471.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 471.39 Td (Document surface is primary.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 456.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 456.89 Td (AI is contextual support.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 442.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 442.39 Td (Save button confirms the profile is saved to Vault.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 427.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 427.89 Td (No paste sample option.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 407.39 Td (Production behavior:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 385.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 385.89 Td (PDF upload goes to Supabase Storage.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 371.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 371.39 Td (Backend extracts text from PDF.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 356.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 356.89 Td (AI generates a style profile draft.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 342.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 342.39 Td (User edits and saves.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 327.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 327.89 Td (Saved profile becomes a file in Vault with role style_profile.) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 307.39 Td (7.2 Agents) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 285.39 Td (Purpose: Manage built-in and custom agents.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 263.89 Td (Custom agent requirements:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 242.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 242.39 Td (Add Agent button.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 227.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 227.89 Td (Agent name.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 213.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 213.39 Td (Upload/select skills .md.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 198.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 198.89 Td (Specific required input file.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 184.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 184.39 Td (Produced output file.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 169.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 169.89 Td (Optional description.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 155.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 155.39 Td (Active/inactive state.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 134.89 Td (Production behavior:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 113.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 113.39 Td (Custom agents are stored in Supabase.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 98.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 98.89 Td (Their skill file becomes runtime prompt context.) Tj ET
+endstream
+endobj
+15 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 14 0 R >>
+endobj
+16 0 obj
+<< /Length 5066 >>
+stream
+0.45 0.48 0.54 rg BT /F1 8 Tf 44.00 24.00 Td (ESAI Full PRD - Page 6) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 797.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 797.89 Td (Input/output contract determines where the agent appears in workflow and what it can) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 785.39 Td (unlock.) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 764.89 Td (7.3 Settings) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 742.89 Td (Purpose: Configure workflow guardrails, output naming, default behavior.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 721.39 Td (Expected settings:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 699.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 699.89 Td (Require approval before next stage unlock.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 685.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 685.39 Td (Allow user-uploaded input override.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 670.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 670.89 Td (File naming convention.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 656.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 656.39 Td (Citation strictness.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 641.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 641.89 Td (Default calendar creation behavior.) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 621.39 Td (7.4 BYOK Models) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 599.39 Td (Purpose: Let users bring their own AI model API key or use local CLI-backed model access.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 577.89 Td (Required controls:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 556.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 556.39 Td (Provider selection.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 541.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 541.89 Td (API key entry.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 527.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 527.39 Td (Model list refresh.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 512.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 512.89 Td (Default model selection.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 498.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 498.39 Td (Reasoning effort defaults.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 483.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 483.89 Td (Test connection button.) Tj ET
+0.84 0.87 0.91 RG 0.7 w 44.00 471.39 m 551.28 471.39 l S
+0.06 0.09 0.13 rg BT /F2 13 Tf 44.00 455.39 Td (8. AI Assistant) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 427.39 Td (8.1 Global Assistant Behavior) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 405.39 Td (The AI Assistant is contextual. It should know where the user currently is:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 383.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 383.89 Td (Dashboard) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 369.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 369.39 Td (Calendar) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 354.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 354.89 Td (Workbench stage) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 340.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 340.39 Td (Fullscreen output editor) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 325.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 325.89 Td (Validity-Checker comparison) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 311.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 311.39 Td (Style Builder document mode) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 290.89 Td (The assistant must not cover the active work area as an overlay except for explicit mobile) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 278.39 Td (fallback. On desktop, it should appear as a side section or bottom section depending on) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 265.89 Td (context.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 244.39 Td (Current prototype behavior:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 222.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 222.89 Td (On most pages, assistant appears as a side section.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 208.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 208.39 Td (In Validity-Checker, assistant chat appears at the bottom when toggled, because the) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 195.89 Td (main goal is output-vs-input comparison.) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 175.39 Td (8.2 Chat Composer Controls) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 153.39 Td (Controls inside the chat box:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 131.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 131.89 Td (Model dropdown.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 117.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 117.39 Td (Reasoning effort dropdown:) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 102.89 Td (- Low) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 87.39 Td (- Medium) Tj ET
+endstream
+endobj
+17 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 16 0 R >>
+endobj
+18 0 obj
+<< /Length 5262 >>
+stream
+0.45 0.48 0.54 rg BT /F1 8 Tf 44.00 24.00 Td (ESAI Full PRD - Page 7) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 797.89 Td (- High) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 782.39 Td (- Extra High) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 766.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 766.89 Td (Tools dropdown:) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 752.39 Td (- Web search toggle.) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 730.89 Td (8.3 Context Requirements) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 708.89 Td (Every assistant message should include:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 687.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 687.39 Td (Current route.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 672.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 672.89 Td (Selected competition ID.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 658.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 658.39 Td (Selected stage ID if inside Workbench.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 643.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 643.89 Td (Selected input file and provenance.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 629.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 629.39 Td (Selected output file.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 614.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 614.89 Td (Selected citation text if in Validity-Checker.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 600.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 600.39 Td (Current visible document if in fullscreen editor.) Tj ET
+0.84 0.87 0.91 RG 0.7 w 44.00 587.89 m 551.28 587.89 l S
+0.06 0.09 0.13 rg BT /F2 13 Tf 44.00 571.89 Td (9. Stage Output and Document Editing) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 543.89 Td (Stage output must feel like a document editor, not a chat log.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 522.39 Td (Required behavior:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 500.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 500.89 Td (Open output fullscreen.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 486.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 486.39 Td (Editable document surface.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 471.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 471.89 Td (Save button.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 457.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 457.39 Td (Save confirmation.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 442.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 442.89 Td (Version history button.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 428.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 428.39 Td (Version history opens separately, not always visible.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 413.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 413.89 Td (AI edit assistance.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 393.39 Td (Data to persist:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 371.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 371.89 Td (Current output content.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 357.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 357.39 Td (Output versions.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 342.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 342.89 Td (Author/source of each edit.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 328.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 328.39 Td (Timestamp.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 313.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 313.89 Td (Whether version is approved.) Tj ET
+0.84 0.87 0.91 RG 0.7 w 44.00 301.39 m 551.28 301.39 l S
+0.06 0.09 0.13 rg BT /F2 13 Tf 44.00 285.39 Td (10. Validity-Checker) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 257.39 Td (Purpose: Let users compare generated output/research output with uploaded journal PDFs and) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 244.89 Td (ask AI whether citations are actually supported.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 223.39 Td (The minimal product requirements are:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 201.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 201.89 Td (User can upload documents.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 187.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 187.39 Td (User can choose which output file and input PDF to compare.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 172.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 172.89 Td (User can see a Vault that tells which files are user-uploaded and which are) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 160.39 Td (agent-generated.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 145.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 145.89 Td (Output and Input Journal are compared side by side.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 131.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 131.39 Td (AI chat can discuss the selected output/input PDFs and spot citation problems.) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 110.89 Td (10.1 Vault) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 88.89 Td (Vault should be minimal:) Tj ET
+endstream
+endobj
+19 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 18 0 R >>
+endobj
+20 0 obj
+<< /Length 5352 >>
+stream
+0.45 0.48 0.54 rg BT /F1 8 Tf 44.00 24.00 Td (ESAI Full PRD - Page 8) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 797.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 797.89 Td (One Vault button per relevant context.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 783.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 783.39 Td (Popup, not inline expansion.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 768.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 768.89 Td (Clicking outside closes popup.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 754.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 754.39 Td (Light mode uses blur/translucency, not a black rectangle.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 739.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 739.89 Td (Separate Output Vault and Input Vault:) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 725.39 Td (- Output Vault shows agent output files only.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 709.89 Td (- Input Vault shows user input files only.) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 688.39 Td (10.2 Comparison) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 666.39 Td (Required layout:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 644.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 644.89 Td (Output document pane.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 630.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 630.39 Td (Input Journal document pane.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 615.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 615.89 Td (Same size containers.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 601.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 601.39 Td (File selector button in Output pane.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 586.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 586.89 Td (File selector button in Input Journal pane.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 572.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 572.39 Td (Side-by-side layout, not vertical stack on desktop.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 557.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 557.89 Td (Bottom AI chat appears when toggled or when selected citation needs checking.) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 537.39 Td (10.3 Citation Check) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 515.39 Td (User flow:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 493.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 493.89 Td (User selects claim/citation text in output file.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 479.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 479.39 Td (User opens AI chat or clicks citation-check action.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 464.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 464.89 Td (AI compares selected claim with selected journal PDF.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 450.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 450.39 Td (AI returns:) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 435.89 Td (- Supported: highlight paragraph used as citation.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 420.39 Td (- Risk citation: explain why claim needs review.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 398.89 Td (Production note:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 377.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 377.39 Td (Real implementation must parse PDFs, extract text, chunk journal content, and run) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 364.89 Td (retrieval over selected journal PDF before AI judgment.) Tj ET
+0.84 0.87 0.91 RG 0.7 w 44.00 352.39 m 551.28 352.39 l S
+0.06 0.09 0.13 rg BT /F2 13 Tf 44.00 336.39 Td (11. Analytical Board and Analytical Dashboard) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 308.39 Td (User-name block opens Analytical Board. Profile should not be a main sidebar item.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 286.89 Td (Analytical Board contains:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 265.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 265.39 Td (Entry button to Analytical Dashboard.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 250.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 250.89 Td (Process notifications.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 236.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 236.39 Td (Website look/accent controls.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 221.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 221.89 Td (Dark mode toggle.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 201.39 Td (Analytical Dashboard is separate and should include:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 179.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 179.89 Td (KPI Header Row:) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 165.39 Td (- Wins) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 149.89 Td (- Podium) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 134.39 Td (- Finalist) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 118.89 Td (- Performance Score) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 103.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 103.39 Td (Wins Over Time chart.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 88.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 88.89 Td (Outcome Mix donut.) Tj ET
+endstream
+endobj
+21 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 20 0 R >>
+endobj
+22 0 obj
+<< /Length 5094 >>
+stream
+0.45 0.48 0.54 rg BT /F1 8 Tf 44.00 24.00 Td (ESAI Full PRD - Page 9) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 797.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 797.89 Td (Strongest Fields progress bars.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 783.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 783.39 Td (Suggestions to Improve.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 768.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 768.89 Td (Log Competition Results.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 748.39 Td (Dashboard must obey light/dark mode and accent system.) Tj ET
+0.84 0.87 0.91 RG 0.7 w 44.00 734.89 m 551.28 734.89 l S
+0.06 0.09 0.13 rg BT /F2 13 Tf 44.00 718.89 Td (12. Calendar Event Manager) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 690.89 Td (The Calendar section has been normalized from a 21st.dev style event manager into current) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 678.39 Td (ESAI design.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 656.89 Td (Required behavior:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 635.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 635.39 Td (Month / Week / Day / List views.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 620.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 620.89 Td (Previous / Today / Next navigation.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 606.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 606.39 Td (Search events.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 591.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 591.89 Td (Filter by category and tag.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 577.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 577.39 Td (Active filter chips.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 562.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 562.89 Td (New Event modal.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 548.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 548.39 Td (Edit/delete event.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 533.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 533.89 Td (Upcoming events below calendar.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 519.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 519.39 Td (Event chips use current accent system.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 498.89 Td (Production data:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 477.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 477.39 Td (Competition deadlines.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 462.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 462.89 Td (Guidebook extracted dates.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 448.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 448.39 Td (User events.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 433.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 433.89 Td (Agent-generated events.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 419.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 419.39 Td (Review reminders.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 404.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 404.89 Td (Submission milestones.) Tj ET
+0.84 0.87 0.91 RG 0.7 w 44.00 392.39 m 551.28 392.39 l S
+0.06 0.09 0.13 rg BT /F2 13 Tf 44.00 376.39 Td (13. Supabase Production Architecture) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 348.39 Td (13.1 Supabase Products Needed) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 326.39 Td (Use:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 304.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 304.89 Td (Supabase Auth for user login.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 290.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 290.39 Td (Supabase Postgres for app data.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 275.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 275.89 Td (Supabase Storage for uploaded files and generated artifacts.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 261.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 261.39 Td (Row Level Security for all exposed tables.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 246.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 246.89 Td (Optional Edge Functions for file parsing and AI calls if not handled in Next.js API) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 234.39 Td (routes.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 219.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 219.89 Td (Realtime only if collaborative editing or live agent output streaming is needed.) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 199.39 Td (13.2 Environment Variables) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 177.39 Td (Frontend-safe:) Tj ET
+0.07 0.09 0.13 rg 44.00 110.89 507.28 49.00 re f
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 141.89 Td (NEXT_PUBLIC_SUPABASE_URL=) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 130.89 Td (NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 119.89 Td (NEXT_PUBLIC_DISABLE_AUTH=false) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 94.89 Td (Server-only:) Tj ET
+endstream
+endobj
+23 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 22 0 R >>
+endobj
+24 0 obj
+<< /Length 4985 >>
+stream
+0.45 0.48 0.54 rg BT /F1 8 Tf 44.00 24.00 Td (ESAI Full PRD - Page 10) Tj ET
+0.07 0.09 0.13 rg 44.00 708.89 507.28 93.00 re f
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 783.89 Td (SUPABASE_SERVICE_ROLE_KEY=) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 772.89 Td (OPENAI_API_KEY=) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 761.89 Td (OPENROUTER_API_KEY=) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 750.89 Td (ANTHROPIC_API_KEY=) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 739.89 Td (GOOGLE_GENERATIVE_AI_API_KEY=) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 728.89 Td (OPENCLAW_FORCE_CLI=1) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 717.89 Td (OPENCLAW_PROMPT_TIMEOUT_MS=180000) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 692.89 Td (Security rules:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 671.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 671.39 Td (Never expose SUPABASE_SERVICE_ROLE_KEY to the browser.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 656.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 656.89 Td (Never put secret model API keys in NEXT_PUBLIC_*.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 642.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 642.39 Td (Use server routes for all agent execution and key-backed model calls.) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 621.89 Td (13.3 Recommended Tables) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 599.89 Td (#### profiles) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 578.39 Td (Stores public user profile and preferences.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 556.89 Td (Columns:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 535.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 535.39 Td (id uuid primary key references auth.users\(id\)) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 520.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 520.89 Td (email text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 506.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 506.39 Td (display_name text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 491.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 491.89 Td (plan text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 477.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 477.39 Td (accent text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 462.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 462.89 Td (theme text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 448.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 448.39 Td (created_at timestamptz) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 433.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 433.89 Td (updated_at timestamptz) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 413.39 Td (#### competitions) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 391.89 Td (Stores competition cards and metadata.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 370.39 Td (Columns:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 348.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 348.89 Td (id uuid primary key) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 334.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 334.39 Td (user_id uuid references auth.users\(id\)) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 319.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 319.89 Td (title text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 305.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 305.39 Td (category text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 290.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 290.89 Td (institution text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 276.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 276.39 Td (status text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 261.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 261.89 Td (progress int) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 247.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 247.39 Td (deadline date) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 232.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 232.89 Td (registration_link text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 218.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 218.39 Td (current_stage_id text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 203.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 203.89 Td (poster_file_id uuid) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 189.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 189.39 Td (created_at timestamptz) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 174.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 174.89 Td (updated_at timestamptz) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 154.39 Td (#### competition_files) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 132.89 Td (Stores all uploaded and generated files.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 111.39 Td (Columns:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 89.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 89.89 Td (id uuid primary key) Tj ET
+endstream
+endobj
+25 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 24 0 R >>
+endobj
+26 0 obj
+<< /Length 5910 >>
+stream
+0.45 0.48 0.54 rg BT /F1 8 Tf 44.00 24.00 Td (ESAI Full PRD - Page 11) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 797.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 797.89 Td (competition_id uuid references competitions\(id\)) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 783.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 783.39 Td (user_id uuid references auth.users\(id\)) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 768.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 768.89 Td (file_name text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 754.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 754.39 Td (file_role text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 739.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 739.89 Td (file_source text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 725.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 725.39 Td (stage_id text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 710.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 710.89 Td (agent_id uuid) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 696.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 696.39 Td (storage_bucket text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 681.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 681.89 Td (storage_path text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 667.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 667.39 Td (mime_type text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 652.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 652.89 Td (size_bytes bigint) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 638.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 638.39 Td (content_text text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 623.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 623.89 Td (metadata jsonb) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 609.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 609.39 Td (approved boolean default false) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 594.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 594.89 Td (created_at timestamptz) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 574.39 Td (Recommended file_role values:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 552.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 552.89 Td (guidebook) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 538.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 538.39 Td (poster) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 523.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 523.89 Td (twibbon) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 509.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 509.39 Td (user_photo) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 494.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 494.89 Td (style_profile) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 480.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 480.39 Td (stage_input) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 465.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 465.89 Td (stage_output) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 451.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 451.39 Td (research_output) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 436.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 436.89 Td (final_output) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 422.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 422.39 Td (journal_pdf) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 407.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 407.89 Td (citation_evidence) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 393.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 393.39 Td (registration_link) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 372.89 Td (Recommended file_source values:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 351.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 351.39 Td (user_upload) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 336.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 336.89 Td (agent_output) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 322.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 322.39 Td (devs) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 307.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 307.89 Td (system_template) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 287.39 Td (#### agents) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 265.89 Td (Stores built-in and custom agents.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 244.39 Td (Columns:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 222.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 222.89 Td (id uuid primary key) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 208.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 208.39 Td (user_id uuid references auth.users\(id\)) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 193.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 193.89 Td (compartment text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 179.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 179.39 Td (stage_id text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 164.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 164.89 Td (name text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 150.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 150.39 Td (description text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 135.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 135.89 Td (skill_file_id uuid references competition_files\(id\)) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 121.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 121.39 Td (required_input_role text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 106.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 106.89 Td (produced_output_role text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 92.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 92.39 Td (is_custom boolean) Tj ET
+endstream
+endobj
+27 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 26 0 R >>
+endobj
+28 0 obj
+<< /Length 5691 >>
+stream
+0.45 0.48 0.54 rg BT /F1 8 Tf 44.00 24.00 Td (ESAI Full PRD - Page 12) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 797.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 797.89 Td (enabled boolean) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 783.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 783.39 Td (metadata jsonb) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 768.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 768.89 Td (created_at timestamptz) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 754.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 754.39 Td (updated_at timestamptz) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 733.89 Td (#### agent_runs) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 712.39 Td (Stores stage execution runs.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 690.89 Td (Columns:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 669.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 669.39 Td (id uuid primary key) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 654.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 654.89 Td (competition_id uuid references competitions\(id\)) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 640.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 640.39 Td (agent_id uuid references agents\(id\)) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 625.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 625.89 Td (stage_id text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 611.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 611.39 Td (user_id uuid references auth.users\(id\)) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 596.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 596.89 Td (status text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 582.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 582.39 Td (model_provider text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 567.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 567.89 Td (model_id text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 553.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 553.39 Td (reasoning_effort text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 538.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 538.89 Td (input_file_ids uuid[]) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 524.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 524.39 Td (output_file_id uuid) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 509.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 509.89 Td (needs_user_choice jsonb) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 495.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 495.39 Td (selected_choice jsonb) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 480.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 480.89 Td (error text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 466.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 466.39 Td (created_at timestamptz) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 451.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 451.89 Td (updated_at timestamptz) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 431.39 Td (#### agent_messages) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 409.89 Td (Stores chat history for global, stage, Devs, and validity assistant.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 388.39 Td (Columns:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 366.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 366.89 Td (id uuid primary key) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 352.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 352.39 Td (competition_id uuid) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 337.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 337.89 Td (agent_id uuid) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 323.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 323.39 Td (stage_id text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 308.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 308.89 Td (thread_type text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 294.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 294.39 Td (role text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 279.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 279.89 Td (content text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 265.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 265.39 Td (model_provider text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 250.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 250.89 Td (model_id text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 236.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 236.39 Td (reasoning_effort text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 221.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 221.89 Td (context jsonb) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 207.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 207.39 Td (created_at timestamptz) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 186.89 Td (Recommended thread_type values:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 165.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 165.39 Td (global) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 150.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 150.89 Td (stage) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 136.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 136.39 Td (devs) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 121.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 121.89 Td (validity) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 107.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 107.39 Td (output_editor) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 92.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 92.89 Td (style_builder) Tj ET
+endstream
+endobj
+29 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 28 0 R >>
+endobj
+30 0 obj
+<< /Length 5378 >>
+stream
+0.45 0.48 0.54 rg BT /F1 8 Tf 44.00 24.00 Td (ESAI Full PRD - Page 13) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 797.89 Td (#### output_versions) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 776.39 Td (Stores document edit history.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 754.89 Td (Columns:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 733.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 733.39 Td (id uuid primary key) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 718.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 718.89 Td (file_id uuid references competition_files\(id\)) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 704.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 704.39 Td (user_id uuid references auth.users\(id\)) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 689.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 689.89 Td (version_number int) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 675.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 675.39 Td (content_text text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 660.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 660.89 Td (change_summary text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 646.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 646.39 Td (created_at timestamptz) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 625.89 Td (#### calendar_events) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 604.39 Td (Stores calendar data.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 582.89 Td (Columns:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 561.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 561.39 Td (id uuid primary key) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 546.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 546.89 Td (competition_id uuid references competitions\(id\)) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 532.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 532.39 Td (user_id uuid references auth.users\(id\)) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 517.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 517.89 Td (title text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 503.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 503.39 Td (description text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 488.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 488.89 Td (start_time timestamptz) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 474.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 474.39 Td (end_time timestamptz) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 459.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 459.89 Td (category text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 445.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 445.39 Td (color text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 430.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 430.89 Td (tags text[]) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 416.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 416.39 Td (source text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 401.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 401.89 Td (created_at timestamptz) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 387.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 387.39 Td (updated_at timestamptz) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 366.89 Td (#### validity_checks) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 345.39 Td (Stores citation verification results.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 323.89 Td (Columns:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 302.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 302.39 Td (id uuid primary key) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 287.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 287.89 Td (competition_id uuid references competitions\(id\)) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 273.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 273.39 Td (user_id uuid references auth.users\(id\)) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 258.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 258.89 Td (output_file_id uuid references competition_files\(id\)) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 244.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 244.39 Td (journal_file_id uuid references competition_files\(id\)) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 229.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 229.89 Td (selected_claim text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 215.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 215.39 Td (verdict text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 200.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 200.89 Td (evidence_text text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 186.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 186.39 Td (risk_reason text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 171.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 171.89 Td (model_provider text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 157.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 157.39 Td (model_id text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 142.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 142.89 Td (created_at timestamptz) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 122.39 Td (13.4 Storage Buckets) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 100.39 Td (Recommended buckets:) Tj ET
+endstream
+endobj
+31 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 30 0 R >>
+endobj
+32 0 obj
+<< /Length 4661 >>
+stream
+0.45 0.48 0.54 rg BT /F1 8 Tf 44.00 24.00 Td (ESAI Full PRD - Page 14) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 797.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 797.89 Td (competition-files) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 783.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 783.39 Td (agent-outputs) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 768.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 768.89 Td (journal-pdfs) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 754.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 754.39 Td (profile-assets) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 733.89 Td (Storage paths:) Tj ET
+0.07 0.09 0.13 rg 44.00 656.39 507.28 60.00 re f
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 698.39 Td (competition-files/{user_id}/{competition_id}/uploads/{file_id}-{filename}) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 687.39 Td (agent-outputs/{user_id}/{competition_id}/{stage_id}/{file_id}-{filename}) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 676.39 Td (journal-pdfs/{user_id}/{competition_id}/{file_id}-{filename}) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 665.39 Td (profile-assets/{user_id}/{filename}) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 640.39 Td (13.5 RLS Requirements) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 618.39 Td (Enable RLS on every table.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 596.89 Td (Base rule:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 575.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 575.39 Td (Users can only access rows where user_id = auth.uid\(\).) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 554.89 Td (For team support later:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 533.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 533.39 Td (Add competition_members.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 518.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 518.89 Td (Policies should allow members to access competition files and runs.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 498.39 Td (Do not use user-editable metadata for authorization. If roles are needed, store them in) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 485.89 Td (server-managed app metadata or membership tables.) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 464.39 Td (13.6 Supabase Dashboard Setup Checklist) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 442.39 Td (In Supabase Dashboard:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 420.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 420.89 Td (Create project.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 406.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 406.39 Td (Enable Email auth provider.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 391.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 391.89 Td (Create storage buckets.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 377.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 377.39 Td (Run SQL migrations for tables.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 362.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 362.89 Td (Enable RLS.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 348.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 348.39 Td (Add table policies.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 333.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 333.89 Td (Add storage policies.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 319.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 319.39 Td (Copy project URL and publishable key into .env.local.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 304.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 304.89 Td (Copy service role key into server-only .env.local.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 290.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 290.39 Td (Test insert/select for competitions.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 275.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 275.89 Td (Test upload/select/download for files.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 261.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 261.39 Td (Test agent output save.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 246.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 246.89 Td (Test calendar event save.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 232.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 232.39 Td (Test Validity-Checker journal PDF upload.) Tj ET
+0.84 0.87 0.91 RG 0.7 w 44.00 219.89 m 551.28 219.89 l S
+0.06 0.09 0.13 rg BT /F2 13 Tf 44.00 203.89 Td (14. API Route Architecture) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 175.89 Td (Recommended Next.js App Router route groups:) Tj ET
+endstream
+endobj
+33 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 32 0 R >>
+endobj
+34 0 obj
+<< /Length 5160 >>
+stream
+0.45 0.48 0.54 rg BT /F1 8 Tf 44.00 24.00 Td (ESAI Full PRD - Page 15) Tj ET
+0.07 0.09 0.13 rg 44.00 664.89 507.28 137.00 re f
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 783.89 Td (src/app/api/competitions/route.ts) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 772.89 Td (src/app/api/competitions/[id]/route.ts) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 761.89 Td (src/app/api/files/route.ts) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 750.89 Td (src/app/api/files/[id]/route.ts) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 739.89 Td (src/app/api/agents/route.ts) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 728.89 Td (src/app/api/agent-runs/route.ts) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 717.89 Td (src/app/api/agent-chat/route.ts) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 706.89 Td (src/app/api/calendar-events/route.ts) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 695.89 Td (src/app/api/validity-checks/route.ts) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 684.89 Td (src/app/api/models/route.ts) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 673.89 Td (src/app/api/models/test/route.ts) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 648.89 Td (14.1 Required Server Responsibilities) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 626.89 Td (Server routes must:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 605.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 605.39 Td (Authenticate user.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 590.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 590.89 Td (Validate competition ownership.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 576.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 576.39 Td (Use Supabase admin client only server-side.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 561.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 561.89 Td (Validate file roles and source.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 547.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 547.39 Td (Build agent context from selected files.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 532.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 532.89 Td (Save outputs and versions.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 518.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 518.39 Td (Call model provider or CLI.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 503.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 503.89 Td (Return structured errors for UI.) Tj ET
+0.84 0.87 0.91 RG 0.7 w 44.00 491.39 m 551.28 491.39 l S
+0.06 0.09 0.13 rg BT /F2 13 Tf 44.00 475.39 Td (15. AI Model Integration) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 447.39 Td (The app should support two model access paths:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 425.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 425.89 Td (CLI-backed execution.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 411.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 411.39 Td (API-key-backed execution.) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 390.89 Td (15.1 CLI Path) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 368.89 Td (Use this when user wants local Codex/OpenClaw style execution.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 347.39 Td (Recommended model runner contract:) Tj ET
+0.07 0.09 0.13 rg 44.00 214.89 507.28 115.00 re f
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 311.89 Td (type ModelRunRequest = {) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 300.89 Td (provider: "openclaw-cli"   "codex-cli";) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 289.89 Td (model: string;) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 278.89 Td (reasoningEffort: "low"   "medium"   "high"   "xhigh";) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 267.89 Td (systemPrompt: string;) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 256.89 Td (userMessage: string;) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 245.89 Td (files: Array<{ name: string; content: string; role: string }>;) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 234.89 Td (timeoutMs: number;) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 223.89 Td (};) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 198.89 Td (Recommended execution behavior:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 177.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 177.39 Td (Build prompt server-side.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 162.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 162.89 Td (Spawn CLI with child_process.execFile, not shell string concatenation.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 148.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 148.39 Td (Pass prompt through stdin or safe argument array.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 133.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 133.89 Td (Enforce timeout.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 119.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 119.39 Td (Capture stdout/stderr.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 104.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 104.89 Td (Parse JSON if CLI supports --json.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 90.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 90.39 Td (Save raw run log to agent_runs.metadata.) Tj ET
+endstream
+endobj
+35 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 34 0 R >>
+endobj
+36 0 obj
+<< /Length 4942 >>
+stream
+0.45 0.48 0.54 rg BT /F1 8 Tf 44.00 24.00 Td (ESAI Full PRD - Page 16) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 797.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 797.89 Td (Save output file if successful.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 777.39 Td (Example CLI environment:) Tj ET
+0.07 0.09 0.13 rg 44.00 721.89 507.28 38.00 re f
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 741.89 Td (OPENCLAW_FORCE_CLI=1) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 730.89 Td (OPENCLAW_PROMPT_TIMEOUT_MS=180000) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 705.89 Td (Stable execution pattern from prior local work:) Tj ET
+0.07 0.09 0.13 rg 44.00 661.39 507.28 27.00 re f
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 670.39 Td (openclaw agent --json --session-id <id> --message <message> --timeout 600) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 645.39 Td (Production route should not assume the shell alias exists. Resolve the executable path or) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 632.89 Td (use the absolute local entrypoint.) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 611.39 Td (15.2 API Key Path) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 589.39 Td (Use this when user brings a provider API key.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 567.89 Td (Supported provider design:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 546.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 546.39 Td (OpenAI-compatible API.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 531.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 531.89 Td (OpenRouter.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 517.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 517.39 Td (Anthropic.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 502.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 502.89 Td (Google Gemini.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 488.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 488.39 Td (Other BYOK providers later.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 467.89 Td (The user enters API key in BYOK Models. The app should:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 446.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 446.39 Td (Store encrypted key server-side or use a secure secret vault.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 431.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 431.89 Td (Never expose key to browser after save.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 417.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 417.39 Td (Test the key through /api/models/test.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 402.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 402.89 Td (Fetch model list through /api/models.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 388.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 388.39 Td (Let user choose model and reasoning effort.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 367.89 Td (Recommended byok_keys table:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 346.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 346.39 Td (id uuid primary key) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 331.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 331.89 Td (user_id uuid references auth.users\(id\)) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 317.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 317.39 Td (provider text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 302.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 302.89 Td (label text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 288.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 288.39 Td (encrypted_api_key text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 273.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 273.89 Td (default_model text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 259.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 259.39 Td (created_at timestamptz) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 244.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 244.89 Td (updated_at timestamptz) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 224.39 Td (Do not store plaintext API keys in the database unless there is a deliberate encryption) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 211.89 Td (layer.) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 190.39 Td (15.3 Model Selection UX) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 168.39 Td (Every chat composer should include:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 146.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 146.89 Td (Model dropdown.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 132.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 132.39 Td (Reasoning effort dropdown.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 117.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 117.89 Td (Tools dropdown.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 103.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 103.39 Td (Web search toggle.) Tj ET
+endstream
+endobj
+37 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 36 0 R >>
+endobj
+38 0 obj
+<< /Length 5517 >>
+stream
+0.45 0.48 0.54 rg BT /F1 8 Tf 44.00 24.00 Td (ESAI Full PRD - Page 17) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 797.89 Td (Model selection must be required before agent generation. If no model is selected, disable) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 785.39 Td (send/generate and show a visible notice.) Tj ET
+0.09 0.12 0.18 rg BT /F2 10.5 Tf 44.00 763.89 Td (15.4 AI Context Builder) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 741.89 Td (Every AI call should include:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 720.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 720.39 Td (User profile and style profile if available.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 705.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 705.89 Td (Competition metadata.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 691.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 691.39 Td (Guidebook summary.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 676.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 676.89 Td (Stage ID.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 662.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 662.39 Td (Required input files.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 647.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 647.89 Td (Output file being edited.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 633.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 633.39 Td (User-selected choice answer if relevant.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 618.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 618.89 Td (Chat history summary.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 604.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 604.39 Td (Validity selected claim and selected journal PDF if relevant.) Tj ET
+0.84 0.87 0.91 RG 0.7 w 44.00 591.89 m 551.28 591.89 l S
+0.06 0.09 0.13 rg BT /F2 13 Tf 44.00 575.89 Td (16. PDF and Citation Verification Implementation) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 547.89 Td (For Validity-Checker production:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 526.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 526.39 Td (User uploads output/research/final paper.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 511.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 511.89 Td (User uploads journal PDFs from bibliography.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 497.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 497.39 Td (Backend extracts text from PDFs.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 482.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 482.89 Td (System chunks journal PDFs by page/paragraph.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 468.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 468.39 Td (User selects claim text in output.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 453.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 453.89 Td (AI retrieves relevant journal chunks.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 439.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 439.39 Td (AI returns:) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 424.89 Td (- Supported.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 409.39 Td (- Partially supported.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 393.89 Td (- Not supported / risk citation.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 378.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 378.39 Td (UI highlights evidence paragraph when supported.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 363.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 363.89 Td (Result is saved to validity_checks.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 343.39 Td (Recommended storage:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 321.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 321.89 Td (Store original PDF in Storage.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 307.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 307.39 Td (Store extracted text in competition_files.content_text or a separate file_chunks) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 294.89 Td (table.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 274.39 Td (Recommended optional file_chunks table:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 252.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 252.89 Td (id uuid primary key) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 238.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 238.39 Td (file_id uuid references competition_files\(id\)) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 223.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 223.89 Td (page_number int) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 209.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 209.39 Td (chunk_index int) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 194.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 194.89 Td (content text) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 180.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 180.39 Td (embedding vector) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 165.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 165.89 Td (metadata jsonb) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 145.39 Td (If semantic retrieval is needed, enable pgvector and store embeddings.) Tj ET
+0.84 0.87 0.91 RG 0.7 w 44.00 131.89 m 551.28 131.89 l S
+0.06 0.09 0.13 rg BT /F2 13 Tf 44.00 115.89 Td (17. Frontend Implementation Plan for Codex) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 87.89 Td (Recommended production stack:) Tj ET
+endstream
+endobj
+39 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 38 0 R >>
+endobj
+40 0 obj
+<< /Length 5659 >>
+stream
+0.45 0.48 0.54 rg BT /F1 8 Tf 44.00 24.00 Td (ESAI Full PRD - Page 18) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 797.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 797.89 Td (Next.js App Router.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 783.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 783.39 Td (TypeScript.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 768.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 768.89 Td (Tailwind CSS.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 754.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 754.39 Td (shadcn/ui components.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 739.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 739.89 Td (Supabase SSR client.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 725.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 725.39 Td (Server routes for AI and file processing.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 704.89 Td (Recommended implementation order:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 683.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 683.39 Td (Create Next.js app and theme tokens.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 668.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 668.89 Td (Build AppShell and sidebar.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 654.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 654.39 Td (Implement Supabase Auth and profile preferences.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 639.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 639.89 Td (Implement Dashboard and Add Competition flow.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 625.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 625.39 Td (Implement Supabase Storage file upload.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 610.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 610.89 Td (Implement Workbench pipeline and stage output files.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 596.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 596.39 Td (Implement document editor and output versions.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 581.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 581.89 Td (Implement Devs Style Builder and Agents.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 567.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 567.39 Td (Implement BYOK Models and model testing.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 552.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 552.89 Td (Implement AI Assistant shell and chat persistence.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 538.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 538.39 Td (Implement agent run route with CLI/API provider abstraction.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 523.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 523.89 Td (Implement Calendar event manager.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 509.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 509.39 Td (Implement Validity-Checker document comparison.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 494.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 494.89 Td (Implement PDF parsing and citation verification.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 480.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 480.39 Td (Implement Analytical Board/Dashboard.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 465.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 465.89 Td (Run build, lint, route tests, and browser QA.) Tj ET
+0.84 0.87 0.91 RG 0.7 w 44.00 453.39 m 551.28 453.39 l S
+0.06 0.09 0.13 rg BT /F2 13 Tf 44.00 437.39 Td (18. Suggested Production Folder Structure) Tj ET
+0.07 0.09 0.13 rg 44.00 -64.61 507.28 478.00 re f
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 395.39 Td (src/) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 384.39 Td (app/) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 373.39 Td (api/) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 362.39 Td (agent-chat/) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 351.39 Td (agent-runs/) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 340.39 Td (calendar-events/) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 329.39 Td (competitions/) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 318.39 Td (files/) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 307.39 Td (models/) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 296.39 Td (validity-checks/) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 285.39 Td (dashboard/) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 274.39 Td (layout.tsx) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 263.39 Td (page.tsx) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 252.39 Td (components/) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 241.39 Td (app-shell/) Tj ET
+0.90 0.94 0.92 rg BT /F3 8 Tf 54.00 230.39 Td (calendar/) Tj ET
+0.84 0.87 0.91 RG 0.7 w 44.00 213.39 m 551.28 213.39 l S
+0.06 0.09 0.13 rg BT /F2 13 Tf 44.00 197.39 Td (19. Supabase Connection Checklist for Codex Implementation) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 169.39 Td (When coding in Codex:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 147.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 147.89 Td (Create .env.local.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 133.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 133.39 Td (Add Supabase URL and publishable key.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 118.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 118.89 Td (Add service role key for server routes only.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 104.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 104.39 Td (Create Supabase client helpers:) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 89.89 Td (- browser client) Tj ET
+endstream
+endobj
+41 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 40 0 R >>
+endobj
+42 0 obj
+<< /Length 5443 >>
+stream
+0.45 0.48 0.54 rg BT /F1 8 Tf 44.00 24.00 Td (ESAI Full PRD - Page 19) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 797.89 Td (- server client) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 782.39 Td (- admin client) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 766.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 766.89 Td (Add auth gate.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 752.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 752.39 Td (Add temporary dev bypass only if explicitly needed.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 737.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 737.89 Td (Create migrations.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 723.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 723.39 Td (Enable RLS.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 708.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 708.89 Td (Add storage policies.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 694.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 694.39 Td (Run npm run build.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 679.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 679.89 Td (Test:) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 665.39 Td (- create competition) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 649.89 Td (- upload guidebook) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 634.39 Td (- save agent output) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 618.89 Td (- open workbench) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 603.39 Td (- save chat) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 587.89 Td (- save calendar event) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 572.39 Td (- upload journal PDF) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 556.89 Td (- create validity check) Tj ET
+0.84 0.87 0.91 RG 0.7 w 44.00 543.39 m 551.28 543.39 l S
+0.06 0.09 0.13 rg BT /F2 13 Tf 44.00 527.39 Td (20. Acceptance Criteria) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 499.39 Td (P0:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 477.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 477.89 Td (User can create/select a competition from Dashboard.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 463.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 463.39 Td (User can upload guidebook/poster/files.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 448.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 448.89 Td (User can run or simulate each agent stage in dependency order.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 434.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 434.39 Td (Stage input can come from agent output or user-uploaded .md.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 419.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 419.89 Td (Stage output can be edited, saved, versioned, and approved.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 405.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 405.39 Td (Devs Style Builder can save 00_style_profile.md.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 390.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 390.89 Td (Custom agents can define skills .md, required input, and produced output.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 376.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 376.39 Td (AI Assistant can chat with current context and use selected model/effort.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 361.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 361.89 Td (Validity-Checker can compare output and journal PDF side by side.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 347.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 347.39 Td (Supabase persists competitions, files, outputs, messages, events, and validity) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 334.89 Td (checks.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 314.39 Td (P1:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 292.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 292.89 Td (Calendar auto-generates events from guidebook timeline.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 278.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 278.39 Td (Citation evidence is highlighted from parsed PDF content.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 263.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 263.89 Td (Analytical Dashboard uses real competition performance data.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 249.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 249.39 Td (BYOK keys are encrypted and model list is fetched dynamically.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 228.89 Td (P2:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 207.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 207.39 Td (Team collaboration.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 192.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 192.89 Td (Realtime agent streaming.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 178.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 178.39 Td (Collaborative document editing.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 163.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 163.89 Td (Full mobile optimization.) Tj ET
+0.84 0.87 0.91 RG 0.7 w 44.00 151.39 m 551.28 151.39 l S
+0.06 0.09 0.13 rg BT /F2 13 Tf 44.00 135.39 Td (21. Risks and Mitigations) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 107.39 Td (Risk Impact Mitigation) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 91.89 Td (--- --- ---) Tj ET
+endstream
+endobj
+43 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 42 0 R >>
+endobj
+44 0 obj
+<< /Length 3872 >>
+stream
+0.45 0.48 0.54 rg BT /F1 8 Tf 44.00 24.00 Td (ESAI Full PRD - Page 20) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 797.89 Td (Prototype is a large single HTML file Hard to maintain directly Rebuild as typed Next.js) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 785.39 Td (components.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 769.89 Td (AI workflows can become confusing Users lose trust Keep file provenance, approval prompts,) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 757.39 Td (and stage locks visible.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 741.89 Td (Citation verification may hallucinate Academic risk Require PDF retrieval evidence and show) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 729.39 Td (risk verdict when uncertain.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 713.89 Td (API keys can leak Security breach Store only server-side, encrypt BYOK keys, never expose) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 701.39 Td (service role.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 685.89 Td (Supabase schema drift Runtime bugs Use migrations and verification queries.) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 670.39 Td (CLI execution hangs Bad UX Hard timeout and fallback provider path.) Tj ET
+0.84 0.87 0.91 RG 0.7 w 44.00 656.89 m 551.28 656.89 l S
+0.06 0.09 0.13 rg BT /F2 13 Tf 44.00 640.89 Td (22. What Codex Should Do Next) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 44.00 612.89 Td (If implementing this project from the prototype:) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 591.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 591.39 Td (Do not continue editing the giant HTML as production code.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 576.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 576.89 Td (Create a Next.js + TypeScript implementation.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 562.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 562.39 Td (Use the prototype only as visual/workflow reference.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 547.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 547.89 Td (Start with Supabase schema and AppShell.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 533.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 533.39 Td (Implement Dashboard -> Workbench -> Files -> AI routes before advanced analytics.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 518.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 518.89 Td (Keep Validity-Checker UI minimal and document-first.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 504.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 504.39 Td (Keep all AI calls server-side.) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 489.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 489.89 Td (Verify with npm run build after each major slice.) Tj ET
+0.84 0.87 0.91 RG 0.7 w 44.00 477.39 m 551.28 477.39 l S
+0.06 0.09 0.13 rg BT /F2 13 Tf 44.00 461.39 Td (23. Reference Artifacts) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 433.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 433.39 Td (Main prototype: esai-premium-redesign-2.html) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 418.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 418.89 Td (Current Calendar-applied backup:) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 406.39 Td (esai-premium-redesign-2-calendar-event-manager-applied.html) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 391.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 391.89 Td (Prior PRD PDF: output/pdf/esai-premium-redesign-prd.pdf) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 377.39 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 377.39 Td (Prior PRD source: output/pdf/esai-premium-redesign-prd.html) Tj ET
+0.03 0.45 0.34 rg BT /F2 9.2 Tf 48.00 362.89 Td (-) Tj ET
+0.16 0.20 0.27 rg BT /F1 9.2 Tf 62.00 362.89 Td (Recovered backup: esai-premium-redesign-2-db-recovered.html) Tj ET
+endstream
+endobj
+45 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 44 0 R >>
+endobj
+xref
+0 46
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000248 00000 n 
+0000000318 00000 n 
+0000000393 00000 n 
+0000000461 00000 n 
+0000006285 00000 n 
+0000006437 00000 n 
+0000012503 00000 n 
+0000012655 00000 n 
+0000017988 00000 n 
+0000018142 00000 n 
+0000023531 00000 n 
+0000023685 00000 n 
+0000028915 00000 n 
+0000029069 00000 n 
+0000034188 00000 n 
+0000034342 00000 n 
+0000039657 00000 n 
+0000039811 00000 n 
+0000045216 00000 n 
+0000045370 00000 n 
+0000050517 00000 n 
+0000050671 00000 n 
+0000055709 00000 n 
+0000055863 00000 n 
+0000061826 00000 n 
+0000061980 00000 n 
+0000067724 00000 n 
+0000067878 00000 n 
+0000073309 00000 n 
+0000073463 00000 n 
+0000078177 00000 n 
+0000078331 00000 n 
+0000083544 00000 n 
+0000083698 00000 n 
+0000088693 00000 n 
+0000088847 00000 n 
+0000094417 00000 n 
+0000094571 00000 n 
+0000100283 00000 n 
+0000100437 00000 n 
+0000105933 00000 n 
+0000106087 00000 n 
+0000110012 00000 n 
+trailer
+<< /Size 46 /Root 1 0 R >>
+startxref
+110166
+%%EOF
