@@ -127,6 +127,70 @@ export type NodeReadiness = {
   incompatibleInputs: string[];
 };
 
+export type DevsAgentKind = "template_copy" | "custom";
+export type DevsAgentState = "draft" | "published" | "not_pipeline_ready";
+
+export type DevsNeed = {
+  key: string;
+  label: string;
+  acceptedRoles: string[];
+  required: boolean;
+  includeMode: ArtifactIncludeMode;
+};
+
+export type DevsProduces = {
+  key: string;
+  label: string;
+  role: string;
+  defaultFilename?: string;
+};
+
+export type DevsCompartment = {
+  id: string;
+  name: string;
+  slug: string;
+  isDefault: boolean;
+  archived: boolean;
+  sortOrder: number;
+};
+
+export type DevsAgentVersion = {
+  id: string;
+  versionNumber: number;
+  changeSummary: string;
+  isActive: boolean;
+  createdAt: string;
+};
+
+export type DevsAgent = {
+  id: string;
+  compartmentId: string;
+  templateId?: string;
+  templateKey?: string;
+  templateSourcePath?: string;
+  templateContentHash?: string;
+  kind: DevsAgentKind;
+  state: DevsAgentState;
+  name: string;
+  description: string;
+  enabled: boolean;
+  archived: boolean;
+  activeSkillVersionId?: string;
+  publishedSkillContent: string;
+  draftSkillContent: string;
+  draftNeeds: DevsNeed[];
+  draftProduces: DevsProduces[];
+  publishedNeeds: DevsNeed[];
+  publishedProduces: DevsProduces[];
+  draftUpdatedAt?: string;
+};
+
+export type DevsAgentValidation = {
+  blocking: string[];
+  warnings: string[];
+  pipelineReady: boolean;
+};
+
 export type AgentDefinition = {
   id: string;
   stageId: StageId;
