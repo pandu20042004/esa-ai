@@ -4,14 +4,40 @@ import {
   CONTROLLED_OUTPUT_LABELS,
   createSafeContractKey,
   getOutputLabelName,
+  isSafeContractKey,
   validateAgentDraft,
 } from "@/lib/esai/agent-contracts";
 
 describe("agent contract utilities", () => {
+  it("defines the controlled output label set exactly", () => {
+    expect(CONTROLLED_OUTPUT_LABELS).toEqual([
+      "guidebook",
+      "style_profile",
+      "ideation_output",
+      "research_output",
+      "draft_output",
+      "flowchart_output",
+      "parts_list_output",
+      "prototype_output",
+      "ui_mockup_output",
+      "supervisor_review",
+      "final_output",
+      "citation_evidence",
+    ]);
+  });
+
   it("creates safe contract keys from labels", () => {
     expect(createSafeContractKey("Research Brief")).toBe("research_brief");
     expect(createSafeContractKey("  Draft Essay!!! ")).toBe("draft_essay");
     expect(createSafeContractKey("")).toBe("untitled");
+  });
+
+  it("checks safe contract key formatting", () => {
+    expect(isSafeContractKey("research_brief")).toBe(true);
+    expect(isSafeContractKey("draft_essay_2")).toBe(true);
+    expect(isSafeContractKey("Research Brief")).toBe(false);
+    expect(isSafeContractKey("research-brief")).toBe(false);
+    expect(isSafeContractKey("")).toBe(false);
   });
 
   it("exposes friendly names for controlled output labels", () => {
