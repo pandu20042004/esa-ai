@@ -44,6 +44,11 @@ create table if not exists public.user_agents (
   output_contracts jsonb not null default '[]'::jsonb,
   is_custom boolean not null default false,
   enabled boolean not null default true,
+  draft_skill_content text,
+  draft_input_contracts jsonb not null default '[]'::jsonb,
+  draft_output_contracts jsonb not null default '[]'::jsonb,
+  draft_updated_at timestamptz,
+  archived boolean not null default false,
   sort_order int not null default 0,
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz default now(),
@@ -149,6 +154,13 @@ alter table public.competition_files
 update public.competition_files
 set status = case when approved then 'approved' else 'draft' end
 where status is null or status = 'draft';
+
+alter table public.user_agents
+  add column if not exists draft_skill_content text,
+  add column if not exists draft_input_contracts jsonb not null default '[]'::jsonb,
+  add column if not exists draft_output_contracts jsonb not null default '[]'::jsonb,
+  add column if not exists draft_updated_at timestamptz,
+  add column if not exists archived boolean not null default false;
 
 alter table public.output_versions
   add column if not exists summary_text text,
