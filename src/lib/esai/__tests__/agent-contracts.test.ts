@@ -60,4 +60,94 @@ describe("agent contract utilities", () => {
       pipelineReady: true,
     });
   });
+
+  it("blocks duplicate Need keys", () => {
+    expect(
+      validateAgentDraft({
+        prompt: "Write a draft.",
+        needs: [
+          {
+            key: "research_brief",
+            label: "Research brief",
+            acceptedRoles: ["research_output"],
+            required: true,
+            includeMode: "full",
+          },
+          {
+            key: "research_brief",
+            label: "Research brief copy",
+            acceptedRoles: ["research_output"],
+            required: false,
+            includeMode: "summary",
+          },
+        ],
+        produces: [{ key: "draft_essay", label: "Draft essay", role: "draft_output" }],
+        existingRolesInCompartment: [],
+      }).blocking,
+    ).toContain("Duplicate Needs key: research_brief.");
+  });
+
+  it("blocks duplicate Produces keys", () => {
+    expect(
+      validateAgentDraft({
+        prompt: "Write a draft.",
+        needs: [],
+        produces: [
+          { key: "draft_essay", label: "Draft essay", role: "draft_output" },
+          { key: "draft_essay", label: "Draft essay copy", role: "draft_output" },
+        ],
+        existingRolesInCompartment: [],
+      }).blocking,
+    ).toContain("Duplicate Produces key: draft_essay.");
+  });
+
+  it("blocks required Needs without accepted roles", () => {
+    expect(
+      validateAgentDraft({
+        prompt: "Write a draft.",
+        needs: [
+          {
+            key: "research_brief",
+            label: "Research brief",
+            acceptedRoles: [],
+            required: true,
+            includeMode: "full",
+          },
+        ],
+        produces: [{ key: "draft_essay", label: "Draft essay", role: "draft_output" }],
+        existingRolesInCompartment: [],
+      }).blocking,
+    ).toContain("Research brief accepts no output labels yet.");
+  });
+
+  it("blocks Produces items with empty output roles", () => {
+    expect(
+      validateAgentDraft({
+        prompt: "Write a draft.",
+        needs: [],
+        produces: [{ key: "draft_essay", label: "Draft essay", role: " " }],
+        existingRolesInCompartment: [],
+      }).blocking,
+    ).toContain("Draft essay has no output label.");
+  });
+
+  it("blocks unsafe Need and Produces keys", () => {
+    const blocking = validateAgentDraft({
+      prompt: "Write a draft.",
+      needs: [
+        {
+          key: "Research Brief",
+          label: "Research brief",
+          acceptedRoles: ["research_output"],
+          required: true,
+          includeMode: "full",
+        },
+      ],
+      produces: [{ key: "Draft Essay", label: "Draft essay", role: "draft_output" }],
+      existingRolesInCompartment: [],
+    }).blocking;
+
+    expect(blocking).toContain("Need key Research Brief is not safe.");
+    expect(blocking).toContain("Produces key Draft Essay is not safe.");
+  });
 });
