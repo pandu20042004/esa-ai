@@ -63,26 +63,26 @@ export function validateAgentDraft(input: ValidateAgentDraftInput): DevsAgentVal
     blocking.push("Add at least one Produces item before publishing.");
   }
 
-  addDuplicateKeyBlocks("Need", input.needs, blocking);
+  addDuplicateKeyBlocks("Needs", input.needs, blocking);
   addDuplicateKeyBlocks("Produces", input.produces, blocking);
 
   for (const need of input.needs) {
     if (!isSafeContractKey(need.key)) {
-      blocking.push(`Need key ${need.key} is not safe.`);
+      blocking.push(`Needs key ${need.key} uses unsafe characters.`);
     }
 
     if (need.required && need.acceptedRoles.length === 0) {
-      blocking.push(`Required Need ${need.key} must accept at least one role.`);
+      blocking.push(`${need.label} accepts no output labels yet.`);
     }
   }
 
   for (const produce of input.produces) {
     if (!isSafeContractKey(produce.key)) {
-      blocking.push(`Produces key ${produce.key} is not safe.`);
+      blocking.push(`Produces key ${produce.key} uses unsafe characters.`);
     }
 
     if (!produce.role.trim()) {
-      blocking.push(`Produces ${produce.key} must include an output label.`);
+      blocking.push(`${produce.label} has no output label.`);
       continue;
     }
 
@@ -102,7 +102,7 @@ export function validateAgentDraft(input: ValidateAgentDraftInput): DevsAgentVal
 }
 
 function addDuplicateKeyBlocks(
-  label: "Need" | "Produces",
+  label: "Needs" | "Produces",
   items: Array<{ key: string }>,
   blocking: string[],
 ) {
@@ -117,6 +117,6 @@ function addDuplicateKeyBlocks(
   }
 
   for (const key of duplicateKeys) {
-    blocking.push(`Duplicate ${label} key ${key}.`);
+    blocking.push(`Duplicate ${label} key: ${key}.`);
   }
 }

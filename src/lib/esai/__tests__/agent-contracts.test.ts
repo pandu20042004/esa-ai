@@ -147,7 +147,7 @@ describe("agent contract utilities", () => {
       existingRolesInCompartment: [],
     }).blocking;
 
-    expect(blocking).toContain("Need key Research Brief is not safe.");
-    expect(blocking).toContain("Produces key Draft Essay is not safe.");
+    expect(blocking).toContain("Needs key Research Brief uses unsafe characters.");
+    expect(blocking).toContain("Produces key Draft Essay uses unsafe characters.");
   });
 });
