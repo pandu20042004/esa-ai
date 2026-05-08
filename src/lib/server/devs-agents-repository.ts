@@ -20,18 +20,6 @@ export class ValidationError extends Error {
   }
 }
 
-type PublishVersionInput = {
-  userId: string;
-  userAgentId: string;
-  templateId?: string | null;
-  versionNumber: number;
-  skillContent: string;
-  inputContracts: DevsNeed[];
-  outputContracts: DevsProduces[];
-  changeSummary?: string | null;
-  revertedFromVersionId?: string | null;
-};
-
 export function mapCompartmentRow(row: Row): DevsCompartment {
   return {
     id: String(row.id),
@@ -105,21 +93,6 @@ export function mapVersionRow(row: Row): DevsAgentVersion {
 export function nextVersionNumber(rows: Row[]): number {
   if (rows.length === 0) return 1;
   return Math.max(...rows.map((row) => Number(row.version_number ?? 0))) + 1;
-}
-
-export function buildPublishVersionRow(input: PublishVersionInput) {
-  return {
-    user_id: input.userId,
-    user_agent_id: input.userAgentId,
-    template_id: input.templateId ?? null,
-    version_number: input.versionNumber,
-    skill_content: input.skillContent,
-    input_contracts: input.inputContracts,
-    output_contracts: input.outputContracts,
-    change_summary: input.changeSummary ?? null,
-    is_active: true,
-    reverted_from_version_id: input.revertedFromVersionId ?? null,
-  };
 }
 
 const devsNeedSchema = z.object({
@@ -303,6 +276,7 @@ export function createDevsAgentsRepository(userId: string) {
     async publishDraft(agentId: string, changeSummary?: string): Promise<DevsAgent> {
       const agent = await this.getAgent(agentId);
       if (!agent) throw new Error("Agent not found.");
+      if (!agent.draftUpdatedAt) throw new ValidationError("No draft to publish.");
 
       const draftNeeds = parseNeeds(agent.draftNeeds);
       const draftProduces = parseProduces(agent.draftProduces);
@@ -326,10 +300,7 @@ export function createDevsAgentsRepository(userId: string) {
       const { error } = await supabase.rpc("publish_agent_skill_version", {
         p_user_id: userId,
         p_user_agent_id: agentId,
-        p_template_id: agent.templateId ?? null,
-        p_skill_content: agent.draftSkillContent,
-        p_input_contracts: draftNeeds,
-        p_output_contracts: draftProduces,
+        p_expected_draft_updated_at: agent.draftUpdatedAt,
         p_change_summary: changeSummary?.trim() || null,
       });
 

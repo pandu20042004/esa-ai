@@ -1,17 +1,26 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
 import {
-  buildPublishVersionRow,
+  createDevsAgentsRepository,
   mapCompartmentRow,
   mapUserAgentRow,
   nextVersionNumber,
   parseNeeds,
   parseProduces,
 } from "@/lib/server/devs-agents-repository";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+
+vi.mock("@/lib/supabase/admin", () => ({
+  createSupabaseAdminClient: vi.fn(),
+}));
 
 describe("devs agents repository helpers", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("maps compartment rows to UI shape", () => {
     expect(
       mapCompartmentRow({
@@ -225,59 +234,124 @@ describe("devs agents repository helpers", () => {
     expect(() => parseNeeds({ key: "guidebook" })).toThrow("Invalid input contracts.");
   });
 
-  it("builds active publish version insert rows", () => {
-    expect(
-      buildPublishVersionRow({
-        userId: "user-1",
-        userAgentId: "agent-1",
-        templateId: "template-1",
-        versionNumber: 3,
-        skillContent: "skill body",
-        inputContracts: [
-          {
-            key: "guidebook",
-            label: "Guidebook",
-            acceptedRoles: ["guidebook"],
-            required: true,
-            includeMode: "full",
-          },
-        ],
-        outputContracts: [
-          {
-            key: "draft",
-            label: "Draft",
-            role: "draft_output",
-            defaultFilename: "draft.md",
-          },
-        ],
-        changeSummary: "Publish draft edits.",
-      }),
-    ).toEqual({
-      user_id: "user-1",
-      user_agent_id: "agent-1",
+  it("publishes with the expected locked-draft RPC arguments", async () => {
+    const draftUpdatedAt = "2026-05-08T01:00:00.000Z";
+    const draftRow = {
+      id: "agent-1",
+      compartment_id: "compartment-1",
       template_id: "template-1",
-      version_number: 3,
-      skill_content: "skill body",
-      input_contracts: [
-        {
-          key: "guidebook",
-          label: "Guidebook",
-          acceptedRoles: ["guidebook"],
-          required: true,
-          includeMode: "full",
-        },
-      ],
-      output_contracts: [
+      name: "Draft Agent",
+      description: "",
+      is_custom: false,
+      enabled: true,
+      archived: false,
+      draft_skill_content: "draft skill",
+      draft_input_contracts: [],
+      draft_output_contracts: [
         {
           key: "draft",
           label: "Draft",
           role: "draft_output",
-          defaultFilename: "draft.md",
         },
       ],
-      change_summary: "Publish draft edits.",
-      is_active: true,
-      reverted_from_version_id: null,
+      draft_updated_at: draftUpdatedAt,
+      agent_templates: null,
+      agent_skill_versions: null,
+    };
+    const publishedRow = {
+      ...draftRow,
+      active_skill_version_id: "version-1",
+      draft_updated_at: null,
+      agent_skill_versions: {
+        id: "version-1",
+        skill_content: "draft skill",
+        input_contracts: [],
+        output_contracts: draftRow.draft_output_contracts,
+      },
+    };
+    const getDraftBuilder = createMaybeSingleBuilder(draftRow);
+    const listBuilder = createOrderBuilder([draftRow]);
+    const getPublishedBuilder = createMaybeSingleBuilder(publishedRow);
+    const rpc = vi.fn().mockResolvedValue({ error: null });
+
+    vi.mocked(createSupabaseAdminClient).mockReturnValue({
+      from: vi
+        .fn()
+        .mockReturnValueOnce(getDraftBuilder)
+        .mockReturnValueOnce(listBuilder)
+        .mockReturnValueOnce(getPublishedBuilder),
+      rpc,
+    } as never);
+
+    await createDevsAgentsRepository("user-1").publishDraft("agent-1", "  Publish edits.  ");
+
+    expect(rpc).toHaveBeenCalledWith("publish_agent_skill_version", {
+      p_user_id: "user-1",
+      p_user_agent_id: "agent-1",
+      p_expected_draft_updated_at: draftUpdatedAt,
+      p_change_summary: "Publish edits.",
     });
   });
+
+  it("rejects publishing when no draft exists", async () => {
+    const publishedRow = {
+      id: "agent-1",
+      compartment_id: "compartment-1",
+      template_id: "template-1",
+      name: "Published Agent",
+      description: "",
+      is_custom: false,
+      enabled: true,
+      archived: false,
+      active_skill_version_id: "version-1",
+      draft_skill_content: null,
+      draft_input_contracts: [],
+      draft_output_contracts: [],
+      draft_updated_at: null,
+      agent_templates: null,
+      agent_skill_versions: {
+        id: "version-1",
+        skill_content: "published skill",
+        input_contracts: [],
+        output_contracts: [
+          {
+            key: "draft",
+            label: "Draft",
+            role: "draft_output",
+          },
+        ],
+      },
+    };
+    const rpc = vi.fn().mockResolvedValue({ error: null });
+
+    vi.mocked(createSupabaseAdminClient).mockReturnValue({
+      from: vi
+        .fn()
+        .mockReturnValueOnce(createMaybeSingleBuilder(publishedRow))
+        .mockReturnValueOnce(createOrderBuilder([publishedRow]))
+        .mockReturnValueOnce(createMaybeSingleBuilder(publishedRow)),
+      rpc,
+    } as never);
+
+    await expect(createDevsAgentsRepository("user-1").publishDraft("agent-1")).rejects.toThrow(
+      "No draft to publish.",
+    );
+    expect(rpc).not.toHaveBeenCalled();
+  });
 });
+
+function createMaybeSingleBuilder(data: unknown) {
+  return {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockResolvedValue({ data, error: null }),
+  };
+}
+
+function createOrderBuilder(data: unknown[]) {
+  return {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    order: vi.fn().mockResolvedValue({ data, error: null }),
+  };
+}

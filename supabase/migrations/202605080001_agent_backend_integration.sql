@@ -194,13 +194,12 @@ create table if not exists public.notifications (
   created_at timestamptz default now()
 );
 
+drop function if exists public.publish_agent_skill_version(uuid, uuid, uuid, text, jsonb, jsonb, text);
+
 create or replace function public.publish_agent_skill_version(
   p_user_id uuid,
   p_user_agent_id uuid,
-  p_template_id uuid,
-  p_skill_content text,
-  p_input_contracts jsonb,
-  p_output_contracts jsonb,
+  p_expected_draft_updated_at timestamptz,
   p_change_summary text
 )
 returns uuid
@@ -210,14 +209,38 @@ as $$
 declare
   v_version_number int;
   v_version_id uuid;
+  v_template_id uuid;
+  v_skill_content text;
+  v_input_contracts jsonb;
+  v_output_contracts jsonb;
+  v_draft_updated_at timestamptz;
 begin
-  perform 1
+  select
+    template_id,
+    draft_skill_content,
+    draft_input_contracts,
+    draft_output_contracts,
+    draft_updated_at
+  into
+    v_template_id,
+    v_skill_content,
+    v_input_contracts,
+    v_output_contracts,
+    v_draft_updated_at
   from public.user_agents
   where id = p_user_agent_id and user_id = p_user_id
   for update;
 
   if not found then
     raise exception 'Agent not found.';
+  end if;
+
+  if v_draft_updated_at is null then
+    raise exception 'No draft to publish.';
+  end if;
+
+  if p_expected_draft_updated_at is distinct from v_draft_updated_at then
+    raise exception 'Draft changed before publish. Refresh and try again.';
   end if;
 
   perform 1
@@ -247,11 +270,11 @@ begin
   ) values (
     p_user_id,
     p_user_agent_id,
-    p_template_id,
+    v_template_id,
     v_version_number,
-    p_skill_content,
-    coalesce(p_input_contracts, '[]'::jsonb),
-    coalesce(p_output_contracts, '[]'::jsonb),
+    coalesce(v_skill_content, ''),
+    coalesce(v_input_contracts, '[]'::jsonb),
+    coalesce(v_output_contracts, '[]'::jsonb),
     p_change_summary,
     true
   ) returning id into v_version_id;
@@ -266,8 +289,8 @@ begin
 end;
 $$;
 
-revoke all on function public.publish_agent_skill_version(uuid, uuid, uuid, text, jsonb, jsonb, text) from public, anon, authenticated;
-grant execute on function public.publish_agent_skill_version(uuid, uuid, uuid, text, jsonb, jsonb, text) to service_role;
+revoke all on function public.publish_agent_skill_version(uuid, uuid, timestamptz, text) from public, anon, authenticated;
+grant execute on function public.publish_agent_skill_version(uuid, uuid, timestamptz, text) to service_role;
 
 alter table public.agent_templates enable row level security;
 alter table public.compartments enable row level security;

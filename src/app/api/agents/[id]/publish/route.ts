@@ -32,6 +32,8 @@ function errorResponse(error: unknown, fallback = "Request failed.") {
 
   if (error instanceof ValidationError || (error instanceof Error && error.name === "ValidationError")) {
     status = 400;
+  } else if (message === "Draft changed before publish. Refresh and try again.") {
+    status = 409;
   } else if (["Agent not found.", "Version not found.", "Template not found."].includes(message)) {
     status = 404;
   }
