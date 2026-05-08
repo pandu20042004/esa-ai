@@ -1,5 +1,8 @@
 import { getRequestUser, unauthorizedResponse } from "@/lib/server/auth";
-import { createDevsAgentsRepository } from "@/lib/server/devs-agents-repository";
+import {
+  ValidationError,
+  createDevsAgentsRepository,
+} from "@/lib/server/devs-agents-repository";
 
 const meta = { backendMode: "supabase" };
 
@@ -25,6 +28,15 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
 function errorResponse(error: unknown, fallback = "Request failed.") {
   const message = error instanceof Error ? error.message : fallback;
-  const status = /not found/i.test(message) ? 404 : /required|template/i.test(message) ? 400 : 500;
+  let status = 500;
+
+  if (error instanceof ValidationError || (error instanceof Error && error.name === "ValidationError")) {
+    status = 400;
+  } else if (["Agent not found.", "Version not found.", "Template not found."].includes(message)) {
+    status = 404;
+  } else if (message === "Version is required." || message === "Agent has no template.") {
+    status = 400;
+  }
+
   return Response.json({ error: message }, { status });
 }

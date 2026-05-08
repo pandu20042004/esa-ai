@@ -9,8 +9,16 @@ import type {
   DevsNeed,
   DevsProduces,
 } from "@/types/esai";
+import { z } from "zod";
 
 type Row = Record<string, unknown>;
+
+export class ValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ValidationError";
+  }
+}
 
 type PublishVersionInput = {
   userId: string;
@@ -112,6 +120,36 @@ export function buildPublishVersionRow(input: PublishVersionInput) {
     is_active: true,
     reverted_from_version_id: input.revertedFromVersionId ?? null,
   };
+}
+
+const devsNeedSchema = z.object({
+  key: z.string().min(1),
+  label: z.string().default(""),
+  acceptedRoles: z.array(z.string()).default([]),
+  required: z.boolean().default(false),
+  includeMode: z.enum(["full", "summary", "metadata"]).default("full"),
+});
+
+const devsProducesSchema = z.object({
+  key: z.string().min(1),
+  label: z.string().default(""),
+  role: z.string().default(""),
+  defaultFilename: z.string().optional(),
+});
+
+const devsNeedsSchema = z.array(devsNeedSchema);
+const devsProducesListSchema = z.array(devsProducesSchema);
+
+export function parseNeeds(value: unknown): DevsNeed[] {
+  const result = devsNeedsSchema.safeParse(value);
+  if (!result.success) throw new ValidationError("Invalid input contracts.");
+  return result.data;
+}
+
+export function parseProduces(value: unknown): DevsProduces[] {
+  const result = devsProducesListSchema.safeParse(value);
+  if (!result.success) throw new ValidationError("Invalid output contracts.");
+  return result.data;
 }
 
 export function createDevsAgentsRepository(userId: string) {
@@ -227,14 +265,17 @@ export function createDevsAgentsRepository(userId: string) {
 
     async saveDraft(
       agentId: string,
-      input: { skillContent: string; needs: DevsNeed[]; produces: DevsProduces[] },
+      input: { skillContent: string; needs: unknown; produces: unknown },
     ): Promise<DevsAgent> {
+      const needs = parseNeeds(input.needs);
+      const produces = parseProduces(input.produces);
+
       const { data, error } = await supabase
         .from("user_agents")
         .update({
           draft_skill_content: input.skillContent,
-          draft_input_contracts: input.needs,
-          draft_output_contracts: input.produces,
+          draft_input_contracts: needs,
+          draft_output_contracts: produces,
           draft_updated_at: new Date().toISOString(),
         })
         .eq("user_id", userId)
@@ -263,6 +304,9 @@ export function createDevsAgentsRepository(userId: string) {
       const agent = await this.getAgent(agentId);
       if (!agent) throw new Error("Agent not found.");
 
+      const draftNeeds = parseNeeds(agent.draftNeeds);
+      const draftProduces = parseProduces(agent.draftProduces);
+
       const agentsInCompartment = await this.listAgents(agent.compartmentId);
       const existingRolesInCompartment = agentsInCompartment.flatMap((compartmentAgent) => [
         ...compartmentAgent.draftProduces.map((produce) => produce.role),
@@ -270,62 +314,26 @@ export function createDevsAgentsRepository(userId: string) {
       ]);
       const validation = validateAgentDraft({
         prompt: agent.draftSkillContent,
-        needs: agent.draftNeeds,
-        produces: agent.draftProduces,
+        needs: draftNeeds,
+        produces: draftProduces,
         existingRolesInCompartment,
       });
 
       if (validation.blocking.length > 0) {
-        const error = new Error(validation.blocking.join(" "));
-        error.name = "ValidationError";
-        throw error;
+        throw new ValidationError(validation.blocking.join(" "));
       }
 
-      const { data: existingVersionRows, error: versionsError } = await supabase
-        .from("agent_skill_versions")
-        .select("version_number")
-        .eq("user_id", userId)
-        .eq("user_agent_id", agentId);
+      const { error } = await supabase.rpc("publish_agent_skill_version", {
+        p_user_id: userId,
+        p_user_agent_id: agentId,
+        p_template_id: agent.templateId ?? null,
+        p_skill_content: agent.draftSkillContent,
+        p_input_contracts: draftNeeds,
+        p_output_contracts: draftProduces,
+        p_change_summary: changeSummary?.trim() || null,
+      });
 
-      if (versionsError) throw new Error(versionsError.message);
-
-      const { error: deactivateError } = await supabase
-        .from("agent_skill_versions")
-        .update({ is_active: false })
-        .eq("user_id", userId)
-        .eq("user_agent_id", agentId);
-
-      if (deactivateError) throw new Error(deactivateError.message);
-
-      const { data: versionRow, error: insertError } = await supabase
-        .from("agent_skill_versions")
-        .insert(
-          buildPublishVersionRow({
-            userId,
-            userAgentId: agentId,
-            templateId: agent.templateId,
-            versionNumber: nextVersionNumber((existingVersionRows ?? []) as Row[]),
-            skillContent: agent.draftSkillContent,
-            inputContracts: agent.draftNeeds,
-            outputContracts: agent.draftProduces,
-            changeSummary,
-          }),
-        )
-        .select("id")
-        .single();
-
-      if (insertError) throw new Error(insertError.message);
-
-      const { error: updateError } = await supabase
-        .from("user_agents")
-        .update({
-          active_skill_version_id: (versionRow as Row).id,
-          draft_updated_at: null,
-        })
-        .eq("user_id", userId)
-        .eq("id", agentId);
-
-      if (updateError) throw new Error(updateError.message);
+      if (error) throw new Error(error.message);
 
       const latestAgent = await this.getAgent(agentId);
       if (!latestAgent) throw new Error("Agent not found.");
@@ -459,19 +467,37 @@ function isRow(value: unknown): value is Row {
 }
 
 function asNeeds(value: unknown): DevsNeed[] {
-  return Array.isArray(value) ? (value as DevsNeed[]) : [];
+  try {
+    return parseNeeds(value);
+  } catch {
+    return [];
+  }
 }
 
 function asProduces(value: unknown): DevsProduces[] {
-  return Array.isArray(value) ? (value as DevsProduces[]) : [];
+  try {
+    return parseProduces(value);
+  } catch {
+    return [];
+  }
 }
 
 function asNeedsWithFallback(value: unknown, fallback: unknown): DevsNeed[] {
-  return Array.isArray(value) ? (value as DevsNeed[]) : asNeeds(fallback);
+  if (Array.isArray(value)) {
+    const needs = asNeeds(value);
+    return needs.length > 0 || value.length === 0 ? needs : asNeeds(fallback);
+  }
+
+  return asNeeds(fallback);
 }
 
 function asProducesWithFallback(value: unknown, fallback: unknown): DevsProduces[] {
-  return Array.isArray(value) ? (value as DevsProduces[]) : asProduces(fallback);
+  if (Array.isArray(value)) {
+    const produces = asProduces(value);
+    return produces.length > 0 || value.length === 0 ? produces : asProduces(fallback);
+  }
+
+  return asProduces(fallback);
 }
 
 function asOptionalString(value: unknown): string | undefined {

@@ -194,6 +194,81 @@ create table if not exists public.notifications (
   created_at timestamptz default now()
 );
 
+create or replace function public.publish_agent_skill_version(
+  p_user_id uuid,
+  p_user_agent_id uuid,
+  p_template_id uuid,
+  p_skill_content text,
+  p_input_contracts jsonb,
+  p_output_contracts jsonb,
+  p_change_summary text
+)
+returns uuid
+language plpgsql
+set search_path = public
+as $$
+declare
+  v_version_number int;
+  v_version_id uuid;
+begin
+  perform 1
+  from public.user_agents
+  where id = p_user_agent_id and user_id = p_user_id
+  for update;
+
+  if not found then
+    raise exception 'Agent not found.';
+  end if;
+
+  perform 1
+  from public.agent_skill_versions
+  where user_agent_id = p_user_agent_id and user_id = p_user_id
+  for update;
+
+  select coalesce(max(version_number), 0) + 1
+  into v_version_number
+  from public.agent_skill_versions
+  where user_agent_id = p_user_agent_id and user_id = p_user_id;
+
+  update public.agent_skill_versions
+  set is_active = false
+  where user_agent_id = p_user_agent_id and user_id = p_user_id;
+
+  insert into public.agent_skill_versions (
+    user_id,
+    user_agent_id,
+    template_id,
+    version_number,
+    skill_content,
+    input_contracts,
+    output_contracts,
+    change_summary,
+    is_active
+  ) values (
+    p_user_id,
+    p_user_agent_id,
+    p_template_id,
+    v_version_number,
+    p_skill_content,
+    coalesce(p_input_contracts, '[]'::jsonb),
+    coalesce(p_output_contracts, '[]'::jsonb),
+    p_change_summary,
+    true
+  ) returning id into v_version_id;
+
+  update public.user_agents
+  set active_skill_version_id = v_version_id,
+      draft_updated_at = null,
+      updated_at = now()
+  where id = p_user_agent_id and user_id = p_user_id;
+
+  return v_version_id;
+end;
+$$;
+
+revoke all on function public.publish_agent_skill_version(uuid, uuid, uuid, text, jsonb, jsonb, text) from public, anon, authenticated;
+grant execute on function public.publish_agent_skill_version(uuid, uuid, uuid, text, jsonb, jsonb, text) to service_role;
+
 alter table public.agent_templates enable row level security;
 alter table public.compartments enable row level security;
 alter table public.user_agents enable row level security;

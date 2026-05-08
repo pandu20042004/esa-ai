@@ -7,6 +7,8 @@ import {
   mapCompartmentRow,
   mapUserAgentRow,
   nextVersionNumber,
+  parseNeeds,
+  parseProduces,
 } from "@/lib/server/devs-agents-repository";
 
 describe("devs agents repository helpers", () => {
@@ -192,6 +194,35 @@ describe("devs agents repository helpers", () => {
   it("returns the next publish version number", () => {
     expect(nextVersionNumber([])).toBe(1);
     expect(nextVersionNumber([{ version_number: 1 }, { version_number: 4 }])).toBe(5);
+  });
+
+  it("coerces contract defaults for valid needs and produces", () => {
+    expect(parseNeeds([{ key: "guidebook" }])).toEqual([
+      {
+        key: "guidebook",
+        label: "",
+        acceptedRoles: [],
+        required: false,
+        includeMode: "full",
+      },
+    ]);
+
+    expect(parseProduces([{ key: "draft", defaultFilename: "draft.md" }])).toEqual([
+      {
+        key: "draft",
+        label: "",
+        role: "",
+        defaultFilename: "draft.md",
+      },
+    ]);
+  });
+
+  it("rejects malformed contract arrays", () => {
+    expect(() => parseNeeds([{ key: "" }])).toThrow("Invalid input contracts.");
+    expect(() => parseProduces([{ key: "draft", role: 123 }])).toThrow(
+      "Invalid output contracts.",
+    );
+    expect(() => parseNeeds({ key: "guidebook" })).toThrow("Invalid input contracts.");
   });
 
   it("builds active publish version insert rows", () => {
