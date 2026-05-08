@@ -1,3 +1,12 @@
+create extension if not exists "pgcrypto";
+
+do $$
+begin
+  if to_regclass('public.competitions') is null then
+    raise exception 'Missing base ESAI schema. Run supabase/migrations/202605070001_esai_premium_core.sql first, then rerun this agent integration migration.';
+  end if;
+end $$;
+
 create table if not exists public.agent_templates (
   id uuid primary key default gen_random_uuid(),
   template_key text not null unique,
@@ -55,9 +64,9 @@ create table if not exists public.user_agents (
   updated_at timestamptz default now()
 );
 
+drop index if exists public.user_agents_template_once_per_compartment;
 create unique index if not exists user_agents_template_once_per_compartment
-  on public.user_agents (user_id, compartment_id, template_id)
-  where template_id is not null;
+  on public.user_agents (user_id, compartment_id, template_id);
 
 create table if not exists public.agent_skill_versions (
   id uuid primary key default gen_random_uuid(),
@@ -75,11 +84,21 @@ create table if not exists public.agent_skill_versions (
   unique (user_agent_id, version_number)
 );
 
-alter table public.user_agents
-  add constraint user_agents_active_skill_version_id_fkey
-  foreign key (active_skill_version_id)
-  references public.agent_skill_versions(id)
-  on delete set null;
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'user_agents_active_skill_version_id_fkey'
+      and conrelid = 'public.user_agents'::regclass
+  ) then
+    alter table public.user_agents
+      add constraint user_agents_active_skill_version_id_fkey
+      foreign key (active_skill_version_id)
+      references public.agent_skill_versions(id)
+      on delete set null;
+  end if;
+end $$;
 
 create table if not exists public.pipeline_templates (
   id uuid primary key default gen_random_uuid(),
@@ -301,6 +320,19 @@ alter table public.competition_pipelines enable row level security;
 alter table public.pipeline_nodes enable row level security;
 alter table public.pipeline_edges enable row level security;
 alter table public.notifications enable row level security;
+
+drop policy if exists "agent templates readable" on public.agent_templates;
+drop policy if exists "pipeline templates readable" on public.pipeline_templates;
+drop policy if exists "compartments own rows" on public.compartments;
+drop policy if exists "user agents own rows" on public.user_agents;
+drop policy if exists "agent skill versions own rows" on public.agent_skill_versions;
+drop policy if exists "competition pipelines own rows" on public.competition_pipelines;
+drop policy if exists "pipeline nodes through owned pipeline" on public.pipeline_nodes;
+drop policy if exists "pipeline edges through owned pipeline" on public.pipeline_edges;
+drop policy if exists "notifications own rows" on public.notifications;
+drop policy if exists "competition files storage own read" on storage.objects;
+drop policy if exists "competition files storage own insert" on storage.objects;
+drop policy if exists "competition files storage own update" on storage.objects;
 
 create policy "agent templates readable" on public.agent_templates
   for select to authenticated using (true);
