@@ -135,7 +135,9 @@ export function createDevsAgentsRepository(userId: string) {
     },
 
     async createCompartment(name: string): Promise<DevsCompartment> {
-      const trimmedName = name.trim() || "New compartment";
+      const trimmedName = name.trim();
+      if (!trimmedName) throw new Error("Compartment name is required.");
+
       const { data, error } = await supabase
         .from("compartments")
         .insert({
@@ -149,6 +151,49 @@ export function createDevsAgentsRepository(userId: string) {
 
       if (error) throw new Error(error.message);
       return mapCompartmentRow(data as Row);
+    },
+
+    async updateCompartment(
+      id: string,
+      input: { name?: string; archived?: boolean },
+    ): Promise<DevsCompartment | null> {
+      const patch: Record<string, unknown> = {};
+
+      if (input.name !== undefined) {
+        const trimmedName = input.name.trim();
+        if (!trimmedName) throw new Error("Compartment name is required.");
+        patch.name = trimmedName;
+        patch.slug = createSafeContractKey(trimmedName);
+      }
+
+      if (typeof input.archived === "boolean") {
+        patch.archived = input.archived;
+      }
+
+      if (Object.keys(patch).length === 0) {
+        const { data, error } = await supabase
+          .from("compartments")
+          .select("*")
+          .eq("user_id", userId)
+          .eq("id", id)
+          .eq("is_default", false)
+          .maybeSingle();
+
+        if (error) throw new Error(error.message);
+        return data ? mapCompartmentRow(data as Row) : null;
+      }
+
+      const { data, error } = await supabase
+        .from("compartments")
+        .update(patch)
+        .eq("user_id", userId)
+        .eq("id", id)
+        .eq("is_default", false)
+        .select("*")
+        .maybeSingle();
+
+      if (error) throw new Error(error.message);
+      return data ? mapCompartmentRow(data as Row) : null;
     },
 
     async listAgents(compartmentId?: string | null): Promise<DevsAgent[]> {
@@ -178,6 +223,49 @@ export function createDevsAgentsRepository(userId: string) {
 
       if (error) throw new Error(error.message);
       return data ? mapUserAgentRow(data as Row) : null;
+    },
+
+    async createAgent(input: {
+      compartmentId: string;
+      name: string;
+      description?: string;
+    }): Promise<DevsAgent> {
+      const compartmentId = input.compartmentId.trim();
+      const name = input.name.trim();
+
+      if (!compartmentId) throw new Error("Compartment is required.");
+      if (!name) throw new Error("Agent name is required.");
+
+      const { data, error } = await supabase
+        .from("user_agents")
+        .insert({
+          user_id: userId,
+          compartment_id: compartmentId,
+          name,
+          description: input.description ?? "",
+          is_custom: true,
+          enabled: true,
+          archived: false,
+          draft_skill_content: "",
+          draft_input_contracts: [],
+          draft_output_contracts: [],
+          draft_updated_at: new Date().toISOString(),
+        })
+        .select(agentSelect)
+        .single();
+
+      if (error) throw new Error(error.message);
+      return mapUserAgentRow(data as Row);
+    },
+
+    async archiveAgent(agentId: string): Promise<void> {
+      const { error } = await supabase
+        .from("user_agents")
+        .update({ archived: true })
+        .eq("user_id", userId)
+        .eq("id", agentId);
+
+      if (error) throw new Error(error.message);
     },
   };
 }

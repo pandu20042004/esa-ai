@@ -3,14 +3,12 @@ import { createDevsAgentsRepository } from "@/lib/server/devs-agents-repository"
 
 const meta = { backendMode: "supabase" };
 
-export async function GET(request: Request) {
+export async function GET() {
   const user = await getRequestUser();
   if (!user) return unauthorizedResponse();
 
-  const { searchParams } = new URL(request.url);
-  const compartmentId = searchParams.get("compartmentId");
   const repository = createDevsAgentsRepository(user.id);
-  const data = await repository.listAgents(compartmentId);
+  const data = await repository.listCompartments();
 
   return Response.json({ data, meta });
 }
@@ -23,12 +21,7 @@ export async function POST(request: Request) {
   const repository = createDevsAgentsRepository(user.id);
 
   try {
-    const data = await repository.createAgent({
-      compartmentId: typeof body.compartmentId === "string" ? body.compartmentId : "",
-      name: typeof body.name === "string" ? body.name : "",
-      description: typeof body.description === "string" ? body.description : "",
-    });
-
+    const data = await repository.createCompartment(typeof body.name === "string" ? body.name : "");
     return Response.json({ data, meta }, { status: 201 });
   } catch (error) {
     return repositoryErrorResponse(error);
@@ -36,7 +29,7 @@ export async function POST(request: Request) {
 }
 
 function repositoryErrorResponse(error: unknown) {
-  const message = error instanceof Error ? error.message : "Unable to create agent.";
+  const message = error instanceof Error ? error.message : "Unable to create compartment.";
   const status = message.toLowerCase().includes("required") ? 400 : 500;
   return Response.json({ error: message }, { status });
 }
