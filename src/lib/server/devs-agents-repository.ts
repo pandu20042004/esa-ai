@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createSafeContractKey } from "@/lib/esai/agent-contracts";
+import { createSafeContractKey, validateAgentDraft } from "@/lib/esai/agent-contracts";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type {
   DevsAgent,
@@ -223,6 +223,159 @@ export function createDevsAgentsRepository(userId: string) {
 
       if (error) throw new Error(error.message);
       return data ? mapUserAgentRow(data as Row) : null;
+    },
+
+    async saveDraft(
+      agentId: string,
+      input: { skillContent: string; needs: DevsNeed[]; produces: DevsProduces[] },
+    ): Promise<DevsAgent> {
+      const { data, error } = await supabase
+        .from("user_agents")
+        .update({
+          draft_skill_content: input.skillContent,
+          draft_input_contracts: input.needs,
+          draft_output_contracts: input.produces,
+          draft_updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", userId)
+        .eq("id", agentId)
+        .select(agentSelect)
+        .maybeSingle();
+
+      if (error) throw new Error(error.message);
+      if (!data) throw new Error("Agent not found.");
+      return mapUserAgentRow(data as Row);
+    },
+
+    async listVersions(agentId: string): Promise<DevsAgentVersion[]> {
+      const { data, error } = await supabase
+        .from("agent_skill_versions")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("user_agent_id", agentId)
+        .order("version_number", { ascending: false });
+
+      if (error) throw new Error(error.message);
+      return (data ?? []).map((row) => mapVersionRow(row as Row));
+    },
+
+    async publishDraft(agentId: string, changeSummary?: string): Promise<DevsAgent> {
+      const agent = await this.getAgent(agentId);
+      if (!agent) throw new Error("Agent not found.");
+
+      const agentsInCompartment = await this.listAgents(agent.compartmentId);
+      const existingRolesInCompartment = agentsInCompartment.flatMap((compartmentAgent) => [
+        ...compartmentAgent.draftProduces.map((produce) => produce.role),
+        ...compartmentAgent.publishedProduces.map((produce) => produce.role),
+      ]);
+      const validation = validateAgentDraft({
+        prompt: agent.draftSkillContent,
+        needs: agent.draftNeeds,
+        produces: agent.draftProduces,
+        existingRolesInCompartment,
+      });
+
+      if (validation.blocking.length > 0) {
+        const error = new Error(validation.blocking.join(" "));
+        error.name = "ValidationError";
+        throw error;
+      }
+
+      const { data: existingVersionRows, error: versionsError } = await supabase
+        .from("agent_skill_versions")
+        .select("version_number")
+        .eq("user_id", userId)
+        .eq("user_agent_id", agentId);
+
+      if (versionsError) throw new Error(versionsError.message);
+
+      const { error: deactivateError } = await supabase
+        .from("agent_skill_versions")
+        .update({ is_active: false })
+        .eq("user_id", userId)
+        .eq("user_agent_id", agentId);
+
+      if (deactivateError) throw new Error(deactivateError.message);
+
+      const { data: versionRow, error: insertError } = await supabase
+        .from("agent_skill_versions")
+        .insert(
+          buildPublishVersionRow({
+            userId,
+            userAgentId: agentId,
+            templateId: agent.templateId,
+            versionNumber: nextVersionNumber((existingVersionRows ?? []) as Row[]),
+            skillContent: agent.draftSkillContent,
+            inputContracts: agent.draftNeeds,
+            outputContracts: agent.draftProduces,
+            changeSummary,
+          }),
+        )
+        .select("id")
+        .single();
+
+      if (insertError) throw new Error(insertError.message);
+
+      const { error: updateError } = await supabase
+        .from("user_agents")
+        .update({
+          active_skill_version_id: (versionRow as Row).id,
+          draft_updated_at: null,
+        })
+        .eq("user_id", userId)
+        .eq("id", agentId);
+
+      if (updateError) throw new Error(updateError.message);
+
+      const latestAgent = await this.getAgent(agentId);
+      if (!latestAgent) throw new Error("Agent not found.");
+      return latestAgent;
+    },
+
+    async copyVersionToDraft(
+      agentId: string,
+      input: { versionId?: string; useTemplate?: boolean },
+    ): Promise<DevsAgent> {
+      const agent = await this.getAgent(agentId);
+      if (!agent) throw new Error("Agent not found.");
+
+      if (input.useTemplate) {
+        if (!agent.templateId) throw new Error("Agent has no template.");
+
+        const { data: template, error } = await supabase
+          .from("agent_templates")
+          .select("default_skill_content")
+          .eq("id", agent.templateId)
+          .maybeSingle();
+
+        if (error) throw new Error(error.message);
+        if (!template) throw new Error("Template not found.");
+
+        return this.saveDraft(agentId, {
+          skillContent: String((template as Row).default_skill_content ?? ""),
+          needs: [],
+          produces: [],
+        });
+      }
+
+      if (!input.versionId) throw new Error("Version is required.");
+
+      const { data: version, error } = await supabase
+        .from("agent_skill_versions")
+        .select("skill_content, input_contracts, output_contracts")
+        .eq("user_id", userId)
+        .eq("user_agent_id", agentId)
+        .eq("id", input.versionId)
+        .maybeSingle();
+
+      if (error) throw new Error(error.message);
+      if (!version) throw new Error("Version not found.");
+
+      return this.saveDraft(agentId, {
+        skillContent: String((version as Row).skill_content ?? ""),
+        needs: asNeeds((version as Row).input_contracts),
+        produces: asProduces((version as Row).output_contracts),
+      });
     },
 
     async createAgent(input: {
