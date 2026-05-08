@@ -7,12 +7,16 @@ export async function GET(request: Request) {
   const user = await getRequestUser();
   if (!user) return unauthorizedResponse();
 
-  const { searchParams } = new URL(request.url);
-  const compartmentId = searchParams.get("compartmentId");
-  const repository = createDevsAgentsRepository(user.id);
-  const data = await repository.listAgents(compartmentId);
+  try {
+    const { searchParams } = new URL(request.url);
+    const compartmentId = searchParams.get("compartmentId");
+    const repository = createDevsAgentsRepository(user.id);
+    const data = await repository.listAgents(compartmentId);
 
-  return Response.json({ data, meta });
+    return Response.json({ data, meta });
+  } catch (error) {
+    return errorResponse(error, "Unable to list agents.");
+  }
 }
 
 export async function POST(request: Request) {
@@ -20,9 +24,9 @@ export async function POST(request: Request) {
   if (!user) return unauthorizedResponse();
 
   const body = await request.json().catch(() => ({}));
-  const repository = createDevsAgentsRepository(user.id);
 
   try {
+    const repository = createDevsAgentsRepository(user.id);
     const data = await repository.createAgent({
       compartmentId: typeof body.compartmentId === "string" ? body.compartmentId : "",
       name: typeof body.name === "string" ? body.name : "",
@@ -31,12 +35,12 @@ export async function POST(request: Request) {
 
     return Response.json({ data, meta }, { status: 201 });
   } catch (error) {
-    return repositoryErrorResponse(error);
+    return errorResponse(error, "Unable to create agent.");
   }
 }
 
-function repositoryErrorResponse(error: unknown) {
-  const message = error instanceof Error ? error.message : "Unable to create agent.";
-  const status = message.toLowerCase().includes("required") ? 400 : 500;
+function errorResponse(error: unknown, fallback = "Request failed.") {
+  const message = error instanceof Error ? error.message : fallback;
+  const status = /required|not found/i.test(message) ? 400 : 500;
   return Response.json({ error: message }, { status });
 }

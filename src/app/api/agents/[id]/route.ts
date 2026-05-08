@@ -8,10 +8,15 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   if (!user) return unauthorizedResponse();
 
   const { id } = await context.params;
-  const repository = createDevsAgentsRepository(user.id);
-  const data = await repository.getAgent(id);
 
-  return Response.json({ data, meta }, { status: data ? 200 : 404 });
+  try {
+    const repository = createDevsAgentsRepository(user.id);
+    const data = await repository.getAgent(id);
+
+    return Response.json({ data, meta }, { status: data ? 200 : 404 });
+  } catch (error) {
+    return errorResponse(error, "Unable to get agent.");
+  }
 }
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
@@ -20,9 +25,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
   const { id } = await context.params;
   const body = await request.json().catch(() => ({}));
-  const repository = createDevsAgentsRepository(user.id);
 
   try {
+    const repository = createDevsAgentsRepository(user.id);
     if (body.archived === true) {
       await repository.archiveAgent(id);
     }
@@ -30,7 +35,12 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const data = await repository.getAgent(id);
     return Response.json({ data, meta }, { status: data ? 200 : 404 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unable to update agent.";
-    return Response.json({ error: message }, { status: 500 });
+    return errorResponse(error, "Unable to update agent.");
   }
+}
+
+function errorResponse(error: unknown, fallback = "Request failed.") {
+  const message = error instanceof Error ? error.message : fallback;
+  const status = /required|not found/i.test(message) ? 400 : 500;
+  return Response.json({ error: message }, { status });
 }

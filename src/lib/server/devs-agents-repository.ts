@@ -236,6 +236,17 @@ export function createDevsAgentsRepository(userId: string) {
       if (!compartmentId) throw new Error("Compartment is required.");
       if (!name) throw new Error("Agent name is required.");
 
+      const { data: compartment, error: compartmentError } = await supabase
+        .from("compartments")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("id", compartmentId)
+        .eq("archived", false)
+        .maybeSingle();
+
+      if (compartmentError) throw new Error(compartmentError.message);
+      if (!compartment) throw new Error("Compartment not found.");
+
       const { data, error } = await supabase
         .from("user_agents")
         .insert({
