@@ -344,7 +344,7 @@ export function createDevsAgentsRepository(userId: string) {
 
         const { data: template, error } = await supabase
           .from("agent_templates")
-          .select("default_skill_content")
+          .select("default_skill_content, default_input_contracts, default_output_contracts")
           .eq("id", agent.templateId)
           .maybeSingle();
 
@@ -353,8 +353,8 @@ export function createDevsAgentsRepository(userId: string) {
 
         return this.saveDraft(agentId, {
           skillContent: String((template as Row).default_skill_content ?? ""),
-          needs: [],
-          produces: [],
+          needs: asNeeds((template as Row).default_input_contracts),
+          produces: asProduces((template as Row).default_output_contracts),
         });
       }
 
