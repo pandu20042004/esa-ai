@@ -1018,7 +1018,7 @@ function AssetMakerSection({
                 <UploadCloud size={14} /> {twibbonFile || twibbonSrc ? "Replace Twibbon" : "Upload Twibbon"}
                 <input
                   type="file"
-                  accept="image/png,image/webp"
+                  accept="image/png,image/jpeg,image/webp"
                   style={{ display: "none" }}
                   onChange={(e) => {
                     const f = e.target.files?.[0];
@@ -1029,7 +1029,7 @@ function AssetMakerSection({
               </label>
             </div>
             <small style={{ fontWeight: 400, fontSize: 11 }}>
-              Twibbon harus PNG transparan (overlay frame). Foto akan diletakkan di bawahnya.
+              Upload poster twibbon (PNG/JPG). Jika tidak transparan, area tengah otomatis dijadikan transparan.
             </small>
           </div>
 

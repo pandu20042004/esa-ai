@@ -11,7 +11,7 @@ import { isSupabaseAdminConfigured } from "@/lib/supabase/env";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { AgentDefinition, CalendarEvent, Competition, CompetitionFile, OutputVersion, ValidityCheck } from "@/types/esai";
 import { extractText } from "@/lib/server/file-extraction";
-import { toWebp, toSquareWebp } from "@/lib/server/image-processing";
+import { toWebp, toPortraitWebp, toTwibbonWebp } from "@/lib/server/image-processing";
 import {
   uploadCompetitionAsset,
   deleteCompetitionAssets,
@@ -544,7 +544,7 @@ export function createEsaiRepository(options: RepositoryOptions = {}) {
       if (!compRow) throw new Error("Competition not found.");
 
       const ext = "webp";
-      const webp = await toSquareWebp(file);
+      const webp = role === "twibbon" ? await toTwibbonWebp(file) : await toPortraitWebp(file);
       const { storagePath } = await uploadCompetitionAsset({
         userId,
         competitionId: id,
