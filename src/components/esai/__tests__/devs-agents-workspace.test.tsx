@@ -140,6 +140,38 @@ describe("DevsAgentsWorkspace", () => {
     await waitFor(() => expect(screen.getByText("Saved to database")).toBeInTheDocument(), { timeout: 1200 });
   });
 
+  it("expands editor textareas while focused", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.includes("/api/compartments")) return Response.json({ data: compartments });
+      if (url.includes("/api/agents")) return Response.json({ data: agents });
+      return Response.json({ data: [] });
+    });
+
+    render(<DevsAgentsWorkspace />);
+    const prompt = await screen.findByLabelText("Agent prompt");
+
+    fireEvent.focus(prompt);
+    expect(prompt).toHaveClass("textarea-expanded");
+
+    fireEvent.blur(prompt);
+    expect(prompt).not.toHaveClass("textarea-expanded");
+  });
+
+  it("renders validation warnings as styled alerts", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.includes("/api/compartments")) return Response.json({ data: compartments });
+      if (url.includes("/api/agents")) return Response.json({ data: [{ ...agents[0], draftProduces: [] }] });
+      return Response.json({ data: [] });
+    });
+
+    render(<DevsAgentsWorkspace />);
+
+    const warning = await screen.findByText("Add at least one Produces item before publishing.");
+    expect(warning.closest(".validation-alert")).toHaveClass("validation-alert-error");
+  });
+
   it("saves edited agent descriptions", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
       const url = String(input);

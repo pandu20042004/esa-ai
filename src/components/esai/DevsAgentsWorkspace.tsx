@@ -1,7 +1,7 @@
 "use client";
 
 import { Bot, History, Plus, RotateCcw, Sparkles } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { type FocusEvent, type TextareaHTMLAttributes, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   CONTROLLED_OUTPUT_LABELS,
@@ -364,7 +364,7 @@ export function DevsAgentsWorkspace() {
               </header>
               <label className="agent-description-field">
                 Agent description
-                <textarea
+                <AutoGrowTextarea
                   value={descriptionDraft}
                   placeholder="Short purpose shown in the agent list"
                   onBlur={saveDescription}
@@ -374,7 +374,8 @@ export function DevsAgentsWorkspace() {
                   }}
                 />
               </label>
-              <textarea
+              <AutoGrowTextarea
+                className="agent-prompt-textarea"
                 aria-label="Agent prompt"
                 value={promptDraft}
                 onChange={(event) => {
@@ -382,16 +383,7 @@ export function DevsAgentsWorkspace() {
                   setSaveStatus("dirty");
                 }}
               />
-              {validation?.blocking.map((item, index) => (
-                <p className="form-warning" key={`blocking-${index}-${item}`}>
-                  {item}
-                </p>
-              ))}
-              {validation?.warnings.map((item, index) => (
-                <p className="form-note" key={`warning-${index}-${item}`}>
-                  {item}
-                </p>
-              ))}
+              <ValidationMessages blocking={validation?.blocking ?? []} warnings={validation?.warnings ?? []} />
             </>
           ) : (
             <p className="form-note">Select or create an agent.</p>
@@ -456,6 +448,71 @@ export function DevsAgentsWorkspace() {
         </aside>
       </div>
     </section>
+  );
+}
+
+function AutoGrowTextarea({
+  className,
+  onFocus,
+  onBlur,
+  ...props
+}: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const [expanded, setExpanded] = useState(false);
+
+  const resize = useCallback(() => {
+    const textarea = textareaRef.current;
+    if (!textarea || !expanded) return;
+
+    textarea.style.height = "auto";
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, [expanded]);
+
+  useEffect(() => {
+    resize();
+  }, [props.value, resize]);
+
+  function handleFocus(event: FocusEvent<HTMLTextAreaElement>) {
+    setExpanded(true);
+    window.requestAnimationFrame(resize);
+    onFocus?.(event);
+  }
+
+  function handleBlur(event: FocusEvent<HTMLTextAreaElement>) {
+    setExpanded(false);
+    event.currentTarget.style.height = "";
+    onBlur?.(event);
+  }
+
+  return (
+    <textarea
+      {...props}
+      ref={textareaRef}
+      className={[className, expanded ? "textarea-expanded" : ""].filter(Boolean).join(" ")}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+    />
+  );
+}
+
+function ValidationMessages({ blocking, warnings }: { blocking: string[]; warnings: string[] }) {
+  if (blocking.length === 0 && warnings.length === 0) return null;
+
+  return (
+    <div className="validation-stack" aria-live="polite">
+      {blocking.map((item, index) => (
+        <div className="validation-alert validation-alert-error" key={`blocking-${index}-${item}`}>
+          <strong>Needs attention</strong>
+          <span>{item}</span>
+        </div>
+      ))}
+      {warnings.map((item, index) => (
+        <div className="validation-alert validation-alert-warning" key={`warning-${index}-${item}`}>
+          <strong>Check setup</strong>
+          <span>{item}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 

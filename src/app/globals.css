@@ -987,7 +987,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-border); 
   color: var(--text);
   font: inherit;
 }
-.devs-agent-editor > textarea,
+.devs-agent-editor > .agent-prompt-textarea,
 .assistant-draft-panel textarea {
   width: 100%;
   min-height: 360px;
@@ -998,6 +998,18 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-border); 
   background: var(--panel);
   color: var(--text);
   font: inherit;
+}
+.agent-description-field textarea.textarea-expanded,
+.devs-agent-editor > .agent-prompt-textarea.textarea-expanded {
+  height: auto;
+  max-height: none;
+  overflow: hidden;
+}
+.agent-description-field textarea.textarea-expanded {
+  min-height: 120px;
+}
+.devs-agent-editor > .agent-prompt-textarea.textarea-expanded {
+  min-height: 520px;
 }
 .devs-agent-side { display: flex; flex-direction: column; gap: 12px; }
 .side-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -1081,6 +1093,27 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-border); 
   background: var(--panel);
   padding: 12px;
 }
+.validation-stack { display: grid; gap: 8px; }
+.validation-alert {
+  display: grid;
+  gap: 3px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+.validation-alert strong { font-size: 12px; }
+.validation-alert span { color: var(--text); }
+.validation-alert-error {
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+.validation-alert-error strong { color: #b42318; }
+.validation-alert-warning {
+  border-color: #fbbf24;
+  background: #fffbeb;
+}
+.validation-alert-warning strong { color: #92400e; }
 .form-warning { color: #b42318; font-size: 13px; }
 .form-note { color: var(--muted); font-size: 13px; }
 
