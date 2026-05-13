@@ -51,7 +51,10 @@ export type Competition = {
   deadline: string;
   registrationLink?: string;
   currentStageId: StageId;
-  posterTone: string;
+  posterFileId?: string;
+  posterImageUrl?: string;
+  guidebookFileId?: string;
+  createdAt?: string;
 };
 
 export type CompetitionFile = {

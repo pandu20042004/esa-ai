@@ -24,10 +24,11 @@ function mapCompetition(row: Record<string, unknown>): Competition {
     institution: String(row.institution ?? ""),
     status: String(row.status ?? "Setup"),
     progress: Number(row.progress ?? 0),
-    deadline: String(row.deadline ?? ""),
+    deadline: row.deadline ? String(row.deadline) : "",
     registrationLink: row.registration_link ? String(row.registration_link) : undefined,
     currentStageId: String(row.current_stage_id ?? "onboarding") as Competition["currentStageId"],
-    posterTone: String(row.poster_tone ?? "new brief"),
+    posterFileId: row.poster_file_id ? String(row.poster_file_id) : undefined,
+    createdAt: row.created_at ? String(row.created_at) : undefined,
   };
 }
 
@@ -151,7 +152,6 @@ export function createEsaiRepository(options: RepositoryOptions = {}) {
         deadline: input.deadline || new Date().toISOString().slice(0, 10),
         registrationLink: input.registrationLink,
         currentStageId: "onboarding",
-        posterTone: input.posterTone || "new brief",
       };
 
       return createApiEnvelope(competition, { supabaseConfigured });
@@ -292,12 +292,10 @@ export function createEsaiRepository(options: RepositoryOptions = {}) {
     },
 
     async listModels() {
+      const { getAllAvailableModels } = await import("@/lib/server/cli-providers");
+      const models = getAllAvailableModels();
       return createApiEnvelope(
-        [
-          { provider: "openclaw-cli", id: "GPT-5.4", label: "GPT-5.4 via OpenClaw" },
-          { provider: "codex-cli", id: "gpt-5.5", label: "gpt-5.5 via Codex CLI" },
-          { provider: "openrouter", id: "openrouter/auto", label: "OpenRouter Auto" },
-        ],
+        models.map((m) => ({ provider: m.provider, id: m.id, label: m.label })),
         { supabaseConfigured },
       );
     },

@@ -9,7 +9,7 @@ const createCompetitionSchema = z.object({
   institution: z.string().trim().min(1).default("Institution"),
   deadline: z.string().trim().optional(),
   registrationLink: z.string().trim().optional(),
-  posterTone: z.string().trim().optional(),
+  posterFileId: z.string().trim().optional(),
 });
 
 export async function GET() {

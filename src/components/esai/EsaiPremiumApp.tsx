@@ -13,23 +13,27 @@ import {
   Download,
   FileCheck,
   FileText,
+  Globe,
   KeyRound,
   LayoutDashboard,
   Lock,
   Maximize2,
   MessageCircle,
   Minimize2,
+  Monitor,
   Moon,
   Palette,
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
+  RefreshCw,
   Search,
   Send,
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
   Sun,
+  Terminal,
   Trash2,
   UploadCloud,
   X,
@@ -402,7 +406,7 @@ function AddCompetitionWizard({ onCancel, onFinish }: { onCancel: () => void; on
   useEffect(() => { window.localStorage.setItem("esai-add-competition-draft", JSON.stringify(draft)); }, [draft]);
   const finish = () => {
     window.localStorage.removeItem("esai-add-competition-draft");
-    onFinish({ id: `comp-${Date.now()}`, title: draft.title.trim() || "Untitled Competition", category: draft.category, institution: draft.institution.trim() || "Institution", status: "Setup", progress: 0, deadline: draft.deadline, registrationLink: draft.registrationLink, currentStageId: "onboarding", posterTone: "new brief" });
+    onFinish({ id: `comp-${Date.now()}`, title: draft.title.trim() || "Untitled Competition", category: draft.category, institution: draft.institution.trim() || "Institution", status: "Setup", progress: 0, deadline: draft.deadline, registrationLink: draft.registrationLink, currentStageId: "onboarding" });
   };
   return (
     <div className="modal-backdrop"><div className="wizard">
@@ -600,11 +604,156 @@ function FullscreenEditor({ fileName, onClose, onAskAi, onHistory }: { fileName:
   return <div className="reference-editor-overlay"><div className="reference-editor-shell"><header className="reference-editor-header"><div><small>Editable Stage Output</small><strong>{fileName}</strong></div><div><button className="reference-text-button" onClick={onAskAi}>Ask AI</button><button className="reference-text-button" onClick={onHistory}>History</button><button className="btn-primary reference-small-button" onClick={onClose}>Save</button><button className="reference-round-button" onClick={onClose}><Minimize2 size={15} /></button></div></header><main className="reference-editor-body"><div className="reference-editor-toolbar"><button>B</button><button><em>I</em></button><button></button><button></button><button>H2</button><span>Competition Vault / {fileName}</span></div><article className="reference-document-page"><h1>Stage Output Draft</h1><p>This editable output file is connected to the Competition Vault. Users can revise paragraphs, request AI help, and save versions before approving the file for the next stage.</p><h2>Working Notes</h2><p><strong>Required input:</strong> linked stage context, guidebook rules, and previous approved output.</p><p><strong>Next step:</strong> clean the argument, verify dependencies, then save this as the next approved version.</p></article></main></div></div>;
 }
 
+function ByokSettings() {
+  const [settingsTab, setSettingsTab] = useState("execution");
+  const [executionMode, setExecutionMode] = useState("local");
+  const [selectedCli, setSelectedCli] = useState("");
+  const [cliProviders, setCliProviders] = useState<Array<{ id: string; name: string; command: string; version: string | null; installed: boolean; color: string; models: Array<{ id: string; label: string; provider: string }> }>>([]);
+  const [apiProviders, setApiProviders] = useState<Array<{ id: string; name: string; configured: boolean }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    void fetchProviders(false);
+  }, []);
+
+  async function fetchProviders(refresh: boolean) {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/cli-providers${refresh ? "?refresh=1" : ""}`);
+      const json = await response.json();
+      if (json.data) {
+        setCliProviders(json.data.cliProviders ?? []);
+        setApiProviders(json.data.apiProviders ?? []);
+        const firstInstalled = (json.data.cliProviders ?? []).find((p: { installed: boolean }) => p.installed);
+        if (firstInstalled && !selectedCli) setSelectedCli(firstInstalled.id);
+      }
+    } catch { /* ignore */ }
+    setLoading(false);
+  }
+
+  const installedCount = cliProviders.filter((a) => a.installed).length;
+
+  return (
+    <div className="byok-settings">
+      <header className="byok-settings-header">
+        <small>Settings</small>
+        <h2>Execution &amp; model</h2>
+        <p>Choose between a local code-agent CLI and the Anthropic API (BYOK). Your API key is stored only in this browser.</p>
+      </header>
+      <div className="byok-settings-body">
+        <nav className="byok-settings-nav">
+          <button className={settingsTab === "execution" ? "active" : ""} onClick={() => setSettingsTab("execution")}>
+            <SlidersHorizontal size={16} />
+            <span><strong>Configure execution mode</strong><small>Code agent</small></span>
+          </button>
+          <button className={settingsTab === "media" ? "active" : ""} onClick={() => setSettingsTab("media")}>
+            <Monitor size={16} />
+            <span><strong>Media providers</strong><small>Image / video / audio</small></span>
+          </button>
+          <button className={settingsTab === "language" ? "active" : ""} onClick={() => setSettingsTab("language")}>
+            <Globe size={16} />
+            <span><strong>Language</strong><small>Switch the interface language. Saved to browser.</small></span>
+          </button>
+          <button className={settingsTab === "appearance" ? "active" : ""} onClick={() => setSettingsTab("appearance")}>
+            <Palette size={16} />
+            <span><strong>Appearance</strong><small>Choose light, dark, or follow your system setting.</small></span>
+          </button>
+        </nav>
+        <main className="byok-settings-content">
+          {settingsTab === "execution" ? (
+            <>
+              <div className="byok-execution-tabs">
+                <button className={executionMode === "local" ? "active" : ""} onClick={() => setExecutionMode("local")}>
+                  <strong>Local CLI</strong>
+                  <small>{installedCount} installed</small>
+                </button>
+                <button className={executionMode === "anthropic" ? "active" : ""} onClick={() => setExecutionMode("anthropic")}>
+                  <strong>Anthropic API</strong>
+                  <small>/v1/messages</small>
+                </button>
+                <button className={executionMode === "openai" ? "active" : ""} onClick={() => setExecutionMode("openai")}>
+                  <strong>OpenAI API</strong>
+                  <small>/v1/chat/completions</small>
+                </button>
+                <button className={executionMode === "openrouter" ? "active" : ""} onClick={() => setExecutionMode("openrouter")}>
+                  <strong>OpenRouter</strong>
+                  <small>/api/v1/chat/completions</small>
+                </button>
+              </div>
+              {executionMode === "local" ? (
+                <div className="byok-cli-section">
+                  <div className="byok-cli-header">
+                    <div>
+                      <strong>Code agent</strong>
+                      <p>Detected by scanning your PATH. Pick the CLI you want generations to flow through.</p>
+                    </div>
+                    <button className="btn-secondary byok-rescan" type="button" onClick={() => fetchProviders(true)}>
+                      <RefreshCw size={14} /> Rescan
+                    </button>
+                  </div>
+                  {loading ? <p className="form-note">Scanning PATH...</p> : (
+                    <div className="byok-cli-grid">
+                      {cliProviders.map((agent) => (
+                        <button
+                          key={agent.id}
+                          type="button"
+                          className={`byok-cli-card ${selectedCli === agent.id ? "selected" : ""} ${!agent.installed ? "disabled" : ""}`}
+                          onClick={() => agent.installed && setSelectedCli(agent.id)}
+                        >
+                          <span className="byok-cli-icon" style={{ background: agent.color }}>{agent.name.charAt(0)}</span>
+                          <span className="byok-cli-info">
+                            <strong>{agent.name}</strong>
+                            <small>{agent.version ?? "not installed"}</small>
+                          </span>
+                          {agent.installed ? <span className="byok-cli-dot" /> : null}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {selectedCli && cliProviders.find((p) => p.id === selectedCli)?.models.length ? (
+                    <div className="byok-cli-models">
+                      <strong>Available models</strong>
+                      <div className="byok-model-chips">
+                        {cliProviders.find((p) => p.id === selectedCli)?.models.map((m) => (
+                          <span key={m.id} className="byok-model-chip">{m.label}</span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="byok-api-section">
+                  <div className="form-grid">
+                    <label>API Key<input type="password" placeholder="Stored in browser only" /></label>
+                    <label>Default Model<input placeholder={executionMode === "anthropic" ? "claude-opus-4" : executionMode === "openrouter" ? "openrouter/auto" : "gpt-4.1"} /></label>
+                    <label>Reasoning<select><option>Medium</option><option>High</option><option>Extra High</option></select></label>
+                  </div>
+                  {apiProviders.find((p) => p.id === (executionMode === "anthropic" ? "anthropic-api" : executionMode === "openai" ? "openai-api" : "openrouter"))?.configured ? (
+                    <p className="form-note" style={{ color: "var(--accent)" }}>✓ API key configured in server environment</p>
+                  ) : null}
+                  <button className="btn-secondary">Test Connection</button>
+                </div>
+              )}
+            </>
+          ) : null}
+          {settingsTab === "media" ? <p className="form-note">Configure image, video, and audio generation providers.</p> : null}
+          {settingsTab === "language" ? <p className="form-note">Interface language is saved to your browser.</p> : null}
+          {settingsTab === "appearance" ? <p className="form-note">Choose light, dark, or follow your system setting.</p> : null}
+          <div className="byok-settings-footer">
+            <button className="btn-ghost" type="button">Cancel</button>
+            <button className="btn-primary" type="button">Save</button>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
 function DevsScreen() {
   const [tab, setTab] = useState("style");
   const [styleSaved, setStyleSaved] = useState(false);
   const tabs = [["style", "Style Builder", Sparkles], ["agents", "Agents", Bot], ["settings", "Settings", SlidersHorizontal], ["byok", "BYOK Models", KeyRound]] as const;
-  return <section className="screen"><header className="screen-header"><div><h1>Devs</h1><p>Create developer-style outputs that competition agents can request from the vault.</p></div></header><div className="dev-tabs">{tabs.map(([id, label, Icon]) => <button key={id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}><Icon size={16} />{label}</button>)}</div>{tab === "style" ? <Panel title="Style Builder" action={<button className="btn-primary" onClick={() => setStyleSaved(true)}>{styleSaved ? "Saved" : "Save to Vault"}</button>}><div className="source-options"><button className="source-card active"><UploadCloud size={20} />Upload PDF for analysis</button><button className="source-card"><FileText size={20} />Upload style_profile.md</button></div><textarea className="document-textarea" defaultValue={"# 00_style_profile.md\n\nWrite in a direct, academic, evidence-first Indonesian competition style."} /></Panel> : null}{tab === "agents" ? <DevsAgentsWorkspace /> : null}{tab === "settings" ? <Panel title="Workflow Guardrails">{["Require approval before next stage unlock", "Allow user-uploaded input override", "Strict citation checks", "Auto-create calendar reminders"].map((item) => <label className="toggle-row" key={item}><span>{item}</span><input type="checkbox" defaultChecked /></label>)}</Panel> : null}{tab === "byok" ? <Panel title="BYOK Models"><div className="form-grid"><label>Provider<select><option>OpenClaw CLI</option><option>Codex CLI</option><option>OpenRouter</option><option>OpenAI-compatible</option></select></label><label>API Key<input type="password" placeholder="Stored server-side only" /></label><label>Default Model<input placeholder="GPT-5.4" /></label><label>Reasoning<select><option>Medium</option><option>High</option><option>Extra High</option></select></label></div><button className="btn-secondary">Test Connection</button></Panel> : null}</section>;
+  return <section className="screen"><header className="screen-header"><div><h1>Devs</h1><p>Create developer-style outputs that competition agents can request from the vault.</p></div></header><div className="dev-tabs">{tabs.map(([id, label, Icon]) => <button key={id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}><Icon size={16} />{label}</button>)}</div>{tab === "style" ? <Panel title="Style Builder" action={<button className="btn-primary" onClick={() => setStyleSaved(true)}>{styleSaved ? "Saved" : "Save to Vault"}</button>}><div className="source-options"><button className="source-card active"><UploadCloud size={20} />Upload PDF for analysis</button><button className="source-card"><FileText size={20} />Upload style_profile.md</button></div><textarea className="document-textarea" defaultValue={"# 00_style_profile.md\n\nWrite in a direct, academic, evidence-first Indonesian competition style."} /></Panel> : null}{tab === "agents" ? <DevsAgentsWorkspace /> : null}{tab === "settings" ? <Panel title="Workflow Guardrails">{["Require approval before next stage unlock", "Allow user-uploaded input override", "Strict citation checks", "Auto-create calendar reminders"].map((item) => <label className="toggle-row" key={item}><span>{item}</span><input type="checkbox" defaultChecked /></label>)}</Panel> : null}{tab === "byok" ? <ByokSettings /> : null}</section>;
 }
 
 function Panel({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {

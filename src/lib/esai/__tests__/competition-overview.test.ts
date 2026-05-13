@@ -13,7 +13,6 @@ const competition: Competition = {
   deadline: "2026-08-15",
   registrationLink: "https://registration.example/path",
   currentStageId: "onboarding",
-  posterTone: "new brief",
 };
 
 const files: CompetitionFile[] = [
