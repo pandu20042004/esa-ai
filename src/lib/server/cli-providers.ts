@@ -39,8 +39,9 @@ const KNOWN_PROVIDERS: ProviderSpec[] = [
     color: "#e8956d",
     versionFlag: "--version",
     defaultModels: [
-      { id: "claude-opus-4", label: "Claude Opus 4", provider: "claude-code" },
-      { id: "claude-sonnet-4", label: "Claude Sonnet 4", provider: "claude-code" },
+      { id: "opus", label: "Claude Opus (alias)", provider: "claude-code" },
+      { id: "sonnet", label: "Claude Sonnet (alias)", provider: "claude-code" },
+      { id: "haiku", label: "Claude Haiku (alias)", provider: "claude-code" },
     ],
     detectModels: detectClaudeModels,
   },
@@ -51,9 +52,11 @@ const KNOWN_PROVIDERS: ProviderSpec[] = [
     color: "#10b981",
     versionFlag: "--version",
     defaultModels: [
-      { id: "o3", label: "o3", provider: "codex-cli" },
-      { id: "o4-mini", label: "o4-mini", provider: "codex-cli" },
-      { id: "gpt-4.1", label: "GPT-4.1", provider: "codex-cli" },
+      { id: "gpt-5.5", label: "GPT-5.5", provider: "codex-cli" },
+      { id: "gpt-5.4", label: "GPT-5.4", provider: "codex-cli" },
+      { id: "gpt-5.4-mini", label: "GPT-5.4 mini", provider: "codex-cli" },
+      { id: "gpt-5.3-codex", label: "GPT-5.3-codex", provider: "codex-cli" },
+      { id: "gpt-5.2", label: "GPT-5.2", provider: "codex-cli" },
     ],
     detectModels: detectCodexModels,
   },
@@ -125,91 +128,117 @@ function isCommandAvailable(command: string): boolean {
 
 // --- Per-provider model detection ----------------------------------------------------
 
+const CLAUDE_KNOWN_ALIASES: Array<{ id: string; label: string }> = [
+  { id: "opus", label: "Claude Opus (alias)" },
+  { id: "sonnet", label: "Claude Sonnet (alias)" },
+  { id: "haiku", label: "Claude Haiku (alias)" },
+  { id: "opus[1m]", label: "Claude Opus · 1M context" },
+  { id: "sonnet[1m]", label: "Claude Sonnet · 1M context" },
+];
+
+const CLAUDE_FULL_MODEL_REGEX = /\bclaude-(?:opus|sonnet|haiku)(?:-\d+(?:-\d+)?)?\b/gi;
+
 function detectClaudeModels(): CliModel[] {
-  const models = new Map<string, string>();
-  // ~/.claude.json sometimes carries a `models` list; if available, use it.
-  const configPath = path.join(homedir(), ".claude.json");
-  if (existsSync(configPath)) {
-    try {
-      const json = JSON.parse(readFileSync(configPath, "utf8"));
-      const list = extractClaudeModelsFromConfig(json);
-      for (const m of list) models.set(m.id, m.label);
-    } catch {
-      // fall through
-    }
-  }
-  // Fall back to `claude --help` and scrape recognizable `-m` / `--model` options.
-  try {
-    const help = execSync("claude --help", { timeout: 4000, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] });
-    const matches = help.match(/\b(claude-[a-z0-9.\-]+)\b/gi) ?? [];
-    for (const m of matches) models.set(m.toLowerCase(), prettifyId(m));
-  } catch {
-    // ignore
-  }
-  return Array.from(models.entries()).map(([id, label]) => ({ id, label, provider: "claude-code" }));
-}
+  const out = new Map<string, string>();
 
-function extractClaudeModelsFromConfig(json: unknown): CliModel[] {
-  const out: CliModel[] = [];
-  const seen = new Set<string>();
-  function visit(value: unknown) {
-    if (!value) return;
-    if (typeof value === "string" && value.startsWith("claude-") && !seen.has(value)) {
-      seen.add(value);
-      out.push({ id: value, label: prettifyId(value), provider: "claude-code" });
-      return;
-    }
-    if (Array.isArray(value)) {
-      for (const v of value) visit(v);
-      return;
-    }
-    if (typeof value === "object") {
-      for (const v of Object.values(value as Record<string, unknown>)) visit(v);
-    }
+  // Always include the common aliases so users can pick one even if we can't scrape anything.
+  for (const alias of CLAUDE_KNOWN_ALIASES) {
+    out.set(alias.id, alias.label);
   }
-  visit(json);
-  return out;
-}
 
-function detectCodexModels(): CliModel[] {
-  const results = new Map<string, string>();
-  // Try `codex models list` or `codex models` — commands vary by version.
-  for (const cmd of ["codex models list", "codex models"]) {
+  // ~/.claude/settings.json `model` field is the currently configured model. Surface it first.
+  const settingsPath = path.join(homedir(), ".claude", "settings.json");
+  if (existsSync(settingsPath)) {
     try {
-      const out = execSync(cmd, { timeout: 4000, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] });
-      for (const raw of out.split(/\r?\n/)) {
-        const id = raw.trim().split(/\s+/)[0];
-        if (!id) continue;
-        if (/^(NAME|MODEL|ID|---)/i.test(id)) continue;
-        if (!/^[a-z0-9][a-z0-9._\-\/]*$/i.test(id)) continue;
-        results.set(id, prettifyId(id));
-      }
-      if (results.size) break;
-    } catch {
-      // try next form
-    }
-  }
-  return Array.from(results.entries()).map(([id, label]) => ({ id, label, provider: "codex-cli" }));
-}
-
-function detectGeminiModels(): CliModel[] {
-  const results = new Map<string, string>();
-  for (const cmd of ["gemini models list", "gemini models"]) {
-    try {
-      const out = execSync(cmd, { timeout: 4000, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] });
-      for (const raw of out.split(/\r?\n/)) {
-        const id = raw.trim().split(/\s+/)[0];
-        if (!id) continue;
-        if (/^(NAME|MODEL|ID|---)/i.test(id)) continue;
-        if (!/^gemini-[a-z0-9._\-]+/i.test(id)) continue;
-        results.set(id, prettifyId(id));
-      }
-      if (results.size) break;
+      const json = JSON.parse(readFileSync(settingsPath, "utf8"));
+      const m = typeof (json as { model?: unknown }).model === "string" ? (json as { model: string }).model : null;
+      if (m) out.set(m, labelForClaudeId(m) + " · configured");
     } catch {
       // ignore
     }
   }
-  return Array.from(results.entries()).map(([id, label]) => ({ id, label, provider: "gemini-cli" }));
+
+  // Scan `claude --help` ONLY for strings that look like `claude-<family>-<nn>` — avoid sweeping up
+  // plugin names or section headings that contain the word "claude".
+  try {
+    const help = execSync("claude --help", { timeout: 4000, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] });
+    const matches = help.match(CLAUDE_FULL_MODEL_REGEX) ?? [];
+    for (const m of matches) {
+      const id = m.toLowerCase();
+      if (!out.has(id)) out.set(id, labelForClaudeId(id));
+    }
+  } catch {
+    // ignore
+  }
+
+  return Array.from(out.entries()).map(([id, label]) => ({ id, label, provider: "claude-code" }));
+}
+
+function labelForClaudeId(id: string): string {
+  if (id === "opus" || id === "sonnet" || id === "haiku") return `Claude ${id.charAt(0).toUpperCase()}${id.slice(1)} (alias)`;
+  if (id.startsWith("opus[") || id.startsWith("sonnet[")) return `Claude ${id}`;
+  if (id.startsWith("claude-")) {
+    return id
+      .replace(/^claude-/, "Claude ")
+      .replace(/-/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase())
+      .replace(/\bOpus\b/, "Opus")
+      .replace(/\bSonnet\b/, "Sonnet")
+      .replace(/\bHaiku\b/, "Haiku");
+  }
+  return id;
+}
+
+function detectCodexModels(): CliModel[] {
+  // Codex doesn't have a `models list` subcommand. The known interactive picker exposes these ids.
+  // We also surface the user's configured `model` from ~/.codex/config.toml first.
+  const out = new Map<string, string>();
+
+  const baseIds: Array<{ id: string; label: string }> = [
+    { id: "gpt-5.5", label: "GPT-5.5" },
+    { id: "gpt-5.4", label: "GPT-5.4" },
+    { id: "gpt-5.4-mini", label: "GPT-5.4 mini" },
+    { id: "gpt-5.3-codex", label: "GPT-5.3-codex" },
+    { id: "gpt-5.2", label: "GPT-5.2" },
+  ];
+  for (const m of baseIds) out.set(m.id, m.label);
+
+  const configPath = path.join(homedir(), ".codex", "config.toml");
+  if (existsSync(configPath)) {
+    try {
+      const text = readFileSync(configPath, "utf8");
+      // Match the first top-level `model = "..."` line (TOML) outside any [table] section.
+      const match = text.match(/^\s*model\s*=\s*"([^"]+)"/m);
+      if (match?.[1]) {
+        const id = match[1];
+        out.set(id, `${out.get(id) ?? id} · configured`);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  return Array.from(out.entries()).map(([id, label]) => ({ id, label, provider: "codex-cli" }));
+}
+
+function detectGeminiModels(): CliModel[] {
+  const out = new Map<string, string>();
+  for (const cmd of ["gemini models list", "gemini models"]) {
+    try {
+      const raw = execSync(cmd, { timeout: 4000, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] });
+      for (const rawLine of raw.split(/\r?\n/)) {
+        const id = rawLine.trim().split(/\s+/)[0];
+        if (!id) continue;
+        if (/^(NAME|MODEL|ID|---)/i.test(id)) continue;
+        if (!/^gemini-[a-z0-9._\-]+/i.test(id)) continue;
+        out.set(id, prettifyId(id));
+      }
+      if (out.size) break;
+    } catch {
+      // ignore
+    }
+  }
+  return Array.from(out.entries()).map(([id, label]) => ({ id, label, provider: "gemini-cli" }));
 }
 
 function prettifyId(id: string): string {

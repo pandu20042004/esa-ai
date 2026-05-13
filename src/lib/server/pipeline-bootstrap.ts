@@ -388,3 +388,101 @@ function normalizeOutputs(raw: unknown) {
   if (Array.isArray(raw) && raw.length > 0) return raw;
   return [{ key: "onboarding_map", label: "Onboarding Map", role: "onboarding_map", defaultFilename: "01_onboarding_map.md" }];
 }
+
+/**
+ * Ensure a user_agents row + initial agent_skill_versions row for the Style Profile Builder
+ * template. This agent lives in the Essay compartment but runs outside any competition pipeline —
+ * its output is a user-level `style_profile` file used by later agents.
+ */
+export async function ensureStyleBuilderUserAgent(
+  supabase: SupabaseClient,
+  userId: string,
+  compartmentId: string,
+): Promise<{ userAgentId: string; activeSkillVersionId: string }> {
+  const { data: tmpl, error: tmplErr } = await supabase
+    .from("agent_templates")
+    .select("id, name, description, default_skill_content, default_input_contracts, default_output_contracts")
+    .eq("template_key", "style-profile-builder")
+    .maybeSingle();
+  if (tmplErr) throw new Error(`ensureStyleBuilderUserAgent: ${tmplErr.message}`);
+  if (!tmpl) {
+    throw new Error(
+      "style-profile-builder template is not synced. POST /api/agent-templates/sync-local first.",
+    );
+  }
+
+  const templateId = String(tmpl.id);
+  const inputContracts = Array.isArray(tmpl.default_input_contracts) && tmpl.default_input_contracts.length > 0
+    ? tmpl.default_input_contracts
+    : [{ key: "essay_pdfs", label: "Winning essay PDFs", acceptedRoles: ["style_profile_source"], required: true, includeMode: "full" }];
+  const outputContracts = Array.isArray(tmpl.default_output_contracts) && tmpl.default_output_contracts.length > 0
+    ? tmpl.default_output_contracts
+    : [{ key: "style_profile", label: "Style Profile", role: "style_profile", defaultFilename: "00_style_profile.md" }];
+  const skillContent = `${String(tmpl.default_skill_content ?? "")}\n${toolProtocolInstructions()}`;
+
+  const { data: existing, error: exErr } = await supabase
+    .from("user_agents")
+    .select("id, active_skill_version_id")
+    .eq("user_id", userId)
+    .eq("compartment_id", compartmentId)
+    .eq("template_id", templateId)
+    .maybeSingle();
+  if (exErr) throw new Error(`ensureStyleBuilderUserAgent lookup: ${exErr.message}`);
+
+  let userAgentId: string;
+  let activeSkillVersionId: string | null = null;
+
+  if (existing) {
+    userAgentId = String(existing.id);
+    activeSkillVersionId = existing.active_skill_version_id ? String(existing.active_skill_version_id) : null;
+  } else {
+    const { data: created, error: createErr } = await supabase
+      .from("user_agents")
+      .insert({
+        user_id: userId,
+        compartment_id: compartmentId,
+        template_id: templateId,
+        name: String(tmpl.name ?? "Style Profile Builder"),
+        description: String(tmpl.description ?? ""),
+        is_custom: false,
+        enabled: true,
+        archived: false,
+        input_contracts: inputContracts,
+        output_contracts: outputContracts,
+        sort_order: 0,
+      })
+      .select("id")
+      .single();
+    if (createErr) throw new Error(`ensureStyleBuilderUserAgent create: ${createErr.message}`);
+    userAgentId = String(created.id);
+  }
+
+  if (!activeSkillVersionId) {
+    const { data: version, error: vErr } = await supabase
+      .from("agent_skill_versions")
+      .insert({
+        user_id: userId,
+        user_agent_id: userAgentId,
+        template_id: templateId,
+        version_number: 1,
+        skill_content: skillContent,
+        input_contracts: inputContracts,
+        output_contracts: outputContracts,
+        change_summary: "Auto-provisioned from style-profile-builder template.",
+        is_active: true,
+      })
+      .select("id")
+      .single();
+    if (vErr) throw new Error(`ensureStyleBuilderUserAgent seed version: ${vErr.message}`);
+    activeSkillVersionId = String(version.id);
+
+    const { error: linkErr } = await supabase
+      .from("user_agents")
+      .update({ active_skill_version_id: activeSkillVersionId })
+      .eq("id", userAgentId)
+      .eq("user_id", userId);
+    if (linkErr) throw new Error(`ensureStyleBuilderUserAgent link version: ${linkErr.message}`);
+  }
+
+  return { userAgentId, activeSkillVersionId: activeSkillVersionId! };
+}

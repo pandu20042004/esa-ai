@@ -1,0 +1,29 @@
+feat(style-profile): real Style Profile Builder in Devs + fix CLI model detection
+
+CLI detection:
+- Claude: hardcoded aliases (opus/sonnet/haiku + [1m] variants), plus reads
+  ~/.claude/settings.json to surface user's configured model; claude --help
+  scraped only for full 'claude-<family>-<n>-<m>' patterns to avoid sweeping
+  up plugin names and section headings
+- Codex: hardcoded known ids (gpt-5.5, 5.4, 5.4-mini, 5.3-codex, 5.2) since
+  codex has no models-list subcommand; reads ~/.codex/config.toml top-level
+  model line to highlight user's configured default
+- All providers: CLI invocation now pipes prompt via stdin with -p/--print
+  mode (claude), codex exec -, gemini -p -
+
+Style Profile Builder (user-level, outside competition pipeline):
+- New APIs:
+    POST /api/style-profile/upload       multipart PDFs, extracts text,
+                                         stores with competition_id=null,
+                                         file_role=style_profile_source
+    POST /api/style-profile/generate     queues agent_run with null pipeline,
+                                         builder skill + source texts as inputs
+    GET  /api/style-profile              returns sources + profile + versions
+    DELETE /api/style-profile/sources/[id]
+- run-execution: competitionId now string|null; applyWriteFile uses
+  profile-assets bucket + {userId}/style path when not scoped to competition
+- pipeline-bootstrap: ensureStyleBuilderUserAgent lazy-provisions a user_agent
+  in Essay compartment, seeds initial skill version from the template
+- UI: DevsScreen Style Builder tab replaced by real StyleBuilderWorkspace
+  with PDF uploader, source list, inline model picker, generate button,
+  live token stream via Realtime, profile viewer + version history

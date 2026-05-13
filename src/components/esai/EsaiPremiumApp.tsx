@@ -2067,9 +2067,312 @@ function ByokSettings() {
 
 function DevsScreen() {
   const [tab, setTab] = useState("style");
-  const [styleSaved, setStyleSaved] = useState(false);
   const tabs = [["style", "Style Builder", Sparkles], ["agents", "Agents", Bot], ["settings", "Settings", SlidersHorizontal], ["byok", "BYOK Models", KeyRound]] as const;
-  return <section className="screen"><header className="screen-header"><div><h1>Devs</h1><p>Create developer-style outputs that competition agents can request from the vault.</p></div></header><div className="dev-tabs">{tabs.map(([id, label, Icon]) => <button key={id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}><Icon size={16} />{label}</button>)}</div>{tab === "style" ? <Panel title="Style Builder" action={<button className="btn-primary" onClick={() => setStyleSaved(true)}>{styleSaved ? "Saved" : "Save to Vault"}</button>}><div className="source-options"><button className="source-card active"><UploadCloud size={20} />Upload PDF for analysis</button><button className="source-card"><FileText size={20} />Upload style_profile.md</button></div><textarea className="document-textarea" defaultValue={"# 00_style_profile.md\n\nWrite in a direct, academic, evidence-first Indonesian competition style."} /></Panel> : null}{tab === "agents" ? <DevsAgentsWorkspace /> : null}{tab === "settings" ? <Panel title="Workflow Guardrails">{["Require approval before next stage unlock", "Allow user-uploaded input override", "Strict citation checks", "Auto-create calendar reminders"].map((item) => <label className="toggle-row" key={item}><span>{item}</span><input type="checkbox" defaultChecked /></label>)}</Panel> : null}{tab === "byok" ? <ByokSettings /> : null}</section>;
+  return (
+    <section className="screen">
+      <header className="screen-header">
+        <div>
+          <h1>Devs</h1>
+          <p>Create developer-style outputs that competition agents can request from the vault.</p>
+        </div>
+      </header>
+      <div className="dev-tabs">
+        {tabs.map(([id, label, Icon]) => (
+          <button key={id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}>
+            <Icon size={16} />{label}
+          </button>
+        ))}
+      </div>
+      {tab === "style" ? <StyleBuilderWorkspace /> : null}
+      {tab === "agents" ? <DevsAgentsWorkspace /> : null}
+      {tab === "settings" ? <Panel title="Workflow Guardrails">{["Require approval before next stage unlock", "Allow user-uploaded input override", "Strict citation checks", "Auto-create calendar reminders"].map((item) => <label className="toggle-row" key={item}><span>{item}</span><input type="checkbox" defaultChecked /></label>)}</Panel> : null}
+      {tab === "byok" ? <ByokSettings /> : null}
+    </section>
+  );
+}
+
+type StyleSource = { id: string; fileName: string; mimeType: string; sizeBytes: number; createdAt: string; status: string };
+type StyleProfile = { id: string; fileName: string; contentText: string; createdAt: string; status: string };
+type StyleVersion = { id: string; versionNumber: number; changeSummary: string; createdAt: string };
+
+function StyleBuilderWorkspace() {
+  const [sources, setSources] = useState<StyleSource[]>([]);
+  const [profile, setProfile] = useState<StyleProfile | null>(null);
+  const [versions, setVersions] = useState<StyleVersion[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [models, setModels] = useState<Array<{ provider: string; id: string; label: string }>>([]);
+  const [selectedModel, setSelectedModel] = useState("");
+  const [reasoningEffort, setReasoningEffort] = useState<"low" | "medium" | "high" | "xhigh">("medium");
+  const [activeRun, setActiveRun] = useState<{ runId: string; tokens: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const reload = useCallback(async () => {
+    try {
+      const res = await fetch("/api/style-profile", { cache: "no-store" });
+      const json = await res.json();
+      setSources(json?.data?.sources ?? []);
+      setProfile(json?.data?.profile ?? null);
+      setVersions(json?.data?.versions ?? []);
+    } catch {
+      setSources([]);
+      setProfile(null);
+      setVersions([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void reload(); }, [reload]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/models", { cache: "no-store" });
+        const json = await res.json();
+        const list = (json?.data ?? []) as Array<{ provider: string; id: string; label: string }>;
+        setModels(list);
+        if (list.length > 0) setSelectedModel(`${list[0].provider}::${list[0].id}`);
+      } catch {
+        setModels([]);
+      }
+    })();
+  }, []);
+
+  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    if (files.length === 0) return;
+    setError(null);
+    setUploading(true);
+    try {
+      const form = new FormData();
+      for (const f of files) form.append("files", f);
+      const res = await fetch("/api/style-profile/upload", { method: "POST", body: form });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error ?? "Upload failed.");
+      }
+      await reload();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setUploading(false);
+      event.target.value = "";
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    setError(null);
+    try {
+      const res = await fetch(`/api/style-profile/sources/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error ?? "Delete failed.");
+      }
+      await reload();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  const generate = async () => {
+    setError(null);
+    if (sources.length === 0) { setError("Upload at least one essay PDF first."); return; }
+    if (!selectedModel) { setError("Pick a model first."); return; }
+    const [provider, modelId] = selectedModel.split("::");
+
+    try {
+      const res = await fetch("/api/style-profile/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ modelProvider: provider, modelId, reasoningEffort }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error ?? "Generate failed.");
+      }
+      const json = await res.json();
+      setActiveRun({ runId: json?.data?.runId, tokens: "" });
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  // Subscribe to the active run's events.
+  useEffect(() => {
+    if (!activeRun) return;
+    const runId = activeRun.runId;
+    let disposed = false;
+    let cleanup = () => {};
+
+    (async () => {
+      const supabase = getBrowserSupabase();
+      if (!supabase) return;
+      const channel = supabase
+        .channel(`style-run-${runId}`)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "agent_run_events", filter: `run_id=eq.${runId}` },
+          (payload: { new: { event_type: string; payload: Record<string, unknown> } }) => {
+            if (disposed) return;
+            handleEvent(payload.new.event_type, payload.new.payload);
+          },
+        )
+        .subscribe();
+
+      try {
+        const res = await fetch(`/api/agent-runs/${runId}`, { cache: "no-store" });
+        const json = await res.json();
+        for (const e of json?.data?.events ?? []) {
+          if (disposed) break;
+          handleEvent(e.eventType, e.payload);
+        }
+      } catch { /* ignore */ }
+
+      cleanup = () => {
+        disposed = true;
+        supabase.removeChannel(channel);
+      };
+    })();
+
+    return () => cleanup();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRun?.runId]);
+
+  const handleEvent = (eventType: string, payload: Record<string, unknown>) => {
+    setActiveRun((prev) => {
+      if (!prev) return prev;
+      if (eventType === "token") {
+        const text = typeof payload.text === "string" ? payload.text : "";
+        return { ...prev, tokens: prev.tokens + text };
+      }
+      if (eventType === "status" && payload.phase === "completed") {
+        queueMicrotask(() => {
+          reload();
+          setActiveRun(null);
+        });
+      }
+      if (eventType === "error") {
+        setError(String(payload.message ?? payload.reason ?? "Run error."));
+      }
+      return prev;
+    });
+  };
+
+  return (
+    <section className="panel">
+      <div className="panel-header">
+        <div>
+          <h2>Style Profile Builder</h2>
+          <p style={{ color: "var(--muted)", margin: "4px 0 0 0", fontSize: 13 }}>
+            Upload five or more winning essay PDFs, pick a model, and let the builder generate your reusable style profile.
+          </p>
+        </div>
+      </div>
+
+      <section style={{ display: "flex", flexDirection: "column", gap: 20, padding: "8px 0 16px 0" }}>
+        <div className="source-options">
+          <label className="source-card active" style={{ cursor: uploading ? "wait" : "pointer" }}>
+            <UploadCloud size={20} /> {uploading ? "Uploading…" : "Upload essay PDFs"}
+            <input
+              type="file"
+              accept=".pdf,.docx,.md,.txt,application/pdf"
+              multiple
+              style={{ display: "none" }}
+              disabled={uploading}
+              onChange={handleUpload}
+            />
+          </label>
+        </div>
+
+        <div>
+          <strong style={{ display: "block", marginBottom: 8 }}>Uploaded sources ({sources.length})</strong>
+          {loading ? (
+            <p style={{ color: "var(--muted)" }}>Loading…</p>
+          ) : sources.length === 0 ? (
+            <p style={{ color: "var(--muted)" }}>No essays uploaded yet. Drop in 5+ winning essays for best results.</p>
+          ) : (
+            <div className="overview-file-list">
+              {sources.map((s) => (
+                <div key={s.id} className="overview-file-row">
+                  <span>{s.fileName}</span>
+                  <small>{(s.sizeBytes / 1024).toFixed(1)} KB</small>
+                  <button className="ghost-icon" title="Delete" onClick={() => handleDelete(s.id)}>
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <select
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+            disabled={models.length === 0 || activeRun !== null}
+          >
+            {models.length === 0 ? <option value="">No models configured</option> : null}
+            {models.map((m) => (
+              <option key={`${m.provider}::${m.id}`} value={`${m.provider}::${m.id}`}>
+                {m.label} ({m.provider})
+              </option>
+            ))}
+          </select>
+          <select
+            value={reasoningEffort}
+            onChange={(e) => setReasoningEffort(e.target.value as "low" | "medium" | "high" | "xhigh")}
+            disabled={activeRun !== null}
+          >
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="xhigh">Extra high</option>
+          </select>
+          <button
+            className="btn-primary"
+            onClick={generate}
+            disabled={activeRun !== null || sources.length === 0 || !selectedModel}
+          >
+            {activeRun ? "Running…" : profile ? "Regenerate Style Profile" : "Generate Style Profile"}
+          </button>
+        </div>
+
+        {error ? <p style={{ color: "#c52b2b" }}>{error}</p> : null}
+
+        {activeRun ? (
+          <div className="reference-chat-bubble assistant streaming">
+            <span className="reference-chat-role">Style Builder · streaming</span>
+            <p style={{ whiteSpace: "pre-wrap" }}>{activeRun.tokens || "…"}</p>
+          </div>
+        ) : null}
+
+        {profile ? (
+          <div>
+            <strong style={{ display: "block", marginBottom: 8 }}>Current profile — {profile.fileName}</strong>
+            <pre className="document-textarea" style={{ whiteSpace: "pre-wrap", maxHeight: 400, overflow: "auto", padding: 16 }}>
+              {profile.contentText}
+            </pre>
+          </div>
+        ) : null}
+
+        {versions.length > 0 ? (
+          <div>
+            <strong style={{ display: "block", marginBottom: 8 }}>Version history</strong>
+            <div className="overview-file-list">
+              {versions.map((v) => (
+                <div key={v.id} className="overview-file-row">
+                  <span>v{v.versionNumber}</span>
+                  <small>{v.changeSummary || "—"}</small>
+                  <small>{new Date(v.createdAt).toLocaleString()}</small>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </section>
+    </section>
+  );
 }
 
 function Panel({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {

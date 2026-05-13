@@ -11,7 +11,7 @@ import { parseToolCalls, type WriteFileToolCall } from "@/lib/server/tool-calls"
 export type RunExecutionInput = {
   runId: string;
   userId: string;
-  competitionId: string;
+  competitionId: string | null;
   stageId: string;
   pipelineNodeId: string | null;
   skillContent: string;
@@ -175,15 +175,15 @@ async function callModel(args: CallModelArgs): Promise<string> {
 }
 
 async function callClaudeCli(args: CallModelArgs): Promise<string> {
-  return streamSpawn("claude", ["--model", args.modelId, "-p", args.prompt], args.onToken);
+  return streamSpawnWithStdin("claude", ["--model", args.modelId, "-p", "--permission-mode", "bypassPermissions"], args.prompt, args.onToken);
 }
 
 async function callCodexCli(args: CallModelArgs): Promise<string> {
-  return streamSpawn("codex", ["exec", "--model", args.modelId, args.prompt], args.onToken);
+  return streamSpawnWithStdin("codex", ["exec", "--model", args.modelId, "--skip-git-repo-check", "-"], args.prompt, args.onToken);
 }
 
 async function callGeminiCli(args: CallModelArgs): Promise<string> {
-  return streamSpawn("gemini", ["--model", args.modelId, "-p", args.prompt], args.onToken);
+  return streamSpawnWithStdin("gemini", ["--model", args.modelId, "-p", "-"], args.prompt, args.onToken);
 }
 
 async function callMockCli(args: CallModelArgs): Promise<string> {
@@ -237,6 +237,35 @@ function streamSpawn(
       if (code === 0) resolve(out);
       else reject(new Error(`${command} exited with code ${code}: ${err.slice(0, 500)}`));
     });
+  });
+}
+
+function streamSpawnWithStdin(
+  command: string,
+  cliArgs: string[],
+  stdinData: string,
+  onToken: (s: string) => Promise<void> | void,
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, cliArgs, { shell: false });
+    let out = "";
+    let err = "";
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk: string) => {
+      out += chunk;
+      void onToken(chunk);
+    });
+    child.stderr.on("data", (chunk: string) => {
+      err += chunk;
+    });
+    child.on("error", (error) => reject(error));
+    child.on("close", (code) => {
+      if (code === 0) resolve(out);
+      else reject(new Error(`${command} exited with code ${code}: ${err.slice(0, 500)}`));
+    });
+    child.stdin.write(stdinData, "utf8");
+    child.stdin.end();
   });
 }
 
@@ -361,19 +390,24 @@ async function applyWriteFile(
 ): Promise<{ fileId: string; newVersion: number }> {
   const content = call.params.content;
   const contentBytes = Buffer.byteLength(content, "utf8");
+  const scopedToCompetition = Boolean(input.competitionId);
 
-  // Look up existing file for this competition + artifact_role.
-  const { data: existing, error: lookupErr } = await supabase
+  // Look up existing file for this scope + artifact_role.
+  let existingQuery = supabase
     .from("competition_files")
     .select("id, storage_bucket, storage_path, content_text")
-    .eq("competition_id", input.competitionId)
     .eq("user_id", input.userId)
-    .eq("artifact_role", call.params.artifact_role)
-    .maybeSingle();
+    .eq("artifact_role", call.params.artifact_role);
+  existingQuery = scopedToCompetition
+    ? existingQuery.eq("competition_id", input.competitionId!)
+    : existingQuery.is("competition_id", null);
+  const { data: existing, error: lookupErr } = await existingQuery.maybeSingle();
   if (lookupErr) throw new Error(`tool/write_file lookup failed: ${lookupErr.message}`);
 
-  const storageBucket = "agent-outputs";
-  const storagePath = `${input.userId}/${input.competitionId}/${call.params.artifact_role}.md`;
+  const storageBucket = scopedToCompetition ? "agent-outputs" : "profile-assets";
+  const storagePath = scopedToCompetition
+    ? `${input.userId}/${input.competitionId}/${call.params.artifact_role}.md`
+    : `${input.userId}/style/${call.params.artifact_role}.md`;
 
   // Upload to storage (upsert).
   const uploadRes = await supabase.storage
