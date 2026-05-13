@@ -113,9 +113,7 @@ export function EsaiPremiumApp() {
         activeScreen={activeScreen}
         collapsed={sidebarCollapsed}
         assistantOpen={assistantOpen}
-        darkMode={darkMode}
         onToggleAssistant={() => setAssistantOpen((value) => !value)}
-        onToggleTheme={() => setDarkMode((value) => !value)}
         onToggleSidebar={() => setSidebarCollapsed((value) => !value)}
         onOpenScreen={openScreen}
       />
@@ -209,9 +207,7 @@ function Sidebar(props: {
   activeScreen: Screen;
   collapsed: boolean;
   assistantOpen: boolean;
-  darkMode: boolean;
   onToggleAssistant: () => void;
-  onToggleTheme: () => void;
   onToggleSidebar: () => void;
   onOpenScreen: (screen: Screen) => void;
 }) {
@@ -245,18 +241,15 @@ function Sidebar(props: {
         })}
       </nav>
       <div className="sidebar-footer">
-        <button className="sidebar-item" onClick={props.onToggleTheme}>
-          {props.darkMode ? <Sun size={18} /> : <Moon size={18} />}
-          {!props.collapsed ? <span>{props.darkMode ? "Light" : "Dark"}</span> : null}
-        </button>
         <form action="/api/auth/logout" method="post" className="sidebar-logout-form">
-          <button type="submit" className="sidebar-logout-button" title="Sign out">
-            Sign out
+          <button type="submit" className="sidebar-item sidebar-logout-button" title="Sign out">
+            <span style={{ display: "inline-flex", width: 18, height: 18, alignItems: "center", justifyContent: "center" }}>⏻</span>
+            {!props.collapsed ? <span>Sign out</span> : null}
           </button>
         </form>
         <button className={`profile-button ${props.activeScreen === "profile" ? "active" : ""}`} onClick={() => props.onOpenScreen("profile")}>
           <span className="avatar">AS</span>
-          {!props.collapsed ? <span><strong>User Account</strong><small>Analytical Board</small></span> : null}
+          {!props.collapsed ? <span><strong>User Account</strong><small>Settings</small></span> : null}
         </button>
       </div>
       <button className="rail-handle" onClick={props.onToggleSidebar}>
@@ -647,21 +640,43 @@ function AddCompetitionWizard({ onCancel, onFinish }: { onCancel: () => void; on
         ) : null}
 
         {step === 2 ? (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            <div className="upload-zone">
+          <div className="wizard-upload-grid">
+            <label className={`upload-zone ${poster ? (posterOk ? "has-file" : "has-error") : ""}`}>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={(e) => setPoster(e.target.files?.[0] ?? null)}
+                className="upload-zone-input"
+              />
               <UploadCloud size={30} />
               <strong>Poster</strong>
               <span>PNG, JPG, or WebP. Max 5 MB.</span>
-              <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setPoster(e.target.files?.[0] ?? null)} />
-              {poster ? <small style={{ color: posterOk ? "#147d64" : "#c52b2b" }}>{poster.name} ({Math.round(poster.size / 1024)} KB)</small> : null}
-            </div>
-            <div className="upload-zone">
+              {poster ? (
+                <small className={posterOk ? "upload-ok" : "upload-err"}>
+                  {poster.name} ({Math.round(poster.size / 1024)} KB)
+                </small>
+              ) : (
+                <small className="upload-hint">Click to choose a file</small>
+              )}
+            </label>
+            <label className={`upload-zone ${guidebook ? (guidebookOk ? "has-file" : "has-error") : ""}`}>
+              <input
+                type="file"
+                accept=".pdf,.docx,.md,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/markdown,text/plain"
+                onChange={(e) => setGuidebook(e.target.files?.[0] ?? null)}
+                className="upload-zone-input"
+              />
               <UploadCloud size={30} />
               <strong>Guidebook</strong>
               <span>PDF, DOCX, MD, or TXT. Max 20 MB.</span>
-              <input type="file" accept=".pdf,.docx,.md,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/markdown,text/plain" onChange={(e) => setGuidebook(e.target.files?.[0] ?? null)} />
-              {guidebook ? <small style={{ color: guidebookOk ? "#147d64" : "#c52b2b" }}>{guidebook.name} ({Math.round(guidebook.size / 1024)} KB)</small> : null}
-            </div>
+              {guidebook ? (
+                <small className={guidebookOk ? "upload-ok" : "upload-err"}>
+                  {guidebook.name} ({Math.round(guidebook.size / 1024)} KB)
+                </small>
+              ) : (
+                <small className="upload-hint">Click to choose a file</small>
+              )}
+            </label>
           </div>
         ) : null}
 
@@ -671,7 +686,7 @@ function AddCompetitionWizard({ onCancel, onFinish }: { onCancel: () => void; on
             <h3>Semua Siap</h3>
             <p>AI akan memetakan pipeline pengerjaan berdasarkan guidebook dan metadata Anda.</p>
             {error ? (
-              <div style={{ marginTop: 16, padding: 12, border: "1px solid #f3b7b7", background: "#fdecec", borderRadius: 8 }}>
+              <div className="wizard-error">
                 <strong>Gagal:</strong> {error.message}
                 {error.correlationId ? <div><small>Correlation ID: <code>{error.correlationId}</code></small></div> : null}
               </div>
@@ -1225,7 +1240,84 @@ function FinalOutputs({ competitions }: { competitions: Competition[] }) {
 function AnalyticalBoard({ darkMode, onToggleTheme }: { darkMode: boolean; onToggleTheme: () => void }) {
   const [dashboard, setDashboard] = useState(false);
   if (dashboard) return <AnalyticalDashboard onBack={() => setDashboard(false)} />;
-  return <section className="screen"><header className="screen-header"><div><h1>Analytical Board</h1><p>Progress notifications, website look, accent controls, and analytics entry.</p></div><button className="btn-secondary" onClick={onToggleTheme}>{darkMode ? <Sun size={16} /> : <Moon size={16} />}Theme</button></header><div className="analytics-grid"><Panel title="Process Notifications"><div className="list-stack"><div className="notification-row"><Bell size={17} /><span>No notifications yet.</span><span className="status-chip ready">Empty</span></div></div></Panel><Panel title="Website Look"><div className="accent-grid">{["Emerald", "Refined Blue", "Graphite", "Teal"].map((item) => <button className="source-card" key={item}><Palette size={18} />{item}</button>)}</div></Panel></div><section className="panel"><div className="panel-header"><div><h2>Analytical Dashboard</h2><p>Competition outcomes and academic workflow signal.</p></div><button className="btn-primary" onClick={() => setDashboard(true)}>Open Dashboard <ArrowRight size={16} /></button></div></section></section>;
+  return (
+    <section className="screen">
+      <header className="screen-header">
+        <div>
+          <h1>Account Settings</h1>
+          <p>Appearance, notifications, and workspace controls.</p>
+        </div>
+      </header>
+
+      <section className="panel">
+        <div className="panel-header" style={{ marginBottom: 12 }}>
+          <div>
+            <h2>Appearance</h2>
+            <p>Pick how the interface looks across every screen.</p>
+          </div>
+        </div>
+
+        <div className="profile-setting-row">
+          <div>
+            <strong>Theme</strong>
+            <small>Choose light or dark mode.</small>
+          </div>
+          <div className="theme-switch" role="group" aria-label="Theme">
+            <button
+              type="button"
+              className={!darkMode ? "active" : ""}
+              onClick={() => { if (darkMode) onToggleTheme(); }}
+              aria-pressed={!darkMode}
+            >
+              <Sun size={14} /> Light
+            </button>
+            <button
+              type="button"
+              className={darkMode ? "active" : ""}
+              onClick={() => { if (!darkMode) onToggleTheme(); }}
+              aria-pressed={darkMode}
+            >
+              <Moon size={14} /> Dark
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <div className="analytics-grid">
+        <Panel title="Process Notifications">
+          <div className="list-stack">
+            <div className="notification-row">
+              <Bell size={17} />
+              <span>No notifications yet.</span>
+              <span className="status-chip ready">Empty</span>
+            </div>
+          </div>
+        </Panel>
+        <Panel title="Accent Color">
+          <div className="accent-grid">
+            {["Emerald", "Refined Blue", "Graphite", "Teal"].map((item) => (
+              <button className="source-card" key={item}>
+                <Palette size={18} />
+                {item}
+              </button>
+            ))}
+          </div>
+        </Panel>
+      </div>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h2>Analytical Dashboard</h2>
+            <p>Competition outcomes and academic workflow signal.</p>
+          </div>
+          <button className="btn-primary" onClick={() => setDashboard(true)}>
+            Open Dashboard <ArrowRight size={16} />
+          </button>
+        </div>
+      </section>
+    </section>
+  );
 }
 
 function AnalyticalDashboard({ onBack }: { onBack: () => void }) {
