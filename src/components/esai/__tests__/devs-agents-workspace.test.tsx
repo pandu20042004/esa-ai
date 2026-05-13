@@ -177,4 +177,35 @@ describe("DevsAgentsWorkspace", () => {
       ),
     );
   });
+
+  it("does not save the prompt on every keystroke", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (url.includes("/api/compartments")) return Response.json({ data: compartments });
+      if (url.includes("/api/agents/a1/draft") && init?.method === "PATCH") {
+        const body = JSON.parse(String(init.body));
+        return Response.json({ data: { ...agents[0], draftSkillContent: body.skillContent } });
+      }
+      if (url.includes("/api/agents")) return Response.json({ data: agents });
+      return Response.json({ data: [] });
+    });
+
+    render(<DevsAgentsWorkspace />);
+    const prompt = await screen.findByLabelText("Agent prompt");
+    fireEvent.change(prompt, { target: { value: "# Research\nA" } });
+    fireEvent.change(prompt, { target: { value: "# Research\nAB" } });
+
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      "/api/agents/a1/draft",
+      expect.objectContaining({ method: "PATCH" }),
+    );
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/agents/a1/draft",
+        expect.objectContaining({ method: "PATCH" }),
+      ),
+      { timeout: 1200 },
+    );
+  });
 });

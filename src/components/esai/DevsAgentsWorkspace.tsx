@@ -1,7 +1,7 @@
 "use client";
 
 import { Bot, History, Plus, RotateCcw, Sparkles } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   CONTROLLED_OUTPUT_LABELS,
@@ -43,6 +43,7 @@ export function DevsAgentsWorkspace() {
   const [newCompartmentName, setNewCompartmentName] = useState("");
   const [newAgentOpen, setNewAgentOpen] = useState(false);
   const [newAgentName, setNewAgentName] = useState("");
+  const [promptDraft, setPromptDraft] = useState("");
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
@@ -60,19 +61,61 @@ export function DevsAgentsWorkspace() {
     void readData<DevsAgent>(`/api/agents?compartmentId=${selectedCompartmentId}`)
       .then((items) => {
         setAgents(items);
-        setSelectedAgentId((current) =>
-          items.some((agent) => agent.id === current) ? current : items[0]?.id || "",
-        );
+        setSelectedAgentId((current) => {
+          const nextId = items.some((agent) => agent.id === current) ? current : items[0]?.id || "";
+          setPromptDraft(items.find((agent) => agent.id === nextId)?.draftSkillContent ?? "");
+          return nextId;
+        });
       })
       .catch((error: Error) => setNotice(error.message));
   }, [selectedCompartmentId]);
 
   const selectedAgent = agents.find((agent) => agent.id === selectedAgentId) ?? agents[0] ?? null;
+
+  const saveDraft = useCallback(
+    async (patch: Partial<Pick<DevsAgent, "draftSkillContent" | "draftNeeds" | "draftProduces">>) => {
+      if (!selectedAgent) return;
+
+      const nextAgent = { ...selectedAgent, ...patch };
+      setAgents((items) => items.map((agent) => (agent.id === nextAgent.id ? nextAgent : agent)));
+
+      const response = await fetch(`/api/agents/${selectedAgent.id}/draft`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          skillContent: nextAgent.draftSkillContent,
+          needs: nextAgent.draftNeeds,
+          produces: nextAgent.draftProduces,
+        }),
+      });
+      const json = (await response.json()) as ApiEnvelope<DevsAgent>;
+
+      if (!response.ok || !json.data) {
+        setNotice(json.error ?? "Unable to save draft.");
+        return;
+      }
+
+      setAgents((items) => items.map((agent) => (agent.id === json.data?.id ? json.data : agent)));
+      setNotice("Draft saved.");
+    },
+    [selectedAgent],
+  );
+
+  useEffect(() => {
+    if (!selectedAgent || promptDraft === selectedAgent.draftSkillContent) return;
+
+    const timeout = window.setTimeout(() => {
+      void saveDraft({ draftSkillContent: promptDraft });
+    }, 700);
+
+    return () => window.clearTimeout(timeout);
+  }, [promptDraft, saveDraft, selectedAgent]);
+
   const validation = useMemo(() => {
     if (!selectedAgent) return null;
 
     return validateAgentDraft({
-      prompt: selectedAgent.draftSkillContent,
+      prompt: promptDraft,
       needs: selectedAgent.draftNeeds,
       produces: selectedAgent.draftProduces,
       existingRolesInCompartment: agents.flatMap((agent) => [
@@ -80,7 +123,7 @@ export function DevsAgentsWorkspace() {
         ...agent.publishedProduces.map((produce) => produce.role),
       ]),
     });
-  }, [agents, selectedAgent]);
+  }, [agents, promptDraft, selectedAgent]);
 
   async function createCompartment() {
     if (!newCompartmentName.trim()) return;
@@ -122,37 +165,10 @@ export function DevsAgentsWorkspace() {
 
     setAgents((items) => [json.data as DevsAgent, ...items]);
     setSelectedAgentId(json.data.id);
+    setPromptDraft(json.data.draftSkillContent);
     setNewAgentName("");
     setNewAgentOpen(false);
     setNotice("Custom agent saved as draft.");
-  }
-
-  async function saveDraft(
-    patch: Partial<Pick<DevsAgent, "draftSkillContent" | "draftNeeds" | "draftProduces">>,
-  ) {
-    if (!selectedAgent) return;
-
-    const nextAgent = { ...selectedAgent, ...patch };
-    setAgents((items) => items.map((agent) => (agent.id === nextAgent.id ? nextAgent : agent)));
-
-    const response = await fetch(`/api/agents/${selectedAgent.id}/draft`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        skillContent: nextAgent.draftSkillContent,
-        needs: nextAgent.draftNeeds,
-        produces: nextAgent.draftProduces,
-      }),
-    });
-    const json = (await response.json()) as ApiEnvelope<DevsAgent>;
-
-    if (!response.ok || !json.data) {
-      setNotice(json.error ?? "Unable to save draft.");
-      return;
-    }
-
-    setAgents((items) => items.map((agent) => (agent.id === json.data?.id ? json.data : agent)));
-    setNotice("Draft saved.");
   }
 
   async function publishAgent() {
@@ -256,7 +272,10 @@ export function DevsAgentsWorkspace() {
               key={agent.id}
               type="button"
               className={agent.id === selectedAgent?.id ? "active" : ""}
-              onClick={() => setSelectedAgentId(agent.id)}
+              onClick={() => {
+                setSelectedAgentId(agent.id);
+                setPromptDraft(agent.draftSkillContent);
+              }}
             >
               <Bot size={17} />
               <span>
@@ -282,16 +301,16 @@ export function DevsAgentsWorkspace() {
               </header>
               <textarea
                 aria-label="Agent prompt"
-                value={selectedAgent.draftSkillContent}
-                onChange={(event) => void saveDraft({ draftSkillContent: event.target.value })}
+                value={promptDraft}
+                onChange={(event) => setPromptDraft(event.target.value)}
               />
-              {validation?.blocking.map((item) => (
-                <p className="form-warning" key={item}>
+              {validation?.blocking.map((item, index) => (
+                <p className="form-warning" key={`blocking-${index}-${item}`}>
                   {item}
                 </p>
               ))}
-              {validation?.warnings.map((item) => (
-                <p className="form-note" key={item}>
+              {validation?.warnings.map((item, index) => (
+                <p className="form-note" key={`warning-${index}-${item}`}>
                   {item}
                 </p>
               ))}
@@ -336,7 +355,16 @@ export function DevsAgentsWorkspace() {
             </button>
           </div>
           {selectedAgent && tab === "assistant" ? (
-            <AssistantDraftPanel agent={selectedAgent} onApply={saveDraft} onNotice={setNotice} />
+            <AssistantDraftPanel
+              agent={selectedAgent}
+              onApply={async (patch) => {
+                if (typeof patch.draftSkillContent === "string") {
+                  setPromptDraft(patch.draftSkillContent);
+                }
+                await saveDraft(patch);
+              }}
+              onNotice={setNotice}
+            />
           ) : null}
           {selectedAgent && tab === "contracts" ? (
             <ContractsPanel agent={selectedAgent} onSave={saveDraft} />
@@ -361,8 +389,9 @@ function ContractsPanel({
   onSave: (patch: Partial<Pick<DevsAgent, "draftNeeds" | "draftProduces">>) => Promise<void>;
 }) {
   function addNeed() {
+    const key = createUniqueContractKey("new_input", agent.draftNeeds);
     const next: DevsNeed = {
-      key: "new_input",
+      key,
       label: "New input",
       acceptedRoles: [],
       required: true,
@@ -383,11 +412,12 @@ function ContractsPanel({
   }
 
   function addProduces() {
+    const key = createUniqueContractKey("new_output", agent.draftProduces);
     const next: DevsProduces = {
-      key: "new_output",
+      key,
       label: "New output",
       role: "final_output",
-      defaultFilename: "new_output.md",
+      defaultFilename: `${key}.md`,
     };
     void onSave({ draftProduces: [...agent.draftProduces, next] });
   }
@@ -432,6 +462,17 @@ function ContractsPanel({
       </button>
     </div>
   );
+}
+
+function createUniqueContractKey(baseKey: string, items: Array<{ key: string }>) {
+  const keys = new Set(items.map((item) => item.key));
+  if (!keys.has(baseKey)) return baseKey;
+
+  let index = 2;
+  while (keys.has(`${baseKey}_${index}`)) {
+    index += 1;
+  }
+  return `${baseKey}_${index}`;
 }
 
 function NeedEditor({
