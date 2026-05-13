@@ -42,9 +42,12 @@ export async function toWebp(file: File, opts: WebpOptions = {}): Promise<WebpRe
 }
 
 /**
- * Convert a File to square WebP (1080x1080) for Instagram posts.
+ * Convert a File to portrait WebP (1080x1350) for Instagram feed.
  * Used for twibbons, user photos, and combined assets.
  */
-export async function toSquareWebp(file: File): Promise<WebpResult> {
-  return toWebp(file, { width: SQUARE_SIZE, height: SQUARE_SIZE, fit: "cover" });
+export async function toPortraitWebp(file: File): Promise<WebpResult> {
+  return toWebp(file, { width: POSTER_WIDTH, height: POSTER_HEIGHT, fit: "cover" });
 }
+
+/** @deprecated use toPortraitWebp */
+export const toSquareWebp = toPortraitWebp;

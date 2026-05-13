@@ -870,7 +870,7 @@ function AssetMakerSection({
     try {
       const canvas = document.createElement("canvas");
       canvas.width = 1080;
-      canvas.height = 1080;
+      canvas.height = 1350;
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("Canvas 2D not available.");
 
@@ -887,20 +887,20 @@ function AssetMakerSection({
 
       // Fill background
       ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, 1080, 1080);
+      ctx.fillRect(0, 0, 1080, 1350);
 
-      // Draw photo with scale (0.5..2.0) and vertical offset based on position (0..100 => -canvas/2..+canvas/2 of extra space)
+      // Draw photo: scale horizontally to 1080*scaleFactor, keep aspect, position vertically by slider
       const scaleFactor = scale / 100;
       const baseW = 1080 * scaleFactor;
       const baseH = (photoImg.height / photoImg.width) * baseW;
       const cx = (1080 - baseW) / 2;
-      // position: 0 = top, 50 = center, 100 = bottom of photo cropped area
-      const cy = ((position / 100) * (1080 - baseH));
+      // position 0..100 maps to vertical cover range inside 1350 canvas
+      const cy = ((position / 100) * (1350 - baseH));
 
       ctx.drawImage(photoImg, cx, cy, baseW, baseH);
 
-      // Draw twibbon overlay full-frame
-      ctx.drawImage(twibbonImg, 0, 0, 1080, 1080);
+      // Draw twibbon overlay full-frame at 1080x1350
+      ctx.drawImage(twibbonImg, 0, 0, 1080, 1350);
 
       const blob: Blob | null = await new Promise((resolve) => canvas.toBlob((b) => resolve(b), "image/webp", 0.92));
       if (!blob) throw new Error("Failed to render combined image.");
@@ -948,22 +948,27 @@ function AssetMakerSection({
       <div className="asset-maker-grid">
         {/* Preview */}
         <div className="asset-maker-preview-wrap">
-          <div className="asset-maker-preview">
-            {photoSrc ? (
-              <img
-                src={photoSrc}
-                alt="user photo"
-                className="asset-maker-photo"
-                style={{
-                  transform: `translateY(${(position - 50) * 2}%) scale(${scaleFactor})`,
-                }}
-              />
-            ) : (
-              <div className="asset-maker-placeholder">Upload your photo</div>
-            )}
-            {twibbonSrc ? (
-              <img src={twibbonSrc} alt="twibbon frame" className="asset-maker-twibbon" />
-            ) : null}
+          <div className="asset-maker-preview-outer">
+            <div className="asset-maker-preview">
+              {photoSrc ? (
+                <img
+                  src={photoSrc}
+                  alt="user photo"
+                  className="asset-maker-photo"
+                  style={{
+                    transform: `translateY(${(position - 50) * 2}%) scale(${scaleFactor})`,
+                  }}
+                />
+              ) : (
+                <>
+                  <div className="asset-maker-placeholder-circle" />
+                  <div className="asset-maker-placeholder">Upload your photo</div>
+                </>
+              )}
+              {twibbonSrc ? (
+                <img src={twibbonSrc} alt="twibbon frame" className="asset-maker-twibbon" />
+              ) : null}
+            </div>
           </div>
           <div className="asset-maker-preview-caption">
             <strong>Twibbon + Photo Preview</strong>
