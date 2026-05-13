@@ -11,7 +11,7 @@ import { isSupabaseAdminConfigured } from "@/lib/supabase/env";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { AgentDefinition, CalendarEvent, Competition, CompetitionFile, OutputVersion, ValidityCheck } from "@/types/esai";
 import { extractText } from "@/lib/server/file-extraction";
-import { toWebp, toPortraitWebp, toTwibbonWebp } from "@/lib/server/image-processing";
+import { toWebp, toPortraitWebp, toPortraitPng, toTwibbonWebp } from "@/lib/server/image-processing";
 import {
   uploadCompetitionAsset,
   deleteCompetitionAssets,
@@ -543,8 +543,13 @@ export function createEsaiRepository(options: RepositoryOptions = {}) {
       if (compErr) throw new Error(compErr.message);
       if (!compRow) throw new Error("Competition not found.");
 
-      const ext = "webp";
-      const webp = role === "twibbon" ? await toTwibbonWebp(file) : await toPortraitWebp(file);
+      const ext = role === "combined_asset" ? "png" : "webp";
+      const processed =
+        role === "twibbon" ? await toTwibbonWebp(file) :
+        role === "combined_asset" ? await toPortraitPng(file) :
+        await toPortraitWebp(file);
+      const webp = processed; // keep variable name for below
+
       const { storagePath } = await uploadCompetitionAsset({
         userId,
         competitionId: id,
@@ -644,6 +649,80 @@ export function createEsaiRepository(options: RepositoryOptions = {}) {
       }
 
       return createApiEnvelope([] as CompetitionFile[], { supabaseConfigured });
+    },
+
+    async deleteCompetitionFile(fileId: string) {
+      if (!supabase || !userId) throw new Error("Supabase not configured or user not authenticated.");
+
+      // Find the row to get storage_path + competition_id + file_role
+      const { data: row, error: findErr } = await supabase
+        .from("competition_files")
+        .select("id,competition_id,storage_path,storage_bucket,file_role")
+        .eq("id", fileId)
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (findErr) throw new Error(findErr.message);
+      if (!row) throw new Error("File not found.");
+
+      // Delete the storage object if present
+      if (row.storage_path && row.storage_bucket) {
+        const admin = createSupabaseAdminClient();
+        if (admin) {
+          await admin.storage.from(String(row.storage_bucket)).remove([String(row.storage_path)]);
+        }
+      }
+
+      // Null out any competition FK that references this file
+      const competitionId = row.competition_id ? String(row.competition_id) : null;
+      if (competitionId) {
+        const fkColumnByRole: Record<string, string | undefined> = {
+          poster: "poster_file_id",
+          twibbon: "twibbon_file_id",
+          user_photo: "user_photo_file_id",
+          final_output: "combined_asset_file_id",
+        };
+        const fkCol = fkColumnByRole[String(row.file_role)];
+        if (fkCol) {
+          await supabase
+            .from("competitions")
+            .update({ [fkCol]: null })
+            .eq("id", competitionId)
+            .eq("user_id", userId);
+        }
+      }
+
+      // Delete the row
+      const { error: delErr } = await supabase
+        .from("competition_files")
+        .delete()
+        .eq("id", fileId)
+        .eq("user_id", userId);
+      if (delErr) throw new Error(delErr.message);
+
+      return createApiEnvelope({ deleted: true }, { supabaseConfigured });
+    },
+
+    async getFileSignedUrl(fileId: string) {
+      if (!supabase || !userId) throw new Error("Supabase not configured or user not authenticated.");
+
+      const { data, error } = await supabase
+        .from("competition_files")
+        .select("storage_path,mime_type,file_name")
+        .eq("id", fileId)
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!data?.storage_path) throw new Error("File has no storage path.");
+
+      const url = await signedCompetitionUrl(String(data.storage_path));
+      return createApiEnvelope(
+        {
+          url,
+          mimeType: data.mime_type ? String(data.mime_type) : null,
+          fileName: data.file_name ? String(data.file_name) : null,
+        },
+        { supabaseConfigured },
+      );
     },
 
     async listFiles() {

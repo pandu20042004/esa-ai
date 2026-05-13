@@ -133,3 +133,16 @@ export async function uploadAssetMakerImage(
   const body = await handle<Envelope<Competition>>(res);
   return body.data;
 }
+
+export async function deleteFile(id: string): Promise<void> {
+  const res = await fetch(`/api/files/${id}`, { method: "DELETE" });
+  await handle<Envelope<{ deleted: true }>>(res);
+}
+
+export type FileSignedUrlResult = { url: string | null; mimeType: string | null; fileName: string | null };
+
+export async function getFileSignedUrl(id: string): Promise<FileSignedUrlResult> {
+  const res = await fetch(`/api/files/${id}/signed-url`, { cache: "no-store" });
+  const body = await handle<Envelope<FileSignedUrlResult>>(res);
+  return body.data;
+}

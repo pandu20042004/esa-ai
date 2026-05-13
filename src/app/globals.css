@@ -2207,6 +2207,7 @@ button.overview-file-row.interactive:hover {
   position: relative;
   width: 100%;
   max-width: 440px;
+  margin: 0 auto;
   aspect-ratio: 1080 / 1350;
   border-radius: 28px;
   overflow: hidden;
@@ -2330,4 +2331,144 @@ button.overview-file-row.interactive:hover {
   border-radius: 10px;
   border: 1px solid var(--border);
   margin: 8px 0;
+}
+
+/* ── File row (in overview files list) ── */
+.overview-file-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px 0 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--fg);
+  overflow: hidden;
+}
+.overview-file-row-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  font-weight: 600;
+  cursor: pointer;
+  min-width: 0;
+  flex: 1;
+}
+.overview-file-row-main span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.overview-file-row-main:hover { color: var(--accent); }
+.overview-file-row small {
+  color: var(--muted);
+  text-transform: capitalize;
+  flex-shrink: 0;
+  font-size: 12px;
+}
+.overview-file-row-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.overview-file-row-delete:hover {
+  color: #c52b2b;
+  background: color-mix(in oklch, #c52b2b 10%, transparent);
+}
+:root[data-theme="dark"] .overview-file-row-delete:hover { color: #fca5a5; }
+
+/* ── File viewer modal ── */
+.file-viewer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  background: rgb(0 0 0 / 0.6);
+  backdrop-filter: blur(14px);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.file-viewer {
+  width: 100%;
+  max-width: 1100px;
+  height: 90vh;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.file-viewer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.file-viewer-head strong { font-size: 14px; }
+.file-viewer-head small { display: block; color: var(--muted); font-size: 12px; }
+.file-viewer-head .btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--fg);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.file-viewer-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+.file-viewer-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.file-viewer-image-wrap {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+.file-viewer-image-wrap img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.file-viewer-text {
+  margin: 0;
+  padding: 20px 24px;
+  font-family: var(--font-code), var(--font-code-fallback);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--fg);
+  background: var(--surface);
+  white-space: pre-wrap;
+  overflow: auto;
+  height: 100%;
 }

@@ -126,3 +126,24 @@ export async function toTwibbonWebp(file: File): Promise<WebpResult> {
 
   return { buffer, contentType: "image/webp" };
 }
+
+export type PngResult = { buffer: Buffer; contentType: "image/png" };
+
+/**
+ * Convert to PNG at 1080x1350. Used for final combined assets (preserves alpha lossless).
+ */
+export async function toPortraitPng(file: File): Promise<PngResult> {
+  const arrayBuffer = await file.arrayBuffer();
+  const input = Buffer.from(arrayBuffer);
+  const buffer = await sharp(input)
+    .rotate()
+    .resize({
+      width: POSTER_WIDTH,
+      height: POSTER_HEIGHT,
+      fit: "cover",
+      position: "attention",
+    })
+    .png({ compressionLevel: 9 })
+    .toBuffer();
+  return { buffer, contentType: "image/png" };
+}

@@ -6,22 +6,14 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   const { id } = await context.params;
   const { repository, requiresAuth, user } = await createRequestRepository();
   if (requiresAuth && !user) return unauthorizedResponse();
-  const response = await repository.getFile(id);
-  return Response.json(response, { status: response.data ? 200 : 404 });
-}
-
-export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
-  const { repository, requiresAuth, user } = await createRequestRepository();
-  if (requiresAuth && !user) return unauthorizedResponse();
 
   try {
-    const response = await repository.deleteCompetitionFile(id);
+    const response = await repository.getFileSignedUrl(id);
     return Response.json(response);
   } catch (cause) {
     return errorResponse({
-      message: cause instanceof Error ? cause.message : "Failed to delete file.",
-      code: "ERR_DELETE_FILE",
+      message: cause instanceof Error ? cause.message : "Failed to sign URL.",
+      code: "ERR_SIGN_URL",
       status: 500,
       cause,
     });

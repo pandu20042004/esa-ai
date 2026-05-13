@@ -42,7 +42,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-import { ApiError, fetchCompetitions, fetchCompetitionFiles, createCompetition, updateCompetition, deleteCompetition, replaceCompetitionAssets, uploadAssetMakerImage, saveInstagramCaption } from "@/lib/esai/api";
+import { ApiError, fetchCompetitions, fetchCompetitionFiles, createCompetition, updateCompetition, deleteCompetition, replaceCompetitionAssets, uploadAssetMakerImage, saveInstagramCaption, deleteFile, getFileSignedUrl } from "@/lib/esai/api";
 import { filterCalendarEvents, getEventsForDate, getUpcomingEvents } from "@/lib/esai/calendar";
 import {
   seedCalendarEvents,
@@ -131,7 +131,7 @@ export function EsaiPremiumApp() {
                 onAdd={() => setShowWizard(true)}
                 onSelect={(competition) => {
                   setSelectedCompetition(competition);
-                  setOverviewOpen(true);
+                  setActiveScreen("workbench");
                 }}
                 onDelete={async (id) => {
                   await deleteCompetition(id);
@@ -175,7 +175,7 @@ export function EsaiPremiumApp() {
             setCompetitions((items) => [competition, ...items]);
             setSelectedCompetition(competition);
             setShowWizard(false);
-            setOverviewOpen(true);
+            setActiveScreen("workbench");
           }}
         />
       ) : null}
@@ -505,6 +505,8 @@ function CompetitionOverviewModal({
   const [pendingDelete, setPendingDelete] = useState(false);
   const [files, setFiles] = useState<CompetitionFile[]>([]);
   const [filesLoading, setFilesLoading] = useState(true);
+  const [viewingFile, setViewingFile] = useState<CompetitionFile | null>(null);
+  const [fileDeleting, setFileDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -576,31 +578,25 @@ function CompetitionOverviewModal({
   return (
     <div className="overview-backdrop" onClick={onClose} role="dialog" aria-modal="true">
       <section className="overview-shell" onClick={(e) => e.stopPropagation()}>
-        {/* Hero header (matches reference: title left, Submit Final right) */}
+        {/* Hero header */}
         <header className="overview-hero-simple">
           <div>
             <h2>{competition.title}</h2>
             <p>{competition.category}{competition.institution ? ` - ${competition.institution}` : ""}</p>
           </div>
           <div className="overview-hero-simple-actions">
+            <button className="btn-ghost" onClick={() => setEditing((v) => !v)} title={editing ? "Cancel edit" : "Edit"}>
+              <Pencil size={14} /> {editing ? "Cancel" : "Edit"}
+            </button>
+            <button className="btn-ghost danger" onClick={() => setPendingDelete(true)} title="Delete competition">
+              <Trash2 size={14} /> Delete
+            </button>
             <button className="btn-primary overview-submit-final">Submit Final</button>
             <button className="ghost-icon" onClick={onClose} aria-label="Close overview">
               <X size={18} />
             </button>
           </div>
         </header>
-
-        <div className="overview-secondary-actions">
-          <button className="btn-primary" onClick={() => onSelect(competition)}>
-            Open Workbench <ChevronRight size={14} />
-          </button>
-          <button className="btn-ghost" onClick={() => setEditing((v) => !v)}>
-            <Pencil size={14} /> {editing ? "Cancel" : "Edit"}
-          </button>
-          <button className="btn-ghost danger" onClick={() => setPendingDelete(true)}>
-            <Trash2 size={14} /> Delete
-          </button>
-        </div>
 
         <div className="overview-body">
           {/* Editable form */}
@@ -743,10 +739,26 @@ function CompetitionOverviewModal({
                 ) : (
                   <div className="overview-file-list">
                     {userFiles.map((f) => (
-                      <div key={f.id} className="overview-file-row">
-                        <span>{f.fileName}</span>
-                        <small>{f.fileRole.replace(/_/g, " ")}</small>
-                      </div>
+                      <FileRow
+                        key={f.id}
+                        file={f}
+                        onView={() => setViewingFile(f)}
+                        onDelete={async () => {
+                          setFileDeleting(f.id);
+                          try {
+                            await deleteFile(f.id);
+                            setFiles((list) => list.filter((x) => x.id !== f.id));
+                            // Also refetch competition to clear FK references (poster etc.)
+                            const refetched = await fetchCompetitionFiles(competition.id);
+                            setFiles(refetched);
+                          } catch (err) {
+                            setError((err as ApiError).message ?? "Delete failed.");
+                          } finally {
+                            setFileDeleting(null);
+                          }
+                        }}
+                        deleting={fileDeleting === f.id}
+                      />
                     ))}
                   </div>
                 )}
@@ -760,14 +772,23 @@ function CompetitionOverviewModal({
                 ) : (
                   <div className="overview-file-list">
                     {agentFiles.map((f) => (
-                      <button
+                      <FileRow
                         key={f.id}
-                        className="overview-file-row interactive"
-                        onClick={() => onSelect(competition)}
-                      >
-                        <span>{f.fileName}</span>
-                        <small>{f.status ?? "draft"}</small>
-                      </button>
+                        file={f}
+                        onView={() => setViewingFile(f)}
+                        onDelete={async () => {
+                          setFileDeleting(f.id);
+                          try {
+                            await deleteFile(f.id);
+                            setFiles((list) => list.filter((x) => x.id !== f.id));
+                          } catch (err) {
+                            setError((err as ApiError).message ?? "Delete failed.");
+                          } finally {
+                            setFileDeleting(null);
+                          }
+                        }}
+                        deleting={fileDeleting === f.id}
+                      />
                     ))}
                   </div>
                 )}
@@ -781,6 +802,10 @@ function CompetitionOverviewModal({
             </div>
           ) : null}
         </div>
+
+        {viewingFile ? (
+          <FileViewer file={viewingFile} onClose={() => setViewingFile(null)} />
+        ) : null}
 
         {pendingDelete ? (
           <DeleteConfirmDialog
@@ -797,6 +822,125 @@ function CompetitionOverviewModal({
       </section>
     </div>
   );
+}
+
+function FileRow({
+  file,
+  onView,
+  onDelete,
+  deleting,
+}: {
+  file: CompetitionFile;
+  onView: () => void;
+  onDelete: () => void | Promise<void>;
+  deleting: boolean;
+}) {
+  return (
+    <div className="overview-file-row">
+      <button className="overview-file-row-main" onClick={onView} title="View file">
+        <FileText size={14} />
+        <span>{file.fileName}</span>
+      </button>
+      <small>{file.fileRole.replace(/_/g, " ")}</small>
+      <button
+        className="overview-file-row-delete"
+        onClick={onDelete}
+        disabled={deleting}
+        title="Delete file"
+        aria-label="Delete file"
+      >
+        <Trash2 size={14} />
+      </button>
+    </div>
+  );
+}
+
+function FileViewer({ file, onClose }: { file: CompetitionFile; onClose: () => void }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [mime, setMime] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setUrl(null);
+    setErr(null);
+    getFileSignedUrl(file.id)
+      .then((res) => {
+        if (cancelled) return;
+        setUrl(res.url);
+        setMime(res.mimeType);
+      })
+      .catch((e) => {
+        if (!cancelled) setErr(e instanceof Error ? e.message : "Failed to load file.");
+      });
+    return () => { cancelled = true; };
+  }, [file.id]);
+
+  const isPdf = (mime ?? "").includes("pdf") || file.fileName.toLowerCase().endsWith(".pdf");
+  const isImage = (mime ?? "").startsWith("image/") ||
+    /\.(png|jpe?g|webp|gif|svg)$/i.test(file.fileName);
+  const isText = (mime ?? "").startsWith("text/") ||
+    /\.(md|txt|json|csv)$/i.test(file.fileName);
+
+  return (
+    <div className="file-viewer-backdrop" onClick={onClose}>
+      <section className="file-viewer" onClick={(e) => e.stopPropagation()}>
+        <header className="file-viewer-head">
+          <div>
+            <strong>{file.fileName}</strong>
+            <small>{file.fileRole.replace(/_/g, " ")}</small>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            {url ? (
+              <a href={url} download={file.fileName} className="btn-ghost" target="_blank" rel="noreferrer">
+                <Download size={14} /> Download
+              </a>
+            ) : null}
+            <button className="ghost-icon" onClick={onClose} aria-label="Close">
+              <X size={18} />
+            </button>
+          </div>
+        </header>
+        <div className="file-viewer-body">
+          {err ? (
+            <div className="wizard-error"><strong>Error:</strong> {err}</div>
+          ) : !url ? (
+            <p style={{ color: "var(--muted)", padding: 24 }}>Loading…</p>
+          ) : isPdf ? (
+            <iframe src={url} title={file.fileName} className="file-viewer-frame" />
+          ) : isImage ? (
+            <div className="file-viewer-image-wrap">
+              <img src={url} alt={file.fileName} />
+            </div>
+          ) : isText ? (
+            <TextFileViewer url={url} />
+          ) : (
+            <div style={{ padding: 24 }}>
+              <p>Preview not supported for this file type.</p>
+              <a href={url} download={file.fileName} className="btn-primary" target="_blank" rel="noreferrer">
+                <Download size={14} /> Download
+              </a>
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function TextFileViewer({ url }: { url: string }) {
+  const [content, setContent] = useState<string>("");
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch(url)
+      .then((r) => r.text())
+      .then((t) => { if (!cancelled) setContent(t); })
+      .catch((e) => { if (!cancelled) setErr(e instanceof Error ? e.message : "Failed to read."); });
+    return () => { cancelled = true; };
+  }, [url]);
+  if (err) return <div className="wizard-error">{err}</div>;
+  return <pre className="file-viewer-text">{content}</pre>;
 }
 
 function AssetMakerSection({
@@ -902,13 +1046,14 @@ function AssetMakerSection({
       // Draw twibbon overlay full-frame at 1080x1350
       ctx.drawImage(twibbonImg, 0, 0, 1080, 1350);
 
-      const blob: Blob | null = await new Promise((resolve) => canvas.toBlob((b) => resolve(b), "image/webp", 0.92));
+      const blob: Blob | null = await new Promise((resolve) => canvas.toBlob((b) => resolve(b), "image/png"));
       if (!blob) throw new Error("Failed to render combined image.");
 
       const localUrl = URL.createObjectURL(blob);
       setCombinedUrl(localUrl);
 
-      const updated = await uploadAssetMakerImage(competition.id, "combined_asset", blob);
+      const pngFile = new File([blob], "combined_asset.png", { type: "image/png" });
+      const updated = await uploadAssetMakerImage(competition.id, "combined_asset", pngFile);
       onUpdated(updated);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Generate failed.");
@@ -921,7 +1066,7 @@ function AssetMakerSection({
     if (!combinedUrl) return;
     const a = document.createElement("a");
     a.href = combinedUrl;
-    a.download = `${competition.title.replace(/\s+/g, "-").toLowerCase()}-twibbon.webp`;
+    a.download = `${competition.title.replace(/\s+/g, "-").toLowerCase()}-twibbon.png`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -1048,7 +1193,7 @@ function AssetMakerSection({
               <small>Combined Result</small>
               <img src={combinedUrl} alt="combined" className="asset-maker-combined-preview" />
               <button className="btn-ghost" onClick={downloadCombined}>
-                <Download size={14} /> Download .webp
+                <Download size={14} /> Download .png
               </button>
             </div>
           ) : null}
