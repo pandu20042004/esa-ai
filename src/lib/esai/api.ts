@@ -96,3 +96,11 @@ export async function replaceCompetitionAssets(id: string, form: FormData): Prom
   const body = await handle<Envelope<Competition>>(res);
   return body.data;
 }
+
+import type { CompetitionFile } from "@/types/esai";
+
+export async function fetchCompetitionFiles(id: string): Promise<CompetitionFile[]> {
+  const res = await fetch(`/api/competitions/${id}/files`, { cache: "no-store" });
+  const body = await handle<Envelope<CompetitionFile[]>>(res);
+  return body.data ?? [];
+}

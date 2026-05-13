@@ -500,6 +500,22 @@ export function createEsaiRepository(options: RepositoryOptions = {}) {
       return this.getCompetition(id);
     },
 
+    async listCompetitionFiles(competitionId: string) {
+      if (supabase && userId) {
+        const { data, error } = await supabase
+          .from("competition_files")
+          .select("*")
+          .eq("user_id", userId)
+          .eq("competition_id", competitionId)
+          .order("created_at", { ascending: false });
+
+        if (error) throw new Error(error.message);
+        return createApiEnvelope((data ?? []).map(mapFile), { supabaseConfigured });
+      }
+
+      return createApiEnvelope([] as CompetitionFile[], { supabaseConfigured });
+    },
+
     async listFiles() {
       if (supabase && userId) {
         const { data, error } = await supabase

@@ -22,9 +22,11 @@ import {
   Minimize2,
   Monitor,
   Moon,
+  MoreHorizontal,
   Palette,
   PanelLeftClose,
   PanelLeftOpen,
+  Pencil,
   Plus,
   RefreshCw,
   Search,
@@ -40,7 +42,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-import { ApiError, fetchCompetitions, createCompetition, updateCompetition, deleteCompetition, replaceCompetitionAssets } from "@/lib/esai/api";
+import { ApiError, fetchCompetitions, fetchCompetitionFiles, createCompetition, updateCompetition, deleteCompetition, replaceCompetitionAssets } from "@/lib/esai/api";
 import { filterCalendarEvents, getEventsForDate, getUpcomingEvents } from "@/lib/esai/calendar";
 import {
   seedCalendarEvents,
@@ -273,6 +275,7 @@ function DashboardScreen({
   onEdit: (competition: Competition) => void;
 }) {
   const [pendingDelete, setPendingDelete] = useState<Competition | null>(null);
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
 
   if (competitions.length === 0) {
     return (
@@ -280,20 +283,20 @@ function DashboardScreen({
         <header className="screen-header">
           <div>
             <h1>Dashboard</h1>
-            <p>Track your active academic competitions.</p>
+            <p>Lanjutkan progres kompetisi akademik Anda hari ini.</p>
           </div>
           <button className="btn-primary" onClick={onAdd}>
-            <Plus size={17} /> Add Competition
+            <Plus size={17} /> Tambah Kompetisi
           </button>
         </header>
         <div className="dashboard-empty">
           <div className="dashboard-empty-icon">
             <Plus size={36} />
           </div>
-          <h2>No competitions yet</h2>
-          <p>Add your first competition to start the workflow.</p>
+          <h2>Belum ada kompetisi</h2>
+          <p>Buat kompetisi pertamamu untuk mulai pipeline.</p>
           <button className="btn-primary" onClick={onAdd}>
-            <Plus size={17} /> Add Competition
+            <Plus size={17} /> Tambah Kompetisi
           </button>
         </div>
       </section>
@@ -301,42 +304,104 @@ function DashboardScreen({
   }
 
   return (
-    <section className="screen dashboard-screen">
+    <section className="screen dashboard-screen" onClick={() => setMenuOpenId(null)}>
       <header className="screen-header">
         <div>
           <h1>Dashboard</h1>
-          <p>Track your active academic competitions.</p>
+          <p>Lanjutkan progres kompetisi akademik Anda hari ini.</p>
         </div>
         <button className="btn-primary" onClick={onAdd}>
-          <Plus size={17} /> Add Competition
+          <Plus size={17} /> Tambah Kompetisi
         </button>
       </header>
 
-      <div className="dashboard-grid">
-        {competitions.map((competition) => (
-          <article key={competition.id} className="competition-card">
-            <div className="competition-card-poster" onClick={() => onSelect(competition)}>
-              {competition.posterImageUrl ? (
-                <img src={competition.posterImageUrl} alt={competition.title} loading="lazy" />
-              ) : (
-                <div className="competition-card-poster-placeholder" />
-              )}
-            </div>
-            <div className="competition-card-body">
-              <h3 onClick={() => onSelect(competition)}>{competition.title}</h3>
-              <small>{competition.institution} - {competition.category}</small>
-              <div className="competition-card-actions">
-                <button className="btn-ghost" onClick={() => onEdit(competition)}>Edit</button>
-                <button
-                  className="btn-ghost danger"
-                  onClick={() => setPendingDelete(competition)}
-                >
-                  Delete
-                </button>
+      <div className="comp-grid">
+        {competitions.map((competition) => {
+          const stageLabel = STAGES.find((s) => s.id === competition.currentStageId)?.label ?? competition.currentStageId;
+          const deadlineDisplay = competition.deadline
+            ? new Date(competition.deadline).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })
+            : "—";
+          const menuOpen = menuOpenId === competition.id;
+          return (
+            <article key={competition.id} className="comp-card" onClick={() => onSelect(competition)}>
+              <div className="comp-card-poster">
+                {competition.posterImageUrl ? (
+                  <img src={competition.posterImageUrl} alt={competition.title} loading="lazy" />
+                ) : (
+                  <div className="comp-card-poster-fallback">
+                    <span>{competition.title.slice(0, 1)}</span>
+                  </div>
+                )}
+                <div className="comp-card-poster-chips">
+                  <span className="comp-chip">Poster</span>
+                </div>
               </div>
-            </div>
-          </article>
-        ))}
+
+              <div className="comp-card-body">
+                <div className="comp-card-head">
+                  <div>
+                    <span className="comp-status-pill">{competition.status || "Setup"}</span>
+                    <h3>{competition.title}</h3>
+                    <p>{competition.category}{competition.institution ? ` · ${competition.institution}` : ""}</p>
+                  </div>
+                  <div
+                    className="comp-card-menu"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMenuOpenId(menuOpen ? null : competition.id);
+                    }}
+                  >
+                    <button className="ghost-icon" aria-label="Options">
+                      <MoreHorizontal size={18} />
+                    </button>
+                    {menuOpen ? (
+                      <div className="comp-card-menu-pop" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => {
+                            setMenuOpenId(null);
+                            onEdit(competition);
+                          }}
+                        >
+                          <Pencil size={14} /> Edit
+                        </button>
+                        <button
+                          className="danger"
+                          onClick={() => {
+                            setMenuOpenId(null);
+                            setPendingDelete(competition);
+                          }}
+                        >
+                          <Trash2 size={14} /> Delete
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="comp-card-progress">
+                  <div className="comp-card-progress-head">
+                    <span>Progress</span>
+                    <strong>{competition.progress ?? 0}%</strong>
+                  </div>
+                  <div className="comp-card-progress-bar">
+                    <span style={{ width: `${competition.progress ?? 0}%` }} />
+                  </div>
+                </div>
+
+                <div className="comp-card-foot">
+                  <span className="comp-card-meta">
+                    <CalendarDays size={14} />
+                    {deadlineDisplay}
+                  </span>
+                  <span className="comp-card-stage">
+                    Tahap: {stageLabel}
+                    <ChevronRight size={14} />
+                  </span>
+                </div>
+              </div>
+            </article>
+          );
+        })}
       </div>
 
       {pendingDelete ? (
@@ -413,7 +478,7 @@ function DeleteConfirmDialog({
 
 function CompetitionOverviewModal({
   competition,
-  onAdd,
+  onAdd: _onAdd,
   onClose,
   onSelect,
   onUpdated,
@@ -433,9 +498,31 @@ function CompetitionOverviewModal({
     deadline: competition.deadline,
     registrationLink: competition.registrationLink ?? "",
   });
+  const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [replacingAsset, setReplacingAsset] = useState<null | "poster" | "guidebook">(null);
   const [error, setError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState(false);
+  const [files, setFiles] = useState<CompetitionFile[]>([]);
+  const [filesLoading, setFilesLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setFilesLoading(true);
+    fetchCompetitionFiles(competition.id)
+      .then((list) => {
+        if (!cancelled) setFiles(list);
+      })
+      .catch(() => {
+        if (!cancelled) setFiles([]);
+      })
+      .finally(() => {
+        if (!cancelled) setFilesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [competition.id]);
 
   const save = async () => {
     setSaving(true);
@@ -449,6 +536,7 @@ function CompetitionOverviewModal({
         registrationLink: draft.registrationLink,
       });
       onUpdated(updated);
+      setEditing(false);
     } catch (err) {
       const ae = err as ApiError;
       setError(ae.message ?? "Failed to update.");
@@ -458,79 +546,243 @@ function CompetitionOverviewModal({
   };
 
   const replaceFile = async (role: "poster" | "guidebook", file: File) => {
-    const form = new FormData();
-    form.set(role, file);
+    setReplacingAsset(role);
+    setError(null);
     try {
+      const form = new FormData();
+      form.set(role, file);
       const updated = await replaceCompetitionAssets(competition.id, form);
       onUpdated(updated);
+      // refresh file list
+      const list = await fetchCompetitionFiles(competition.id);
+      setFiles(list);
     } catch (err) {
       const ae = err as ApiError;
       setError(ae.message ?? "Replace failed.");
+    } finally {
+      setReplacingAsset(null);
     }
   };
 
+  const deadlineDisplay = competition.deadline
+    ? new Date(competition.deadline).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })
+    : "—";
+
+  const userFiles = files.filter((f) => f.fileSource === "user_upload");
+  const agentFiles = files.filter((f) => f.fileSource === "agent_output");
+
+  const stageLabel = STAGES.find((s) => s.id === competition.currentStageId)?.label ?? competition.currentStageId;
+
   return (
-    <div className="modal-backdrop">
-      <div className="overview-modal">
-        <div className="modal-header">
-          <h2>Competition Overview</h2>
-          <button className="ghost-icon" onClick={onClose}>
-            <X size={18} />
-          </button>
-        </div>
+    <div className="overview-backdrop" onClick={onClose} role="dialog" aria-modal="true">
+      <section className="overview-shell" onClick={(e) => e.stopPropagation()}>
+        {/* Hero header */}
+        <header className="overview-hero">
+          <div className="overview-hero-poster">
+            {competition.posterImageUrl ? (
+              <img src={competition.posterImageUrl} alt={competition.title} />
+            ) : (
+              <div className="overview-hero-fallback">{competition.title.slice(0, 1)}</div>
+            )}
+          </div>
+          <div className="overview-hero-meta">
+            <div className="overview-hero-meta-top">
+              <span className="comp-status-pill">{competition.status || "Setup"}</span>
+              <button className="ghost-icon" onClick={onClose} aria-label="Close">
+                <X size={18} />
+              </button>
+            </div>
+            <h2>{competition.title}</h2>
+            <p>{competition.category}{competition.institution ? ` · ${competition.institution}` : ""}</p>
+            <div className="overview-hero-actions">
+              <button className="btn-primary" onClick={() => onSelect(competition)}>
+                Open Workbench <ChevronRight size={14} />
+              </button>
+              <button className="btn-ghost" onClick={() => setEditing((v) => !v)}>
+                <Pencil size={14} /> {editing ? "Cancel" : "Edit"}
+              </button>
+              <button className="btn-ghost danger" onClick={() => setPendingDelete(true)}>
+                <Trash2 size={14} /> Delete
+              </button>
+            </div>
+          </div>
+        </header>
 
-        <div className="form-grid">
-          <label>
-            Title
-            <input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
-          </label>
-          <label>
-            Category
-            <select value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })}>
-              <option>Sains & Teknologi</option>
-              <option>Sosial & Humaniora</option>
-              <option>Inovasi Digital</option>
-              <option>KTI</option>
-              <option>Business Plan</option>
-              <option>Essay</option>
-            </select>
-          </label>
-          <label>
-            Institution
-            <input value={draft.institution} onChange={(e) => setDraft({ ...draft, institution: e.target.value })} />
-          </label>
-          <label>
-            Deadline
-            <input type="date" value={draft.deadline} onChange={(e) => setDraft({ ...draft, deadline: e.target.value })} />
-          </label>
-          <label className="wide">
-            Registration link
-            <input value={draft.registrationLink} onChange={(e) => setDraft({ ...draft, registrationLink: e.target.value })} />
-          </label>
-        </div>
+        <div className="overview-body">
+          {/* Editable form */}
+          {editing ? (
+            <section className="overview-section">
+              <div className="overview-section-head">
+                <div>
+                  <h3>Edit Details</h3>
+                  <p>Update the competition metadata. Files are managed below.</p>
+                </div>
+              </div>
+              <div className="form-grid">
+                <label>
+                  Title
+                  <input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
+                </label>
+                <label>
+                  Category
+                  <select value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })}>
+                    <option>Sains & Teknologi</option>
+                    <option>Sosial & Humaniora</option>
+                    <option>Inovasi Digital</option>
+                    <option>KTI</option>
+                    <option>Business Plan</option>
+                    <option>Essay</option>
+                  </select>
+                </label>
+                <label>
+                  Institution
+                  <input value={draft.institution} onChange={(e) => setDraft({ ...draft, institution: e.target.value })} />
+                </label>
+                <label>
+                  Deadline
+                  <input type="date" value={draft.deadline} onChange={(e) => setDraft({ ...draft, deadline: e.target.value })} />
+                </label>
+                <label className="wide">
+                  Registration link
+                  <input value={draft.registrationLink} onChange={(e) => setDraft({ ...draft, registrationLink: e.target.value })} placeholder="https://..." />
+                </label>
+              </div>
+              <div className="overview-section-actions">
+                <button className="btn-ghost" onClick={() => setEditing(false)} disabled={saving}>
+                  Cancel
+                </button>
+                <button className="btn-primary" onClick={save} disabled={saving}>
+                  {saving ? "Saving…" : "Save Changes"}
+                </button>
+              </div>
+            </section>
+          ) : null}
 
-        <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-          <label className="btn-ghost" style={{ cursor: "pointer" }}>
-            Replace poster
-            <input type="file" accept="image/png,image/jpeg,image/webp" style={{ display: "none" }}
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) replaceFile("poster", f); }} />
-          </label>
-          <label className="btn-ghost" style={{ cursor: "pointer" }}>
-            Replace guidebook
-            <input type="file" accept=".pdf,.docx,.md,.txt" style={{ display: "none" }}
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) replaceFile("guidebook", f); }} />
-          </label>
-        </div>
+          {/* Info section */}
+          <section className="overview-section">
+            <div className="overview-section-head">
+              <div>
+                <h3>Info</h3>
+                <p>Status kompetisi, deadline, dan akses pendaftaran.</p>
+              </div>
+              <span className="comp-status-pill">Active</span>
+            </div>
+            <div className="overview-info-grid">
+              <div className="overview-info-tile">
+                <small>Deadline</small>
+                <strong>{deadlineDisplay}</strong>
+                <span>Auto-synced into Calendar.</span>
+              </div>
+              <div className="overview-info-tile">
+                <small>Progress</small>
+                <strong className="accent">{competition.progress ?? 0}%</strong>
+                <div className="overview-progress-bar">
+                  <span style={{ width: `${competition.progress ?? 0}%` }} />
+                </div>
+                <span>Tahap: {stageLabel}</span>
+              </div>
+              <div className="overview-info-tile">
+                <small>Link Registration</small>
+                {competition.registrationLink ? (
+                  <a href={competition.registrationLink} target="_blank" rel="noreferrer" className="overview-link">
+                    {competition.registrationLink.replace(/^https?:\/\//, "")}
+                  </a>
+                ) : (
+                  <strong style={{ color: "var(--muted)" }}>Not set</strong>
+                )}
+                <span>Pinned for every stage and output export.</span>
+              </div>
+            </div>
+          </section>
 
-        {error ? <p style={{ color: "#c52b2b" }}>{error}</p> : null}
+          {/* Files section */}
+          <section className="overview-section">
+            <div className="overview-section-head">
+              <div>
+                <h3>Files</h3>
+                <p>User uploads and agent-generated stage outputs.</p>
+              </div>
+              <div className="overview-section-actions">
+                <label className="btn-ghost" style={{ cursor: replacingAsset ? "wait" : "pointer" }}>
+                  <UploadCloud size={14} />
+                  {replacingAsset === "poster" ? "Uploading..." : "Replace Poster"}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    style={{ display: "none" }}
+                    disabled={!!replacingAsset}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) replaceFile("poster", f);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+                <label className="btn-ghost" style={{ cursor: replacingAsset ? "wait" : "pointer" }}>
+                  <UploadCloud size={14} />
+                  {replacingAsset === "guidebook" ? "Uploading..." : "Replace Guidebook"}
+                  <input
+                    type="file"
+                    accept=".pdf,.docx,.md,.txt"
+                    style={{ display: "none" }}
+                    disabled={!!replacingAsset}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) replaceFile("guidebook", f);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
 
-        <div className="modal-actions">
-          <button className="btn-ghost danger" onClick={() => setPendingDelete(true)}>Delete</button>
-          <span style={{ flex: 1 }} />
-          <button className="btn-ghost" onClick={onClose}>Close</button>
-          <button className="btn-primary" onClick={save} disabled={saving}>
-            {saving ? "Saving…" : "Save"}
-          </button>
+            <div className="overview-files-grid">
+              <div className="overview-files-group">
+                <h4>User Uploaded Content</h4>
+                {filesLoading ? (
+                  <p className="overview-files-hint">Loading files…</p>
+                ) : userFiles.length === 0 ? (
+                  <p className="overview-files-hint">No user uploads yet.</p>
+                ) : (
+                  <div className="overview-file-list">
+                    {userFiles.map((f) => (
+                      <div key={f.id} className="overview-file-row">
+                        <span>{f.fileName}</span>
+                        <small>{f.fileRole.replace(/_/g, " ")}</small>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="overview-files-group">
+                <h4>Output of AI Agent</h4>
+                {filesLoading ? (
+                  <p className="overview-files-hint">Loading outputs…</p>
+                ) : agentFiles.length === 0 ? (
+                  <p className="overview-files-hint">No agent outputs yet. Run a stage to produce one.</p>
+                ) : (
+                  <div className="overview-file-list">
+                    {agentFiles.map((f) => (
+                      <button
+                        key={f.id}
+                        className="overview-file-row interactive"
+                        onClick={() => onSelect(competition)}
+                      >
+                        <span>{f.fileName}</span>
+                        <small>{f.status ?? "draft"}</small>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+
+          {error ? (
+            <div className="wizard-error">
+              <strong>Error:</strong> {error}
+            </div>
+          ) : null}
         </div>
 
         {pendingDelete ? (
@@ -545,7 +797,7 @@ function CompetitionOverviewModal({
             }}
           />
         ) : null}
-      </div>
+      </section>
     </div>
   );
 }
