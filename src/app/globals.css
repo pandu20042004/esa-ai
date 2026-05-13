@@ -911,6 +911,12 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-border); 
 .devs-agent-list button.active { border-color: var(--accent-border); background: var(--accent-soft); }
 .devs-agent-list strong,
 .devs-agent-list small { display: block; }
+.devs-agent-list small {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .devs-agent-list em {
   grid-column: 2;
   color: var(--muted);
@@ -919,7 +925,25 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-border); 
 }
 .devs-agent-editor { display: flex; flex-direction: column; gap: 12px; }
 .devs-agent-editor header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.devs-agent-editor textarea,
+.agent-description-field {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.agent-description-field textarea {
+  width: 100%;
+  min-height: 74px;
+  max-height: 110px;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}
+.devs-agent-editor > textarea,
 .assistant-draft-panel textarea {
   width: 100%;
   min-height: 360px;
@@ -948,6 +972,19 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-border); 
 .assistant-draft-panel,
 .versions-list,
 .template-panel { display: grid; gap: 10px; }
+.assistant-model-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.assistant-model-controls select {
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 10px;
+  background: var(--surface);
+  color: var(--text);
+}
 .contract-editor {
   display: grid;
   gap: 10px;

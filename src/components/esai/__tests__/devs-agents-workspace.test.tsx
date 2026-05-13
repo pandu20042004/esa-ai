@@ -118,6 +118,31 @@ describe("DevsAgentsWorkspace", () => {
     );
   });
 
+  it("saves edited agent descriptions", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (url.includes("/api/compartments")) return Response.json({ data: compartments });
+      if (url.includes("/api/agents/a1") && init?.method === "PATCH") {
+        const body = JSON.parse(String(init.body));
+        return Response.json({ data: { ...agents[0], description: body.description } });
+      }
+      if (url.includes("/api/agents")) return Response.json({ data: agents });
+      return Response.json({ data: [] });
+    });
+
+    render(<DevsAgentsWorkspace />);
+    const description = await screen.findByLabelText("Agent description");
+    fireEvent.change(description, { target: { value: "Short research helper" } });
+    fireEvent.blur(description);
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/agents/a1",
+        expect.objectContaining({ method: "PATCH" }),
+      ),
+    );
+  });
+
   it("saves structured contract edits", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
       const url = String(input);
@@ -206,6 +231,46 @@ describe("DevsAgentsWorkspace", () => {
         expect.objectContaining({ method: "PATCH" }),
       ),
       { timeout: 1200 },
+    );
+  });
+
+  it("sends the selected assistant model with draft requests", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (url.includes("/api/models")) {
+        return Response.json({
+          data: [{ provider: "codex-cli", id: "gpt-5.5", label: "gpt-5.5 via Codex CLI" }],
+        });
+      }
+      if (url.includes("/api/compartments")) return Response.json({ data: compartments });
+      if (url.includes("/api/agent-draft-assistant") && init?.method === "POST") {
+        return Response.json({
+          data: {
+            draftSkillContent: "# Suggested",
+            needs: [],
+            produces: [{ key: "final", label: "Final", role: "final_output" }],
+            explanation: "Prepared",
+          },
+        });
+      }
+      if (url.includes("/api/agents")) return Response.json({ data: agents });
+      return Response.json({ data: [] });
+    });
+
+    render(<DevsAgentsWorkspace />);
+    fireEvent.change(await screen.findByPlaceholderText("Describe what this agent should do"), {
+      target: { value: "Make this agent write summaries" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Suggest draft" }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/agent-draft-assistant",
+        expect.objectContaining({
+          method: "POST",
+          body: expect.stringContaining('"model":"gpt-5.5"'),
+        }),
+      ),
     );
   });
 });

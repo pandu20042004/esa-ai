@@ -410,6 +410,19 @@ export function createDevsAgentsRepository(userId: string) {
 
       if (error) throw new Error(error.message);
     },
+
+    async updateAgentDescription(agentId: string, description: string): Promise<DevsAgent> {
+      const { data, error } = await supabase
+        .from("user_agents")
+        .update({ description: description.trim() })
+        .eq("user_id", userId)
+        .eq("id", agentId)
+        .select(agentSelect)
+        .single();
+
+      if (error) throw new Error(error.message);
+      return mapUserAgentRow(data as Row);
+    },
   };
 }
 

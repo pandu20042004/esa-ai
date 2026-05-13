@@ -32,6 +32,11 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       await repository.archiveAgent(id);
     }
 
+    if (typeof body.description === "string") {
+      const data = await repository.updateAgentDescription(id, body.description);
+      return Response.json({ data, meta });
+    }
+
     const data = await repository.getAgent(id);
     return Response.json({ data, meta }, { status: data ? 200 : 404 });
   } catch (error) {

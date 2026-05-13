@@ -26,6 +26,12 @@ type ApiEnvelope<T> = {
   message?: string;
 };
 
+type AssistantModel = {
+  provider: string;
+  id: string;
+  label: string;
+};
+
 async function readData<T>(url: string): Promise<T[]> {
   const response = await fetch(url);
   const json = (await response.json()) as ApiEnvelope<T[]>;
@@ -44,6 +50,7 @@ export function DevsAgentsWorkspace() {
   const [newAgentOpen, setNewAgentOpen] = useState(false);
   const [newAgentName, setNewAgentName] = useState("");
   const [promptDraft, setPromptDraft] = useState("");
+  const [descriptionDraft, setDescriptionDraft] = useState("");
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
@@ -63,7 +70,9 @@ export function DevsAgentsWorkspace() {
         setAgents(items);
         setSelectedAgentId((current) => {
           const nextId = items.some((agent) => agent.id === current) ? current : items[0]?.id || "";
-          setPromptDraft(items.find((agent) => agent.id === nextId)?.draftSkillContent ?? "");
+          const nextAgent = items.find((agent) => agent.id === nextId);
+          setPromptDraft(nextAgent?.draftSkillContent ?? "");
+          setDescriptionDraft(nextAgent?.description ?? "");
           return nextId;
         });
       })
@@ -166,6 +175,7 @@ export function DevsAgentsWorkspace() {
     setAgents((items) => [json.data as DevsAgent, ...items]);
     setSelectedAgentId(json.data.id);
     setPromptDraft(json.data.draftSkillContent);
+    setDescriptionDraft(json.data.description);
     setNewAgentName("");
     setNewAgentOpen(false);
     setNotice("Custom agent saved as draft.");
@@ -188,6 +198,26 @@ export function DevsAgentsWorkspace() {
 
     setAgents((items) => items.map((agent) => (agent.id === json.data?.id ? json.data : agent)));
     setNotice("Published version is now active.");
+  }
+
+  async function saveDescription() {
+    if (!selectedAgent || descriptionDraft.trim() === selectedAgent.description.trim()) return;
+
+    const response = await fetch(`/api/agents/${selectedAgent.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ description: descriptionDraft }),
+    });
+    const json = (await response.json()) as ApiEnvelope<DevsAgent>;
+
+    if (!response.ok || !json.data) {
+      setNotice(json.error ?? "Unable to save description.");
+      return;
+    }
+
+    setAgents((items) => items.map((agent) => (agent.id === json.data?.id ? json.data : agent)));
+    setDescriptionDraft(json.data.description);
+    setNotice("Description saved.");
   }
 
   async function revertAgent(source: "template" | "version", versionId?: string) {
@@ -275,12 +305,15 @@ export function DevsAgentsWorkspace() {
               onClick={() => {
                 setSelectedAgentId(agent.id);
                 setPromptDraft(agent.draftSkillContent);
+                setDescriptionDraft(agent.description);
               }}
             >
               <Bot size={17} />
               <span>
                 <strong>{agent.name}</strong>
-                <small>{agent.description || "No description yet"}</small>
+                <small title={agent.description || "No description yet"}>
+                  {agent.description || "No description yet"}
+                </small>
               </span>
               <em>{agent.kind === "template_copy" ? "Template copy" : "Custom"}</em>
             </button>
@@ -299,6 +332,15 @@ export function DevsAgentsWorkspace() {
                   Publish version
                 </button>
               </header>
+              <label className="agent-description-field">
+                Agent description
+                <textarea
+                  value={descriptionDraft}
+                  placeholder="Short purpose shown in the agent list"
+                  onBlur={saveDescription}
+                  onChange={(event) => setDescriptionDraft(event.target.value)}
+                />
+              </label>
               <textarea
                 aria-label="Agent prompt"
                 value={promptDraft}
@@ -644,6 +686,9 @@ function AssistantDraftPanel({
   onNotice: (message: string) => void;
 }) {
   const [message, setMessage] = useState("");
+  const [models, setModels] = useState<AssistantModel[]>([]);
+  const [model, setModel] = useState("");
+  const [reasoningEffort, setReasoningEffort] = useState("medium");
   const [proposal, setProposal] = useState<null | {
     draftSkillContent: string;
     needs: DevsNeed[];
@@ -651,11 +696,25 @@ function AssistantDraftPanel({
     explanation: string;
   }>(null);
 
+  useEffect(() => {
+    void readData<AssistantModel>("/api/models")
+      .then((items) => {
+        setModels(items);
+        setModel((current) => current || items[0]?.id || "");
+      })
+      .catch((error: Error) => onNotice(error.message));
+  }, [onNotice]);
+
   async function askAssistant() {
+    if (!model) {
+      onNotice("Choose a model first.");
+      return;
+    }
+
     const response = await fetch("/api/agent-draft-assistant", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ agentName: agent.name, message }),
+      body: JSON.stringify({ agentName: agent.name, message, model, reasoningEffort }),
     });
     const json = (await response.json()) as ApiEnvelope<{
       draftSkillContent: string;
@@ -674,12 +733,32 @@ function AssistantDraftPanel({
 
   return (
     <div className="assistant-draft-panel">
+      <div className="assistant-model-controls">
+        <select aria-label="Assistant model" value={model} onChange={(event) => setModel(event.target.value)}>
+          <option value="">Select model</option>
+          {models.map((item) => (
+            <option key={`${item.provider}-${item.id}`} value={item.id}>
+              {item.label}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="Assistant reasoning"
+          value={reasoningEffort}
+          onChange={(event) => setReasoningEffort(event.target.value)}
+        >
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+          <option value="xhigh">Extra High</option>
+        </select>
+      </div>
       <textarea
         placeholder="Describe what this agent should do"
         value={message}
         onChange={(event) => setMessage(event.target.value)}
       />
-      <button className="btn-secondary" type="button" onClick={askAssistant}>
+      <button className="btn-secondary" type="button" onClick={askAssistant} disabled={!model}>
         Suggest draft
       </button>
       {proposal ? (

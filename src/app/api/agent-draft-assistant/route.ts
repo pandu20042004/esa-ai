@@ -60,6 +60,8 @@ export async function POST(request: Request) {
 type AssistantBody = {
   agentName: string;
   message: string;
+  model: string;
+  reasoningEffort?: string;
 };
 
 function isAssistantBody(value: unknown): value is AssistantBody {
@@ -68,6 +70,8 @@ function isAssistantBody(value: unknown): value is AssistantBody {
     typeof value === "object" &&
     !Array.isArray(value) &&
     typeof (value as AssistantBody).agentName === "string" &&
+    typeof (value as AssistantBody).model === "string" &&
+    Boolean((value as AssistantBody).model.trim()) &&
     typeof (value as AssistantBody).message === "string" &&
     Boolean((value as AssistantBody).message.trim())
   );
