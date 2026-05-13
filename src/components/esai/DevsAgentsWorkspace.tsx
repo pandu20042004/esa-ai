@@ -124,6 +124,25 @@ export function DevsAgentsWorkspace() {
     setNotice("Draft saved.");
   }
 
+  async function publishAgent() {
+    if (!selectedAgent) return;
+
+    const response = await fetch(`/api/agents/${selectedAgent.id}/publish`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ changeSummary: "Published from Devs editor" }),
+    });
+    const json = (await response.json()) as ApiEnvelope<DevsAgent>;
+
+    if (!response.ok || !json.data) {
+      setNotice(json.error ?? "Unable to publish draft.");
+      return;
+    }
+
+    setAgents((items) => items.map((agent) => (agent.id === json.data?.id ? json.data : agent)));
+    setNotice("Published version is now active.");
+  }
+
   return (
     <section className="devs-agents">
       <div className="devs-agent-toolbar">
@@ -191,7 +210,7 @@ export function DevsAgentsWorkspace() {
                   <h2>{selectedAgent.name}</h2>
                   <p>{selectedAgent.kind === "template_copy" ? "Template copy" : "Custom agent"}</p>
                 </div>
-                <button className="btn-primary" type="button">
+                <button className="btn-primary" type="button" onClick={publishAgent}>
                   Publish version
                 </button>
               </header>

@@ -71,4 +71,26 @@ describe("DevsAgentsWorkspace", () => {
       expect(fetchMock).toHaveBeenCalledWith("/api/agents", expect.objectContaining({ method: "POST" })),
     );
   });
+
+  it("publishes the selected agent", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.includes("/api/compartments")) return Response.json({ data: compartments });
+      if (url.includes("/api/agents/a1/publish")) {
+        return Response.json({ data: { ...agents[0], state: "published" } });
+      }
+      if (url.includes("/api/agents")) return Response.json({ data: agents });
+      return Response.json({ data: [] });
+    });
+
+    render(<DevsAgentsWorkspace />);
+    fireEvent.click(await screen.findByRole("button", { name: /Publish version/i }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/agents/a1/publish",
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
+  });
 });
