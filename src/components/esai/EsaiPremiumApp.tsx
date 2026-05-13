@@ -42,7 +42,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-import { ApiError, fetchCompetitions, fetchCompetitionFiles, createCompetition, updateCompetition, deleteCompetition, replaceCompetitionAssets } from "@/lib/esai/api";
+import { ApiError, fetchCompetitions, fetchCompetitionFiles, createCompetition, updateCompetition, deleteCompetition, replaceCompetitionAssets, uploadAssetMakerImage, saveInstagramCaption } from "@/lib/esai/api";
 import { filterCalendarEvents, getEventsForDate, getUpcomingEvents } from "@/lib/esai/calendar";
 import {
   seedCalendarEvents,
@@ -576,37 +576,31 @@ function CompetitionOverviewModal({
   return (
     <div className="overview-backdrop" onClick={onClose} role="dialog" aria-modal="true">
       <section className="overview-shell" onClick={(e) => e.stopPropagation()}>
-        {/* Hero header */}
-        <header className="overview-hero">
-          <div className="overview-hero-poster">
-            {competition.posterImageUrl ? (
-              <img src={competition.posterImageUrl} alt={competition.title} />
-            ) : (
-              <div className="overview-hero-fallback">{competition.title.slice(0, 1)}</div>
-            )}
-          </div>
-          <div className="overview-hero-meta">
-            <div className="overview-hero-meta-top">
-              <span className="comp-status-pill">{competition.status || "Setup"}</span>
-              <button className="ghost-icon" onClick={onClose} aria-label="Close">
-                <X size={18} />
-              </button>
-            </div>
+        {/* Hero header (matches reference: title left, Submit Final right) */}
+        <header className="overview-hero-simple">
+          <div>
             <h2>{competition.title}</h2>
-            <p>{competition.category}{competition.institution ? ` · ${competition.institution}` : ""}</p>
-            <div className="overview-hero-actions">
-              <button className="btn-primary" onClick={() => onSelect(competition)}>
-                Open Workbench <ChevronRight size={14} />
-              </button>
-              <button className="btn-ghost" onClick={() => setEditing((v) => !v)}>
-                <Pencil size={14} /> {editing ? "Cancel" : "Edit"}
-              </button>
-              <button className="btn-ghost danger" onClick={() => setPendingDelete(true)}>
-                <Trash2 size={14} /> Delete
-              </button>
-            </div>
+            <p>{competition.category}{competition.institution ? ` - ${competition.institution}` : ""}</p>
+          </div>
+          <div className="overview-hero-simple-actions">
+            <button className="btn-primary overview-submit-final">Submit Final</button>
+            <button className="ghost-icon" onClick={onClose} aria-label="Close overview">
+              <X size={18} />
+            </button>
           </div>
         </header>
+
+        <div className="overview-secondary-actions">
+          <button className="btn-primary" onClick={() => onSelect(competition)}>
+            Open Workbench <ChevronRight size={14} />
+          </button>
+          <button className="btn-ghost" onClick={() => setEditing((v) => !v)}>
+            <Pencil size={14} /> {editing ? "Cancel" : "Edit"}
+          </button>
+          <button className="btn-ghost danger" onClick={() => setPendingDelete(true)}>
+            <Trash2 size={14} /> Delete
+          </button>
+        </div>
 
         <div className="overview-body">
           {/* Editable form */}
@@ -694,6 +688,9 @@ function CompetitionOverviewModal({
               </div>
             </div>
           </section>
+
+          {/* Asset Maker section */}
+          <AssetMakerSection competition={competition} onUpdated={onUpdated} />
 
           {/* Files section */}
           <section className="overview-section">
@@ -799,6 +796,266 @@ function CompetitionOverviewModal({
         ) : null}
       </section>
     </div>
+  );
+}
+
+function AssetMakerSection({
+  competition,
+  onUpdated,
+}: {
+  competition: Competition;
+  onUpdated: (c: Competition) => void;
+}) {
+  const [position, setPosition] = useState(50); // 0..100 vertical Y
+  const [scale, setScale] = useState(100);       // 50..200 %
+  const [caption, setCaption] = useState(competition.instagramCaption ?? "");
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [twibbonSrc, setTwibbonSrc] = useState<string | undefined>(competition.twibbonImageUrl);
+  const [photoSrc, setPhotoSrc] = useState<string | undefined>(competition.userPhotoImageUrl);
+  const [combinedUrl, setCombinedUrl] = useState<string | undefined>(competition.combinedAssetImageUrl);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [twibbonFile, setTwibbonFile] = useState<File | null>(null);
+  const [saveTimer, setSaveTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setTwibbonSrc(competition.twibbonImageUrl);
+    setPhotoSrc(competition.userPhotoImageUrl);
+    setCombinedUrl(competition.combinedAssetImageUrl);
+  }, [competition.twibbonImageUrl, competition.userPhotoImageUrl, competition.combinedAssetImageUrl]);
+
+  // Debounced caption autosave
+  const saveCaption = (value: string) => {
+    setCaption(value);
+    if (saveTimer) clearTimeout(saveTimer);
+    const t = setTimeout(async () => {
+      try {
+        const updated = await saveInstagramCaption(competition.id, value);
+        onUpdated(updated);
+      } catch {
+        // silent; user sees no feedback for now
+      }
+    }, 700);
+    setSaveTimer(t);
+  };
+
+  const handleUpload = async (role: "twibbon" | "user_photo", file: File) => {
+    setError(null);
+    try {
+      // Preview immediately
+      const previewUrl = URL.createObjectURL(file);
+      if (role === "twibbon") {
+        setTwibbonFile(file);
+        setTwibbonSrc(previewUrl);
+      } else {
+        setPhotoFile(file);
+        setPhotoSrc(previewUrl);
+      }
+      const updated = await uploadAssetMakerImage(competition.id, role, file);
+      onUpdated(updated);
+    } catch (err) {
+      const ae = err as ApiError;
+      setError(ae.message ?? "Upload failed.");
+    }
+  };
+
+  // Generate combined image using canvas
+  const generate = async () => {
+    if (!twibbonSrc || !photoSrc) {
+      setError("Upload both twibbon and photo first.");
+      return;
+    }
+    setGenerating(true);
+    setError(null);
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1080;
+      canvas.height = 1080;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas 2D not available.");
+
+      const loadImage = (src: string): Promise<HTMLImageElement> =>
+        new Promise((resolve, reject) => {
+          const img = new window.Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error("Failed to load image."));
+          img.src = src;
+        });
+
+      const [photoImg, twibbonImg] = await Promise.all([loadImage(photoSrc), loadImage(twibbonSrc)]);
+
+      // Fill background
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, 1080, 1080);
+
+      // Draw photo with scale (0.5..2.0) and vertical offset based on position (0..100 => -canvas/2..+canvas/2 of extra space)
+      const scaleFactor = scale / 100;
+      const baseW = 1080 * scaleFactor;
+      const baseH = (photoImg.height / photoImg.width) * baseW;
+      const cx = (1080 - baseW) / 2;
+      // position: 0 = top, 50 = center, 100 = bottom of photo cropped area
+      const cy = ((position / 100) * (1080 - baseH));
+
+      ctx.drawImage(photoImg, cx, cy, baseW, baseH);
+
+      // Draw twibbon overlay full-frame
+      ctx.drawImage(twibbonImg, 0, 0, 1080, 1080);
+
+      const blob: Blob | null = await new Promise((resolve) => canvas.toBlob((b) => resolve(b), "image/webp", 0.92));
+      if (!blob) throw new Error("Failed to render combined image.");
+
+      const localUrl = URL.createObjectURL(blob);
+      setCombinedUrl(localUrl);
+
+      const updated = await uploadAssetMakerImage(competition.id, "combined_asset", blob);
+      onUpdated(updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Generate failed.");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const downloadCombined = () => {
+    if (!combinedUrl) return;
+    const a = document.createElement("a");
+    a.href = combinedUrl;
+    a.download = `${competition.title.replace(/\s+/g, "-").toLowerCase()}-twibbon.webp`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
+  const scaleFactor = scale / 100;
+
+  return (
+    <section className="overview-section asset-maker">
+      <div className="overview-section-head">
+        <div>
+          <h3>Asset Maker</h3>
+          <p>Buat twibbon Instagram dari foto dan frame kamu.</p>
+        </div>
+        <button
+          className="btn-primary"
+          onClick={generate}
+          disabled={generating || !twibbonSrc || !photoSrc}
+        >
+          {generating ? "Generating…" : "Generate Combined Photo"}
+        </button>
+      </div>
+
+      <div className="asset-maker-grid">
+        {/* Preview */}
+        <div className="asset-maker-preview-wrap">
+          <div className="asset-maker-preview">
+            {photoSrc ? (
+              <img
+                src={photoSrc}
+                alt="user photo"
+                className="asset-maker-photo"
+                style={{
+                  transform: `translateY(${(position - 50) * 2}%) scale(${scaleFactor})`,
+                }}
+              />
+            ) : (
+              <div className="asset-maker-placeholder">Upload your photo</div>
+            )}
+            {twibbonSrc ? (
+              <img src={twibbonSrc} alt="twibbon frame" className="asset-maker-twibbon" />
+            ) : null}
+          </div>
+          <div className="asset-maker-preview-caption">
+            <strong>Twibbon + Photo Preview</strong>
+            <span>Drag sliders to adjust</span>
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className="asset-maker-side">
+          <div className="overview-info-tile">
+            <small>Photo Controls</small>
+            <label className="asset-maker-slider-label">Photo position</label>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={position}
+              onChange={(e) => setPosition(Number(e.target.value))}
+            />
+            <label className="asset-maker-slider-label">Scale</label>
+            <input
+              type="range"
+              min={50}
+              max={200}
+              value={scale}
+              onChange={(e) => setScale(Number(e.target.value))}
+            />
+          </div>
+
+          <div className="overview-info-tile">
+            <small>Assets</small>
+            <div className="asset-maker-upload-row">
+              <label className="btn-ghost">
+                <UploadCloud size={14} /> {photoFile || photoSrc ? "Replace Photo" : "Upload Photo"}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleUpload("user_photo", f);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+              <label className="btn-ghost">
+                <UploadCloud size={14} /> {twibbonFile || twibbonSrc ? "Replace Twibbon" : "Upload Twibbon"}
+                <input
+                  type="file"
+                  accept="image/png,image/webp"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleUpload("twibbon", f);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
+            <small style={{ fontWeight: 400, fontSize: 11 }}>
+              Twibbon harus PNG transparan (overlay frame). Foto akan diletakkan di bawahnya.
+            </small>
+          </div>
+
+          <div className="overview-info-tile">
+            <small>Instagram Caption</small>
+            <textarea
+              className="asset-maker-caption"
+              value={caption}
+              onChange={(e) => saveCaption(e.target.value)}
+              placeholder="Tulis caption Instagram di sini..."
+            />
+          </div>
+
+          {combinedUrl ? (
+            <div className="overview-info-tile">
+              <small>Combined Result</small>
+              <img src={combinedUrl} alt="combined" className="asset-maker-combined-preview" />
+              <button className="btn-ghost" onClick={downloadCombined}>
+                <Download size={14} /> Download .webp
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      {error ? (
+        <div className="wizard-error" style={{ marginTop: 14 }}>
+          <strong>Error:</strong> {error}
+        </div>
+      ) : null}
+    </section>
   );
 }
 

@@ -3,7 +3,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const BUCKET = "competition-files";
 
-export type AssetRole = "poster" | "guidebook";
+export type AssetRole = "poster" | "guidebook" | "twibbon" | "user_photo" | "combined_asset";
 
 export type UploadArgs = {
   userId: string;

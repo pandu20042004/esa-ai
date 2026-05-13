@@ -104,3 +104,32 @@ export async function fetchCompetitionFiles(id: string): Promise<CompetitionFile
   const body = await handle<Envelope<CompetitionFile[]>>(res);
   return body.data ?? [];
 }
+
+export async function saveInstagramCaption(id: string, caption: string): Promise<Competition> {
+  const res = await fetch(`/api/competitions/${id}/asset-maker`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ instagramCaption: caption }),
+  });
+  const body = await handle<Envelope<Competition>>(res);
+  return body.data;
+}
+
+export async function uploadAssetMakerImage(
+  id: string,
+  role: "twibbon" | "user_photo" | "combined_asset",
+  file: File | Blob,
+): Promise<Competition> {
+  const form = new FormData();
+  form.set("role", role);
+  const asFile =
+    file instanceof File ? file : new File([file], `${role}.webp`, { type: "image/webp" });
+  form.set("file", asFile);
+
+  const res = await fetch(`/api/competitions/${id}/asset-maker`, {
+    method: "POST",
+    body: form,
+  });
+  const body = await handle<Envelope<Competition>>(res);
+  return body.data;
+}

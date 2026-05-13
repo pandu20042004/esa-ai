@@ -11,7 +11,7 @@ import { isSupabaseAdminConfigured } from "@/lib/supabase/env";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { AgentDefinition, CalendarEvent, Competition, CompetitionFile, OutputVersion, ValidityCheck } from "@/types/esai";
 import { extractText } from "@/lib/server/file-extraction";
-import { toWebp } from "@/lib/server/image-processing";
+import { toWebp, toSquareWebp } from "@/lib/server/image-processing";
 import {
   uploadCompetitionAsset,
   deleteCompetitionAssets,
@@ -36,6 +36,10 @@ function mapCompetition(row: Record<string, unknown>): Competition {
     registrationLink: row.registration_link ? String(row.registration_link) : undefined,
     currentStageId: String(row.current_stage_id ?? "onboarding") as Competition["currentStageId"],
     posterFileId: row.poster_file_id ? String(row.poster_file_id) : undefined,
+    twibbonFileId: row.twibbon_file_id ? String(row.twibbon_file_id) : undefined,
+    userPhotoFileId: row.user_photo_file_id ? String(row.user_photo_file_id) : undefined,
+    combinedAssetFileId: row.combined_asset_file_id ? String(row.combined_asset_file_id) : undefined,
+    instagramCaption: row.instagram_caption ? String(row.instagram_caption) : undefined,
     createdAt: row.created_at ? String(row.created_at) : undefined,
   };
 }
@@ -100,12 +104,30 @@ function guidebookExtFor(mimeType: string): "pdf" | "docx" | "md" | "txt" | null
   }
 }
 
+async function attachAssetSignedUrls(
+  comp: Competition,
+  storagePathByFileId: Map<string, string>,
+): Promise<Competition> {
+  const enriched: Competition = { ...comp };
+  const pairs: Array<[keyof Competition, keyof Competition]> = [
+    ["posterFileId", "posterImageUrl"],
+    ["twibbonFileId", "twibbonImageUrl"],
+    ["userPhotoFileId", "userPhotoImageUrl"],
+    ["combinedAssetFileId", "combinedAssetImageUrl"],
+  ];
+  for (const [idKey, urlKey] of pairs) {
+    const fileId = enriched[idKey] as string | undefined;
+    if (!fileId) continue;
+    const path = storagePathByFileId.get(fileId);
+    if (!path) continue;
+    const url = await signedCompetitionUrl(path);
+    if (url) (enriched as Record<string, unknown>)[urlKey] = url;
+  }
+  return enriched;
+}
+
 async function attachPosterSignedUrl(comp: Competition, storagePathByFileId: Map<string, string>): Promise<Competition> {
-  if (!comp.posterFileId) return comp;
-  const storagePath = storagePathByFileId.get(comp.posterFileId);
-  if (!storagePath) return comp;
-  const url = await signedCompetitionUrl(storagePath);
-  return { ...comp, posterImageUrl: url ?? undefined };
+  return attachAssetSignedUrls(comp, storagePathByFileId);
 }
 
 export function createEsaiRepository(options: RepositoryOptions = {}) {
@@ -125,19 +147,25 @@ export function createEsaiRepository(options: RepositoryOptions = {}) {
 
         const competitions = (data ?? []).map(mapCompetition);
 
-        const posterIds = competitions.map((c) => c.posterFileId).filter(Boolean) as string[];
+        const fileIds = new Set<string>();
+        for (const c of competitions) {
+          if (c.posterFileId) fileIds.add(c.posterFileId);
+          if (c.twibbonFileId) fileIds.add(c.twibbonFileId);
+          if (c.userPhotoFileId) fileIds.add(c.userPhotoFileId);
+          if (c.combinedAssetFileId) fileIds.add(c.combinedAssetFileId);
+        }
         const storageMap = new Map<string, string>();
-        if (posterIds.length > 0) {
+        if (fileIds.size > 0) {
           const { data: files } = await supabase
             .from("competition_files")
             .select("id,storage_path")
-            .in("id", posterIds);
+            .in("id", Array.from(fileIds));
           for (const f of files ?? []) {
             if (f.storage_path) storageMap.set(String(f.id), String(f.storage_path));
           }
         }
 
-        const withUrls = await Promise.all(competitions.map((c) => attachPosterSignedUrl(c, storageMap)));
+        const withUrls = await Promise.all(competitions.map((c) => attachAssetSignedUrls(c, storageMap)));
         return createApiEnvelope(withUrls, { supabaseConfigured });
       }
 
@@ -156,20 +184,19 @@ export function createEsaiRepository(options: RepositoryOptions = {}) {
         if (!data) return createApiEnvelope(null, { supabaseConfigured });
 
         const comp = mapCompetition(data);
-        let storagePath: string | undefined;
-        if (comp.posterFileId) {
-          const { data: fileRow } = await supabase
+        const fileIds = [comp.posterFileId, comp.twibbonFileId, comp.userPhotoFileId, comp.combinedAssetFileId].filter(Boolean) as string[];
+        const storageMap = new Map<string, string>();
+        if (fileIds.length > 0) {
+          const { data: files } = await supabase
             .from("competition_files")
-            .select("storage_path")
-            .eq("id", comp.posterFileId)
-            .maybeSingle();
-          storagePath = fileRow?.storage_path as string | undefined;
+            .select("id,storage_path")
+            .in("id", fileIds);
+          for (const f of files ?? []) {
+            if (f.storage_path) storageMap.set(String(f.id), String(f.storage_path));
+          }
         }
-        const withUrl = storagePath
-          ? { ...comp, posterImageUrl: (await signedCompetitionUrl(storagePath)) ?? undefined }
-          : comp;
-
-        return createApiEnvelope(withUrl, { supabaseConfigured });
+        const withUrls = await attachAssetSignedUrls(comp, storageMap);
+        return createApiEnvelope(withUrls, { supabaseConfigured });
       }
 
       const competition = seedCompetitions.find((item) => item.id === id) ?? null;
@@ -498,6 +525,109 @@ export function createEsaiRepository(options: RepositoryOptions = {}) {
       }
 
       return this.getCompetition(id);
+    },
+
+    async saveAssetMakerFile(
+      id: string,
+      role: "twibbon" | "user_photo" | "combined_asset",
+      file: File,
+    ) {
+      if (!supabase || !userId) throw new Error("Supabase not configured or user not authenticated.");
+
+      const { data: compRow, error: compErr } = await supabase
+        .from("competitions")
+        .select("id")
+        .eq("id", id)
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (compErr) throw new Error(compErr.message);
+      if (!compRow) throw new Error("Competition not found.");
+
+      const ext = "webp";
+      const webp = await toSquareWebp(file);
+      const { storagePath } = await uploadCompetitionAsset({
+        userId,
+        competitionId: id,
+        role,
+        buffer: webp.buffer,
+        mimeType: webp.contentType,
+        ext,
+      });
+
+      const fileRole =
+        role === "twibbon" ? "twibbon" :
+        role === "user_photo" ? "user_photo" :
+        "final_output"; // combined_asset uses final_output role
+
+      const { data: existing } = await supabase
+        .from("competition_files")
+        .select("id")
+        .eq("competition_id", id)
+        .eq("file_role", fileRole)
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      let fileId: string;
+      if (existing?.id) {
+        await supabase
+          .from("competition_files")
+          .update({
+            file_name: `${role}.${ext}`,
+            storage_path: storagePath,
+            mime_type: webp.contentType,
+            size_bytes: webp.buffer.length,
+          })
+          .eq("id", existing.id);
+        fileId = String(existing.id);
+      } else {
+        const { data: inserted, error: insErr } = await supabase
+          .from("competition_files")
+          .insert({
+            user_id: userId,
+            competition_id: id,
+            file_name: `${role}.${ext}`,
+            file_role: fileRole,
+            file_source: role === "combined_asset" ? "agent_output" : "user_upload",
+            storage_bucket: "competition-files",
+            storage_path: storagePath,
+            mime_type: webp.contentType,
+            size_bytes: webp.buffer.length,
+            status: "approved",
+            approved: true,
+          })
+          .select("id")
+          .single();
+        if (insErr) throw new Error(insErr.message);
+        fileId = String(inserted.id);
+      }
+
+      const columnMap: Record<string, string> = {
+        twibbon: "twibbon_file_id",
+        user_photo: "user_photo_file_id",
+        combined_asset: "combined_asset_file_id",
+      };
+      await supabase
+        .from("competitions")
+        .update({ [columnMap[role]]: fileId })
+        .eq("id", id)
+        .eq("user_id", userId);
+
+      return this.getCompetition(id);
+    },
+
+    async saveInstagramCaption(id: string, caption: string) {
+      if (!supabase || !userId) throw new Error("Supabase not configured or user not authenticated.");
+
+      const { data, error } = await supabase
+        .from("competitions")
+        .update({ instagram_caption: caption })
+        .eq("id", id)
+        .eq("user_id", userId)
+        .select("*")
+        .single();
+      if (error) throw new Error(error.message);
+
+      return createApiEnvelope(mapCompetition(data), { supabaseConfigured });
     },
 
     async listCompetitionFiles(competitionId: string) {

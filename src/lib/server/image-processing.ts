@@ -4,25 +4,47 @@ export type WebpResult = { buffer: Buffer; contentType: "image/webp" };
 
 export const POSTER_WIDTH = 1080;
 export const POSTER_HEIGHT = 1350;
+export const SQUARE_SIZE = 1080;
+
+export type WebpOptions = {
+  width?: number;
+  height?: number;
+  fit?: "cover" | "contain" | "inside";
+  quality?: number;
+};
 
 /**
- * Convert an image File to WebP at poster aspect (1080x1350, cover crop).
- * Oversized images are scaled down; smaller images are upscaled to fit.
+ * Convert a File to WebP.
+ * Defaults: poster aspect 1080x1350 cover crop.
  */
-export async function toWebp(file: File): Promise<WebpResult> {
+export async function toWebp(file: File, opts: WebpOptions = {}): Promise<WebpResult> {
+  const width = opts.width ?? POSTER_WIDTH;
+  const height = opts.height ?? POSTER_HEIGHT;
+  const fit = opts.fit ?? "cover";
+  const quality = opts.quality ?? 86;
+
   const arrayBuffer = await file.arrayBuffer();
   const input = Buffer.from(arrayBuffer);
 
   const buffer = await sharp(input)
     .rotate()
     .resize({
-      width: POSTER_WIDTH,
-      height: POSTER_HEIGHT,
-      fit: "cover",
+      width,
+      height,
+      fit,
       position: "attention",
+      withoutEnlargement: false,
     })
-    .webp({ quality: 86 })
+    .webp({ quality })
     .toBuffer();
 
   return { buffer, contentType: "image/webp" };
+}
+
+/**
+ * Convert a File to square WebP (1080x1080) for Instagram posts.
+ * Used for twibbons, user photos, and combined assets.
+ */
+export async function toSquareWebp(file: File): Promise<WebpResult> {
+  return toWebp(file, { width: SQUARE_SIZE, height: SQUARE_SIZE, fit: "cover" });
 }

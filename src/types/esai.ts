@@ -48,12 +48,19 @@ export type Competition = {
   institution: string;
   status: string;
   progress: number;
-  deadline: string;
+  deadline: string;           // ISO date
   registrationLink?: string;
   currentStageId: StageId;
-  posterFileId?: string;
-  posterImageUrl?: string;
-  guidebookFileId?: string;
+  posterFileId?: string;      // FK to competition_files
+  posterImageUrl?: string;    // 1-hour signed URL, filled by API
+  guidebookFileId?: string;   // computed from competition_files (role=guidebook) for convenience
+  twibbonFileId?: string;
+  userPhotoFileId?: string;
+  combinedAssetFileId?: string;
+  twibbonImageUrl?: string;
+  userPhotoImageUrl?: string;
+  combinedAssetImageUrl?: string;
+  instagramCaption?: string;
   createdAt?: string;
 };
 
