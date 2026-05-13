@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, History, Plus, RotateCcw, Sparkles, X } from "lucide-react";
+import { Bot, History, Maximize2, Minimize2, Plus, RotateCcw, Sparkles, X } from "lucide-react";
 import { type FocusEvent, type TextareaHTMLAttributes, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -56,6 +56,7 @@ export function DevsAgentsWorkspace() {
   const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [notice, setNotice] = useState("");
+  const [fullScreenOpen, setFullScreenOpen] = useState(false);
 
   useEffect(() => {
     void readData<DevsCompartment>("/api/compartments")
@@ -307,7 +308,7 @@ export function DevsAgentsWorkspace() {
 
       {notice ? <p className="form-note">{notice}</p> : null}
 
-      <div className="devs-agent-grid">
+      <div className={fullScreenOpen ? "devs-agent-grid is-fullscreen" : "devs-agent-grid"}>
         <header className="devs-agent-stage-header">
           <div>
             <small>Editable Agent Draft</small>
@@ -343,6 +344,14 @@ export function DevsAgentsWorkspace() {
               Template
             </button>
             <SaveStatusBadge status={saveStatus} />
+            <button
+              className="reference-round-button"
+              type="button"
+              aria-label={fullScreenOpen ? "Exit full screen agent editor" : "Open full screen agent editor"}
+              onClick={() => setFullScreenOpen((current) => !current)}
+            >
+              {fullScreenOpen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+            </button>
             {selectedAgent ? (
               <button className="btn-primary reference-small-button" type="button" onClick={() => setPublishConfirmOpen(true)}>
                 Publish

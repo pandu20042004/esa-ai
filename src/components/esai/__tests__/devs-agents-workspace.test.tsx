@@ -159,6 +159,25 @@ describe("DevsAgentsWorkspace", () => {
     expect(prompt).not.toHaveClass("textarea-expanded");
   });
 
+  it("toggles the agent editor full screen mode", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.includes("/api/compartments")) return Response.json({ data: compartments });
+      if (url.includes("/api/agents")) return Response.json({ data: agents });
+      return Response.json({ data: [] });
+    });
+
+    render(<DevsAgentsWorkspace />);
+    const expandButton = await screen.findByRole("button", { name: "Open full screen agent editor" });
+    const editorGrid = expandButton.closest(".devs-agent-grid");
+
+    expect(editorGrid).not.toHaveClass("is-fullscreen");
+    fireEvent.click(expandButton);
+    expect(editorGrid).toHaveClass("is-fullscreen");
+    fireEvent.click(screen.getByRole("button", { name: "Exit full screen agent editor" }));
+    expect(editorGrid).not.toHaveClass("is-fullscreen");
+  });
+
   it("renders validation warnings as styled alerts", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
       const url = String(input);

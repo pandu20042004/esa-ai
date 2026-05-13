@@ -3,6 +3,7 @@
 :root {
   --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
   --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  --font-code: 'Source Code Pro', ui-monospace, 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
   --bg: oklch(99% 0.002 240);
   --surface: oklch(100% 0 0);
   --panel: oklch(98% 0.003 250);
@@ -891,6 +892,22 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-border); 
   background: var(--panel);
   overflow: hidden;
 }
+.devs-agent-grid.is-fullscreen {
+  position: fixed;
+  inset: 10px;
+  z-index: 95;
+  min-height: 0;
+  border-radius: 14px;
+  box-shadow: 0 30px 110px -50px #000;
+}
+.devs-agent-grid.is-fullscreen::before {
+  content: "";
+  position: fixed;
+  inset: -10px;
+  z-index: -1;
+  background: rgb(0 0 0 / .48);
+  backdrop-filter: blur(16px);
+}
 .devs-agent-stage-header {
   min-height: 64px;
   border-bottom: 1px solid var(--border);
@@ -1071,7 +1088,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-border); 
   padding: 10px 12px;
   background: var(--panel);
   color: var(--text);
-  font: inherit;
+  font-family: var(--font-code);
+  font-size: 13px;
+  line-height: 1.6;
 }
 .agent-prompt-field .agent-prompt-textarea,
 .assistant-draft-panel textarea {
@@ -1083,7 +1102,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-border); 
   padding: 12px;
   background: var(--panel);
   color: var(--text);
-  font: inherit;
+  font-family: var(--font-code);
+  font-size: 13px;
+  line-height: 1.6;
 }
 .agent-description-field textarea.textarea-expanded,
 .agent-prompt-field .agent-prompt-textarea.textarea-expanded {
@@ -1096,6 +1117,18 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-border); 
 }
 .agent-prompt-field .agent-prompt-textarea.textarea-expanded {
   min-height: 520px;
+}
+.devs-agent-grid.is-fullscreen .devs-agent-stage-body {
+  min-height: 0;
+}
+.devs-agent-grid.is-fullscreen .devs-agent-document-page {
+  min-height: calc(100vh - 190px);
+}
+.devs-agent-grid.is-fullscreen .agent-prompt-field .agent-prompt-textarea {
+  min-height: calc(100vh - 430px);
+}
+.devs-agent-grid.is-fullscreen .agent-prompt-field .agent-prompt-textarea.textarea-expanded {
+  min-height: calc(100vh - 350px);
 }
 .devs-agent-side {
   display: flex;
