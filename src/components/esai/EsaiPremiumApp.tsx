@@ -131,7 +131,7 @@ export function EsaiPremiumApp() {
                 onAdd={() => setShowWizard(true)}
                 onSelect={(competition) => {
                   setSelectedCompetition(competition);
-                  setActiveScreen("workbench");
+                  setOverviewOpen(true);
                 }}
                 onDelete={async (id) => {
                   await deleteCompetition(id);
@@ -175,7 +175,7 @@ export function EsaiPremiumApp() {
             setCompetitions((items) => [competition, ...items]);
             setSelectedCompetition(competition);
             setShowWizard(false);
-            setActiveScreen("workbench");
+            setOverviewOpen(true);
           }}
         />
       ) : null}

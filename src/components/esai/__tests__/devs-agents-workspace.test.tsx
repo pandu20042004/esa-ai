@@ -169,13 +169,11 @@ describe("DevsAgentsWorkspace", () => {
 
     render(<DevsAgentsWorkspace />);
     const expandButton = await screen.findByRole("button", { name: "Open full screen agent editor" });
-    const editorGrid = expandButton.closest(".devs-agent-grid");
 
-    expect(editorGrid).not.toHaveClass("is-fullscreen");
     fireEvent.click(expandButton);
-    expect(editorGrid).toHaveClass("is-fullscreen");
-    fireEvent.click(screen.getByRole("button", { name: "Exit full screen agent editor" }));
-    expect(editorGrid).not.toHaveClass("is-fullscreen");
+    expect(screen.getByLabelText("Exit full screen prompt editor")).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("Exit full screen prompt editor"));
+    expect(screen.queryByLabelText("Exit full screen prompt editor")).not.toBeInTheDocument();
   });
 
   it("renders validation warnings as styled alerts", async () => {

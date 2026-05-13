@@ -1456,7 +1456,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-border); 
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 18px;
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   flex-direction: column;
   cursor: pointer;
@@ -1476,6 +1476,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-border); 
   aspect-ratio: 1080 / 1350;
   background: color-mix(in oklch, var(--accent) 8%, var(--surface));
   overflow: hidden;
+  border-radius: 18px 18px 0 0;
 }
 .comp-card-poster img {
   width: 100%;

@@ -56,7 +56,7 @@ export function DevsAgentsWorkspace() {
   const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [notice, setNotice] = useState("");
-  const [fullScreenOpen, setFullScreenOpen] = useState(false);
+  const [fullScreenEditorOpen, setFullScreenEditorOpen] = useState(false);
 
   useEffect(() => {
     void readData<DevsCompartment>("/api/compartments")
@@ -308,7 +308,7 @@ export function DevsAgentsWorkspace() {
 
       {notice ? <p className="form-note">{notice}</p> : null}
 
-      <div className={fullScreenOpen ? "devs-agent-grid is-fullscreen" : "devs-agent-grid"}>
+      <div className={fullScreenEditorOpen ? "devs-agent-grid is-fullscreen" : "devs-agent-grid"}>
         <header className="devs-agent-stage-header">
           <div>
             <small>Editable Agent Draft</small>
@@ -347,10 +347,10 @@ export function DevsAgentsWorkspace() {
             <button
               className="reference-round-button"
               type="button"
-              aria-label={fullScreenOpen ? "Exit full screen agent editor" : "Open full screen agent editor"}
-              onClick={() => setFullScreenOpen((current) => !current)}
+              aria-label={fullScreenEditorOpen ? "Exit full screen agent editor" : "Open full screen agent editor"}
+              onClick={() => setFullScreenEditorOpen((current) => !current)}
             >
-              {fullScreenOpen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+              {fullScreenEditorOpen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
             </button>
             {selectedAgent ? (
               <button className="btn-primary reference-small-button" type="button" onClick={() => setPublishConfirmOpen(true)}>
@@ -422,6 +422,13 @@ export function DevsAgentsWorkspace() {
                   />
                 </label>
                 <ValidationMessages blocking={validation?.blocking ?? []} warnings={validation?.warnings ?? []} />
+                <button
+                  className="reference-fullscreen-button"
+                  type="button"
+                  onClick={() => setFullScreenEditorOpen(true)}
+                >
+                  <Maximize2 size={15} /> Full screen
+                </button>
               </article>
             </>
           ) : (
@@ -962,16 +969,36 @@ function VersionsPanel({ agentId, onRevert }: { agentId: string; onRevert: (vers
 }
 
 function TemplatePanel({ agent, onRevert }: { agent: DevsAgent; onRevert: () => void }) {
-  if (!agent.templateSourcePath) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  if (!agent.templateSourcePath && !agent.templateId) {
     return <p className="form-note">This is a custom agent, so there is no built-in template to restore.</p>;
   }
 
   return (
     <div className="template-panel">
-      <p className="form-note">{agent.templateSourcePath}</p>
-      <button className="btn-secondary" type="button" onClick={onRevert}>
-        Copy built-in template to draft
-      </button>
+      {agent.templateSourcePath ? (
+        <p className="form-note">{agent.templateSourcePath}</p>
+      ) : null}
+      {!confirmOpen ? (
+        <button className="btn-secondary" type="button" onClick={() => setConfirmOpen(true)}>
+          Copy built-in template to draft
+        </button>
+      ) : (
+        <div className="template-confirm">
+          <p className="form-note template-warn">
+            This will overwrite your current draft with the original template content, including needs and produces. This cannot be undone.
+          </p>
+          <div className="template-confirm-actions">
+            <button className="btn-primary" type="button" onClick={() => { setConfirmOpen(false); onRevert(); }}>
+              Confirm revert
+            </button>
+            <button className="btn-secondary" type="button" onClick={() => setConfirmOpen(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,7 +1,15 @@
-import { createEsaiRepository } from "@/lib/server/repositories/esai-repository";
+import { getAllAvailableModels } from "@/lib/server/cli-providers";
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const repository = createEsaiRepository();
-  return Response.json(await repository.listModels());
-}
+  const models = getAllAvailableModels();
 
+  return Response.json({
+    data: models.map((m) => ({
+      provider: m.provider,
+      id: m.id,
+      label: m.label,
+    })),
+  });
+}
