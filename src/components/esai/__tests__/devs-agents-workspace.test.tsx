@@ -109,7 +109,8 @@ describe("DevsAgentsWorkspace", () => {
 
     render(<DevsAgentsWorkspace />);
     fireEvent.click(await screen.findByRole("button", { name: /^Publish$/i }));
-    fireEvent.click(await screen.findByRole("button", { name: /^Confirm$/i }));
+    expect(await screen.findByRole("dialog", { name: /Publish agent version/i })).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: /Confirm publish/i }));
 
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(

@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, History, Plus, RotateCcw, Sparkles } from "lucide-react";
+import { Bot, History, Plus, RotateCcw, Sparkles, X } from "lucide-react";
 import { type FocusEvent, type TextareaHTMLAttributes, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -344,21 +344,9 @@ export function DevsAgentsWorkspace() {
             </button>
             <SaveStatusBadge status={saveStatus} />
             {selectedAgent ? (
-              !publishConfirmOpen ? (
-                <button className="btn-primary reference-small-button" type="button" onClick={() => setPublishConfirmOpen(true)}>
-                  Publish
-                </button>
-              ) : (
-                <div className="publish-confirm">
-                  <span>Publish this draft?</span>
-                  <button className="btn-primary reference-small-button" type="button" onClick={publishAgent}>
-                    Confirm
-                  </button>
-                  <button className="btn-secondary reference-small-button" type="button" onClick={() => setPublishConfirmOpen(false)}>
-                    Cancel
-                  </button>
-                </div>
-              )
+              <button className="btn-primary reference-small-button" type="button" onClick={() => setPublishConfirmOpen(true)}>
+                Publish
+              </button>
             ) : null}
           </div>
         </header>
@@ -463,6 +451,36 @@ export function DevsAgentsWorkspace() {
         </aside>
         </div>
       </div>
+      {publishConfirmOpen && selectedAgent ? (
+        <div className="modal-backdrop" role="presentation" onClick={() => setPublishConfirmOpen(false)}>
+          <div
+            className="small-modal publish-confirm-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="publish-confirm-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h2 id="publish-confirm-title">Publish agent version?</h2>
+              <button className="ghost-icon" type="button" onClick={() => setPublishConfirmOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            <p>
+              This will make the current draft active for <strong>{selectedAgent.name}</strong>. Version history will keep
+              the previous published copy.
+            </p>
+            <div className="modal-actions">
+              <button className="btn-ghost" type="button" onClick={() => setPublishConfirmOpen(false)}>
+                Cancel
+              </button>
+              <button className="btn-primary" type="button" onClick={publishAgent}>
+                Confirm publish
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
