@@ -206,6 +206,11 @@ function Sidebar(props: {
           {props.darkMode ? <Sun size={18} /> : <Moon size={18} />}
           {!props.collapsed ? <span>{props.darkMode ? "Light" : "Dark"}</span> : null}
         </button>
+        <form action="/api/auth/logout" method="post" className="sidebar-logout-form">
+          <button type="submit" className="sidebar-logout-button" title="Sign out">
+            Sign out
+          </button>
+        </form>
         <button className={`profile-button ${props.activeScreen === "profile" ? "active" : ""}`} onClick={() => props.onOpenScreen("profile")}>
           <span className="avatar">AS</span>
           {!props.collapsed ? <span><strong>User Account</strong><small>Analytical Board</small></span> : null}
