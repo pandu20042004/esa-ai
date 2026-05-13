@@ -3,8 +3,14 @@
 import { Bot, History, Plus, RotateCcw, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-import { getOutputLabelName, validateAgentDraft } from "@/lib/esai/agent-contracts";
+import {
+  CONTROLLED_OUTPUT_LABELS,
+  createSafeContractKey,
+  getOutputLabelName,
+  validateAgentDraft,
+} from "@/lib/esai/agent-contracts";
 import type {
+  ArtifactIncludeMode,
   DevsAgent,
   DevsAgentVersion,
   DevsCompartment,
@@ -33,6 +39,8 @@ export function DevsAgentsWorkspace() {
   const [selectedCompartmentId, setSelectedCompartmentId] = useState("");
   const [selectedAgentId, setSelectedAgentId] = useState("");
   const [tab, setTab] = useState<SideTab>("assistant");
+  const [newCompartmentOpen, setNewCompartmentOpen] = useState(false);
+  const [newCompartmentName, setNewCompartmentName] = useState("");
   const [newAgentOpen, setNewAgentOpen] = useState(false);
   const [newAgentName, setNewAgentName] = useState("");
   const [notice, setNotice] = useState("");
@@ -73,6 +81,29 @@ export function DevsAgentsWorkspace() {
       ]),
     });
   }, [agents, selectedAgent]);
+
+  async function createCompartment() {
+    if (!newCompartmentName.trim()) return;
+
+    const response = await fetch("/api/compartments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newCompartmentName }),
+    });
+    const json = (await response.json()) as ApiEnvelope<DevsCompartment>;
+
+    if (!response.ok || !json.data) {
+      setNotice(json.error ?? "Unable to create compartment.");
+      return;
+    }
+
+    setCompartments((items) => [...items, json.data as DevsCompartment]);
+    setSelectedCompartmentId(json.data.id);
+    setSelectedAgentId("");
+    setNewCompartmentName("");
+    setNewCompartmentOpen(false);
+    setNotice("Compartment created.");
+  }
 
   async function createAgent() {
     if (!selectedCompartmentId || !newAgentName.trim()) return;
@@ -143,6 +174,25 @@ export function DevsAgentsWorkspace() {
     setNotice("Published version is now active.");
   }
 
+  async function revertAgent(source: "template" | "version", versionId?: string) {
+    if (!selectedAgent) return;
+
+    const response = await fetch(`/api/agents/${selectedAgent.id}/revert`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(source === "template" ? { source } : { source, versionId }),
+    });
+    const json = (await response.json()) as ApiEnvelope<DevsAgent>;
+
+    if (!response.ok || !json.data) {
+      setNotice(json.error ?? "Unable to copy into draft.");
+      return;
+    }
+
+    setAgents((items) => items.map((agent) => (agent.id === json.data?.id ? json.data : agent)));
+    setNotice(source === "template" ? "Template copied into draft." : "Version copied into draft.");
+  }
+
   return (
     <section className="devs-agents">
       <div className="devs-agent-toolbar">
@@ -157,7 +207,7 @@ export function DevsAgentsWorkspace() {
             </option>
           ))}
         </select>
-        <button className="btn-secondary" type="button">
+        <button className="btn-secondary" type="button" onClick={() => setNewCompartmentOpen(true)}>
           <Plus size={15} />
           Compartment
         </button>
@@ -166,6 +216,22 @@ export function DevsAgentsWorkspace() {
           New Agent
         </button>
       </div>
+
+      {newCompartmentOpen ? (
+        <div className="agent-create-row">
+          <input
+            placeholder="Compartment name"
+            value={newCompartmentName}
+            onChange={(event) => setNewCompartmentName(event.target.value)}
+          />
+          <button className="btn-primary" type="button" onClick={createCompartment}>
+            Create compartment
+          </button>
+          <button className="btn-secondary" type="button" onClick={() => setNewCompartmentOpen(false)}>
+            Cancel
+          </button>
+        </div>
+      ) : null}
 
       {newAgentOpen ? (
         <div className="agent-create-row">
@@ -275,9 +341,11 @@ export function DevsAgentsWorkspace() {
           {selectedAgent && tab === "contracts" ? (
             <ContractsPanel agent={selectedAgent} onSave={saveDraft} />
           ) : null}
-          {selectedAgent && tab === "versions" ? <VersionsPanel agentId={selectedAgent.id} /> : null}
+          {selectedAgent && tab === "versions" ? (
+            <VersionsPanel agentId={selectedAgent.id} onRevert={(versionId) => revertAgent("version", versionId)} />
+          ) : null}
           {selectedAgent && tab === "template" ? (
-            <p className="form-note">{selectedAgent.templateSourcePath || "This is a custom agent."}</p>
+            <TemplatePanel agent={selectedAgent} onRevert={() => revertAgent("template")} />
           ) : null}
         </aside>
       </div>
@@ -292,6 +360,28 @@ function ContractsPanel({
   agent: DevsAgent;
   onSave: (patch: Partial<Pick<DevsAgent, "draftNeeds" | "draftProduces">>) => Promise<void>;
 }) {
+  function addNeed() {
+    const next: DevsNeed = {
+      key: "new_input",
+      label: "New input",
+      acceptedRoles: [],
+      required: true,
+      includeMode: "summary",
+    };
+    void onSave({ draftNeeds: [...agent.draftNeeds, next] });
+  }
+
+  function updateNeed(index: number, patch: Partial<DevsNeed>) {
+    const next = agent.draftNeeds.map((need, itemIndex) =>
+      itemIndex === index ? { ...need, ...patch } : need,
+    );
+    void onSave({ draftNeeds: next });
+  }
+
+  function removeNeed(index: number) {
+    void onSave({ draftNeeds: agent.draftNeeds.filter((_, itemIndex) => itemIndex !== index) });
+  }
+
   function addProduces() {
     const next: DevsProduces = {
       key: "new_output",
@@ -302,23 +392,200 @@ function ContractsPanel({
     void onSave({ draftProduces: [...agent.draftProduces, next] });
   }
 
+  function updateProduces(index: number, patch: Partial<DevsProduces>) {
+    const next = agent.draftProduces.map((produce, itemIndex) =>
+      itemIndex === index ? { ...produce, ...patch } : produce,
+    );
+    void onSave({ draftProduces: next });
+  }
+
+  function removeProduces(index: number) {
+    void onSave({ draftProduces: agent.draftProduces.filter((_, itemIndex) => itemIndex !== index) });
+  }
+
   return (
     <div className="contracts-panel">
       <h3>Needs</h3>
       {agent.draftNeeds.length === 0 ? <p className="form-note">No required inputs yet.</p> : null}
-      {agent.draftNeeds.map((need: DevsNeed) => (
-        <p key={need.key}>
-          {need.label}: accepts {need.acceptedRoles.map(getOutputLabelName).join(", ") || "nothing yet"}
-        </p>
+      {agent.draftNeeds.map((need: DevsNeed, index) => (
+        <NeedEditor
+          key={`${need.key}-${index}`}
+          need={need}
+          onChange={(patch) => updateNeed(index, patch)}
+          onRemove={() => removeNeed(index)}
+        />
       ))}
+      <button className="btn-secondary" type="button" onClick={addNeed}>
+        Add Needs
+      </button>
       <h3>Produces</h3>
-      {agent.draftProduces.map((produce) => (
-        <p key={produce.key}>
-          {produce.label}: {getOutputLabelName(produce.role)}
-        </p>
+      {agent.draftProduces.map((produce, index) => (
+        <ProducesEditor
+          key={`${produce.key}-${index}`}
+          produce={produce}
+          onChange={(patch) => updateProduces(index, patch)}
+          onRemove={() => removeProduces(index)}
+        />
       ))}
       <button className="btn-secondary" type="button" onClick={addProduces}>
         Add Produces
+      </button>
+    </div>
+  );
+}
+
+function NeedEditor({
+  need,
+  onChange,
+  onRemove,
+}: {
+  need: DevsNeed;
+  onChange: (patch: Partial<DevsNeed>) => void;
+  onRemove: () => void;
+}) {
+  const customLabels = need.acceptedRoles
+    .filter((role) => !CONTROLLED_OUTPUT_LABELS.includes(role as (typeof CONTROLLED_OUTPUT_LABELS)[number]))
+    .join(", ");
+
+  function setControlledRole(role: string, checked: boolean) {
+    const nextRoles = checked
+      ? [...need.acceptedRoles, role]
+      : need.acceptedRoles.filter((item) => item !== role);
+    onChange({ acceptedRoles: Array.from(new Set(nextRoles)) });
+  }
+
+  function setCustomLabels(value: string) {
+    const controlled = need.acceptedRoles.filter((role) =>
+      CONTROLLED_OUTPUT_LABELS.includes(role as (typeof CONTROLLED_OUTPUT_LABELS)[number]),
+    );
+    const custom = value
+      .split(",")
+      .map((item) => createSafeContractKey(item))
+      .filter(Boolean);
+    onChange({ acceptedRoles: Array.from(new Set([...controlled, ...custom])) });
+  }
+
+  return (
+    <div className="contract-editor">
+      <label>
+        Need name
+        <input
+          value={need.label}
+          onChange={(event) =>
+            onChange({ label: event.target.value, key: createSafeContractKey(event.target.value) })
+          }
+        />
+      </label>
+      <label>
+        Stable key
+        <input value={need.key} onChange={(event) => onChange({ key: event.target.value })} />
+      </label>
+      <label>
+        Include as
+        <select
+          value={need.includeMode}
+          onChange={(event) => onChange({ includeMode: event.target.value as ArtifactIncludeMode })}
+        >
+          <option value="summary">Summary</option>
+          <option value="full">Full file</option>
+          <option value="metadata">Metadata only</option>
+        </select>
+      </label>
+      <label className="contract-check">
+        <input
+          type="checkbox"
+          checked={need.required}
+          onChange={(event) => onChange({ required: event.target.checked })}
+        />
+        Required before this agent can run
+      </label>
+      <fieldset>
+        <legend>Accepts outputs labeled</legend>
+        {CONTROLLED_OUTPUT_LABELS.map((role) => (
+          <label className="contract-check" key={role}>
+            <input
+              type="checkbox"
+              checked={need.acceptedRoles.includes(role)}
+              onChange={(event) => setControlledRole(role, event.target.checked)}
+            />
+            {getOutputLabelName(role)}
+          </label>
+        ))}
+      </fieldset>
+      <label>
+        Custom labels
+        <input
+          placeholder="comma separated"
+          value={customLabels}
+          onChange={(event) => setCustomLabels(event.target.value)}
+        />
+      </label>
+      <button className="btn-secondary" type="button" onClick={onRemove}>
+        Remove Need
+      </button>
+    </div>
+  );
+}
+
+function ProducesEditor({
+  produce,
+  onChange,
+  onRemove,
+}: {
+  produce: DevsProduces;
+  onChange: (patch: Partial<DevsProduces>) => void;
+  onRemove: () => void;
+}) {
+  const isControlledRole = CONTROLLED_OUTPUT_LABELS.includes(
+    produce.role as (typeof CONTROLLED_OUTPUT_LABELS)[number],
+  );
+
+  return (
+    <div className="contract-editor">
+      <label>
+        Output name
+        <input
+          value={produce.label}
+          onChange={(event) =>
+            onChange({ label: event.target.value, key: createSafeContractKey(event.target.value) })
+          }
+        />
+      </label>
+      <label>
+        Stable key
+        <input value={produce.key} onChange={(event) => onChange({ key: event.target.value })} />
+      </label>
+      <label>
+        Output label
+        <select
+          value={isControlledRole ? produce.role : "custom"}
+          onChange={(event) =>
+            onChange({ role: event.target.value === "custom" ? "custom_output" : event.target.value })
+          }
+        >
+          {CONTROLLED_OUTPUT_LABELS.map((role) => (
+            <option key={role} value={role}>
+              {getOutputLabelName(role)}
+            </option>
+          ))}
+          <option value="custom">Custom label</option>
+        </select>
+      </label>
+      {!isControlledRole ? (
+        <label>
+          Custom output label
+          <input value={produce.role} onChange={(event) => onChange({ role: createSafeContractKey(event.target.value) })} />
+        </label>
+      ) : null}
+      <label>
+        Suggested filename
+        <input
+          value={produce.defaultFilename ?? ""}
+          onChange={(event) => onChange({ defaultFilename: event.target.value })}
+        />
+      </label>
+      <button className="btn-secondary" type="button" onClick={onRemove}>
+        Remove Produces
       </button>
     </div>
   );
@@ -396,7 +663,7 @@ function AssistantDraftPanel({
   );
 }
 
-function VersionsPanel({ agentId }: { agentId: string }) {
+function VersionsPanel({ agentId, onRevert }: { agentId: string; onRevert: (versionId: string) => void }) {
   const [versions, setVersions] = useState<DevsAgentVersion[]>([]);
 
   useEffect(() => {
@@ -407,11 +674,29 @@ function VersionsPanel({ agentId }: { agentId: string }) {
     <div className="versions-list">
       {versions.length === 0 ? <p className="form-note">No published versions yet.</p> : null}
       {versions.map((version) => (
-        <button className={version.isActive ? "active" : ""} key={version.id} type="button">
-          Version {version.versionNumber}
+        <div className={version.isActive ? "active" : ""} key={version.id}>
+          <strong>Version {version.versionNumber}</strong>
           <small>{version.changeSummary || "No summary"}</small>
-        </button>
+          <button className="btn-secondary" type="button" onClick={() => onRevert(version.id)}>
+            Copy to draft
+          </button>
+        </div>
       ))}
+    </div>
+  );
+}
+
+function TemplatePanel({ agent, onRevert }: { agent: DevsAgent; onRevert: () => void }) {
+  if (!agent.templateSourcePath) {
+    return <p className="form-note">This is a custom agent, so there is no built-in template to restore.</p>;
+  }
+
+  return (
+    <div className="template-panel">
+      <p className="form-note">{agent.templateSourcePath}</p>
+      <button className="btn-secondary" type="button" onClick={onRevert}>
+        Copy built-in template to draft
+      </button>
     </div>
   );
 }

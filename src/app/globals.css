@@ -946,8 +946,45 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-border); 
 .side-tabs button.active { border-color: var(--accent-border); background: var(--accent-soft); color: var(--accent); }
 .contracts-panel,
 .assistant-draft-panel,
-.versions-list { display: grid; gap: 10px; }
-.versions-list button {
+.versions-list,
+.template-panel { display: grid; gap: 10px; }
+.contract-editor {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 12px;
+}
+.contract-editor label,
+.contract-editor fieldset {
+  display: grid;
+  gap: 6px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.contract-editor legend { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+.contract-editor input,
+.contract-editor select {
+  min-height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 10px;
+  background: var(--surface);
+  color: var(--text);
+}
+.contract-editor .contract-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-size: 13px;
+}
+.contract-editor .contract-check input { min-height: auto; }
+.versions-list > div {
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--panel);
@@ -955,8 +992,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-border); 
   text-align: left;
   color: var(--text);
 }
-.versions-list button small { display: block; color: var(--muted); margin-top: 4px; }
-.versions-list button.active { border-color: var(--accent-border); background: var(--accent-soft); }
+.versions-list > div small { display: block; color: var(--muted); margin: 4px 0 8px; }
+.versions-list > div.active { border-color: var(--accent-border); background: var(--accent-soft); }
 .assistant-proposal {
   border: 1px solid var(--border);
   border-radius: 8px;
