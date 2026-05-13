@@ -173,6 +173,18 @@ alter table public.validity_checks enable row level security;
 alter table public.byok_keys enable row level security;
 alter table public.file_chunks enable row level security;
 
+drop policy if exists "profiles own rows" on public.profiles;
+drop policy if exists "competitions own rows" on public.competitions;
+drop policy if exists "competition files own rows" on public.competition_files;
+drop policy if exists "agents own rows" on public.agents;
+drop policy if exists "agent runs own rows" on public.agent_runs;
+drop policy if exists "agent messages own rows" on public.agent_messages;
+drop policy if exists "output versions own rows" on public.output_versions;
+drop policy if exists "calendar events own rows" on public.calendar_events;
+drop policy if exists "validity checks own rows" on public.validity_checks;
+drop policy if exists "byok keys own rows" on public.byok_keys;
+drop policy if exists "file chunks visible through owned files" on public.file_chunks;
+
 create policy "profiles own rows" on public.profiles for all using (id = auth.uid()) with check (id = auth.uid());
 create policy "competitions own rows" on public.competitions for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 create policy "competition files own rows" on public.competition_files for all using (user_id = auth.uid()) with check (user_id = auth.uid());
@@ -198,4 +210,3 @@ values
   ('journal-pdfs', 'journal-pdfs', false),
   ('profile-assets', 'profile-assets', false)
 on conflict (id) do nothing;
-

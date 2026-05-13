@@ -68,24 +68,37 @@ export async function POST() {
       const syncedTemplate = templateByKey.get(template.templateKey);
       if (!syncedTemplate) continue;
 
-      const { data: userAgent, error: agentError } = await supabase
+      const userAgentRow = {
+        user_id: user.id,
+        compartment_id: essayCompartment.id,
+        template_id: syncedTemplate.id,
+        name: template.name,
+        description: template.description,
+        stage_key: null,
+        input_contracts: [],
+        output_contracts: [],
+        is_custom: false,
+        enabled: true,
+        sort_order: index,
+      };
+
+      const { data: existingUserAgent, error: existingAgentError } = await supabase
         .from("user_agents")
-        .upsert(
-          {
-            user_id: user.id,
-            compartment_id: essayCompartment.id,
-            template_id: syncedTemplate.id,
-            name: template.name,
-            description: template.description,
-            stage_key: null,
-            input_contracts: [],
-            output_contracts: [],
-            is_custom: false,
-            enabled: true,
-            sort_order: index,
-          },
-          { onConflict: "user_id,compartment_id,template_id" },
-        )
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("compartment_id", essayCompartment.id)
+        .eq("template_id", syncedTemplate.id)
+        .maybeSingle();
+
+      if (existingAgentError) {
+        return Response.json({ error: existingAgentError.message }, { status: 500 });
+      }
+
+      const agentMutation = existingUserAgent
+        ? supabase.from("user_agents").update(userAgentRow).eq("id", existingUserAgent.id)
+        : supabase.from("user_agents").insert(userAgentRow);
+
+      const { data: userAgent, error: agentError } = await agentMutation
         .select("*")
         .single();
 
