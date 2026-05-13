@@ -12,8 +12,12 @@ export async function extractText(file: File): Promise<string> {
   }
 
   if (mime === "application/pdf") {
+    // pdf-parse v1 index.js runs debug code that tries to open a test fixture.
+    // Import the inner module directly to skip that.
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const pdfParse = require("pdf-parse") as (buffer: Buffer) => Promise<{ text: string }>;
+    const pdfParse = require("pdf-parse/lib/pdf-parse.js") as (
+      buffer: Buffer,
+    ) => Promise<{ text: string }>;
     const buffer = Buffer.from(await file.arrayBuffer());
     const result = await pdfParse(buffer);
     return truncate(result.text ?? "");
