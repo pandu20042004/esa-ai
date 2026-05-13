@@ -286,13 +286,13 @@ function DashboardScreen({
             <Plus size={17} /> Add Competition
           </button>
         </header>
-        <div style={{ padding: "64px 0", textAlign: "center" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 72, height: 72, borderRadius: 18, background: "#ecf5f2", marginBottom: 16 }}>
-            <Plus size={36} color="#147d64" />
+        <div className="dashboard-empty">
+          <div className="dashboard-empty-icon">
+            <Plus size={36} />
           </div>
-          <h2 style={{ margin: 0 }}>No competitions yet</h2>
-          <p style={{ color: "#5f6b7a", marginTop: 6 }}>Add your first competition to start the workflow.</p>
-          <button className="btn-primary" onClick={onAdd} style={{ marginTop: 18 }}>
+          <h2>No competitions yet</h2>
+          <p>Add your first competition to start the workflow.</p>
+          <button className="btn-primary" onClick={onAdd}>
             <Plus size={17} /> Add Competition
           </button>
         </div>
