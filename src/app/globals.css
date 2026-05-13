@@ -899,7 +899,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-border); 
 .devs-agent-list { display: flex; flex-direction: column; gap: 8px; }
 .devs-agent-list button {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 10px;
   text-align: left;
   border: 1px solid transparent;
@@ -907,10 +907,20 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-border); 
   padding: 10px;
   background: transparent;
   color: var(--text);
+  overflow: hidden;
 }
 .devs-agent-list button.active { border-color: var(--accent-border); background: var(--accent-soft); }
+.devs-agent-list button span {
+  min-width: 0;
+  overflow: hidden;
+}
 .devs-agent-list strong,
 .devs-agent-list small { display: block; }
+.devs-agent-list strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .devs-agent-list small {
   max-width: 100%;
   overflow: hidden;
@@ -925,6 +935,40 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-border); 
 }
 .devs-agent-editor { display: flex; flex-direction: column; gap: 12px; }
 .devs-agent-editor header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.agent-editor-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.save-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0 10px;
+  color: var(--muted);
+  background: var(--panel);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.save-status-dirty { color: #92400e; border-color: #f59e0b; background: #fffbeb; }
+.save-status-saving { color: #075985; border-color: #38bdf8; background: #f0f9ff; }
+.save-status-saved { color: #047857; border-color: #34d399; background: #ecfdf5; }
+.save-status-error { color: #b42318; border-color: #fca5a5; background: #fef2f2; }
+.publish-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.publish-confirm span {
+  color: var(--muted);
+  font-size: 12px;
+}
 .agent-description-field {
   display: grid;
   gap: 6px;

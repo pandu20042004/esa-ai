@@ -109,6 +109,7 @@ describe("DevsAgentsWorkspace", () => {
 
     render(<DevsAgentsWorkspace />);
     fireEvent.click(await screen.findByRole("button", { name: /Publish version/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /Confirm publish/i }));
 
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
@@ -116,6 +117,27 @@ describe("DevsAgentsWorkspace", () => {
         expect.objectContaining({ method: "POST" }),
       ),
     );
+  });
+
+  it("shows whether editor changes are saved to the database", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (url.includes("/api/compartments")) return Response.json({ data: compartments });
+      if (url.includes("/api/agents/a1/draft") && init?.method === "PATCH") {
+        const body = JSON.parse(String(init.body));
+        return Response.json({ data: { ...agents[0], draftSkillContent: body.skillContent } });
+      }
+      if (url.includes("/api/agents")) return Response.json({ data: agents });
+      return Response.json({ data: [] });
+    });
+
+    render(<DevsAgentsWorkspace />);
+    expect(await screen.findByText("Saved to database")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Agent prompt"), { target: { value: "# Research\nNew line" } });
+    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
+
+    await waitFor(() => expect(screen.getByText("Saved to database")).toBeInTheDocument(), { timeout: 1200 });
   });
 
   it("saves edited agent descriptions", async () => {

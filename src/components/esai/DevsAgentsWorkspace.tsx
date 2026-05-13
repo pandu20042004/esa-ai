@@ -32,6 +32,8 @@ type AssistantModel = {
   label: string;
 };
 
+type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
+
 async function readData<T>(url: string): Promise<T[]> {
   const response = await fetch(url);
   const json = (await response.json()) as ApiEnvelope<T[]>;
@@ -51,6 +53,8 @@ export function DevsAgentsWorkspace() {
   const [newAgentName, setNewAgentName] = useState("");
   const [promptDraft, setPromptDraft] = useState("");
   const [descriptionDraft, setDescriptionDraft] = useState("");
+  const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
@@ -73,6 +77,7 @@ export function DevsAgentsWorkspace() {
           const nextAgent = items.find((agent) => agent.id === nextId);
           setPromptDraft(nextAgent?.draftSkillContent ?? "");
           setDescriptionDraft(nextAgent?.description ?? "");
+          setSaveStatus(nextAgent ? "saved" : "idle");
           return nextId;
         });
       })
@@ -87,6 +92,7 @@ export function DevsAgentsWorkspace() {
 
       const nextAgent = { ...selectedAgent, ...patch };
       setAgents((items) => items.map((agent) => (agent.id === nextAgent.id ? nextAgent : agent)));
+      setSaveStatus("saving");
 
       const response = await fetch(`/api/agents/${selectedAgent.id}/draft`, {
         method: "PATCH",
@@ -101,10 +107,12 @@ export function DevsAgentsWorkspace() {
 
       if (!response.ok || !json.data) {
         setNotice(json.error ?? "Unable to save draft.");
+        setSaveStatus("error");
         return;
       }
 
       setAgents((items) => items.map((agent) => (agent.id === json.data?.id ? json.data : agent)));
+      setSaveStatus("saved");
       setNotice("Draft saved.");
     },
     [selectedAgent],
@@ -176,6 +184,7 @@ export function DevsAgentsWorkspace() {
     setSelectedAgentId(json.data.id);
     setPromptDraft(json.data.draftSkillContent);
     setDescriptionDraft(json.data.description);
+    setSaveStatus("saved");
     setNewAgentName("");
     setNewAgentOpen(false);
     setNotice("Custom agent saved as draft.");
@@ -183,6 +192,7 @@ export function DevsAgentsWorkspace() {
 
   async function publishAgent() {
     if (!selectedAgent) return;
+    setPublishConfirmOpen(false);
 
     const response = await fetch(`/api/agents/${selectedAgent.id}/publish`, {
       method: "POST",
@@ -202,6 +212,7 @@ export function DevsAgentsWorkspace() {
 
   async function saveDescription() {
     if (!selectedAgent || descriptionDraft.trim() === selectedAgent.description.trim()) return;
+    setSaveStatus("saving");
 
     const response = await fetch(`/api/agents/${selectedAgent.id}`, {
       method: "PATCH",
@@ -212,11 +223,13 @@ export function DevsAgentsWorkspace() {
 
     if (!response.ok || !json.data) {
       setNotice(json.error ?? "Unable to save description.");
+      setSaveStatus("error");
       return;
     }
 
     setAgents((items) => items.map((agent) => (agent.id === json.data?.id ? json.data : agent)));
     setDescriptionDraft(json.data.description);
+    setSaveStatus("saved");
     setNotice("Description saved.");
   }
 
@@ -306,6 +319,8 @@ export function DevsAgentsWorkspace() {
                 setSelectedAgentId(agent.id);
                 setPromptDraft(agent.draftSkillContent);
                 setDescriptionDraft(agent.description);
+                setPublishConfirmOpen(false);
+                setSaveStatus("saved");
               }}
             >
               <Bot size={17} />
@@ -328,9 +343,24 @@ export function DevsAgentsWorkspace() {
                   <h2>{selectedAgent.name}</h2>
                   <p>{selectedAgent.kind === "template_copy" ? "Template copy" : "Custom agent"}</p>
                 </div>
-                <button className="btn-primary" type="button" onClick={publishAgent}>
-                  Publish version
-                </button>
+                <div className="agent-editor-actions">
+                  <SaveStatusBadge status={saveStatus} />
+                  {!publishConfirmOpen ? (
+                    <button className="btn-primary" type="button" onClick={() => setPublishConfirmOpen(true)}>
+                      Publish version
+                    </button>
+                  ) : (
+                    <div className="publish-confirm">
+                      <span>Publish this draft?</span>
+                      <button className="btn-primary" type="button" onClick={publishAgent}>
+                        Confirm publish
+                      </button>
+                      <button className="btn-secondary" type="button" onClick={() => setPublishConfirmOpen(false)}>
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
               </header>
               <label className="agent-description-field">
                 Agent description
@@ -338,13 +368,19 @@ export function DevsAgentsWorkspace() {
                   value={descriptionDraft}
                   placeholder="Short purpose shown in the agent list"
                   onBlur={saveDescription}
-                  onChange={(event) => setDescriptionDraft(event.target.value)}
+                  onChange={(event) => {
+                    setDescriptionDraft(event.target.value);
+                    setSaveStatus("dirty");
+                  }}
                 />
               </label>
               <textarea
                 aria-label="Agent prompt"
                 value={promptDraft}
-                onChange={(event) => setPromptDraft(event.target.value)}
+                onChange={(event) => {
+                  setPromptDraft(event.target.value);
+                  setSaveStatus("dirty");
+                }}
               />
               {validation?.blocking.map((item, index) => (
                 <p className="form-warning" key={`blocking-${index}-${item}`}>
@@ -503,6 +539,25 @@ function ContractsPanel({
         Add Produces
       </button>
     </div>
+  );
+}
+
+function SaveStatusBadge({ status }: { status: SaveStatus }) {
+  const label =
+    status === "dirty"
+      ? "Unsaved changes"
+      : status === "saving"
+        ? "Saving to database"
+        : status === "saved"
+          ? "Saved to database"
+          : status === "error"
+            ? "Database save failed"
+            : "Database status";
+
+  return (
+    <span className={`save-status save-status-${status}`} aria-live="polite">
+      {label}
+    </span>
   );
 }
 
