@@ -119,7 +119,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .card-meta span { display: inline-flex; align-items: center; gap: 6px; }
 
 .modal-backdrop, .editor-overlay { position: fixed; inset: 0; z-index: 80; background: rgb(0 0 0 / .34); backdrop-filter: blur(12px); display: grid; place-items: center; padding: 20px; }
-.wizard, .small-modal { width: min(620px, 94vw); background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: 0 30px 90px -50px #000; overflow: hidden; }
+.wizard, .small-modal { width: min(720px, 94vw); background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: 0 30px 90px -50px #000; overflow: hidden; }
 .wizard { padding: 28px; }
 .small-modal { padding: 24px; }
 .modal-header, .modal-actions, .panel-header, .document-toolbar, .editor-header, .pane-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
@@ -1589,11 +1589,19 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-border); 
 .upload-zone .upload-hint { color: var(--muted); font-weight: 500; }
 .upload-zone .upload-ok { color: var(--accent); }
 .upload-zone .upload-err { color: #c52b2b; }
-.upload-zone-input {
+.upload-zone-input,
+.upload-zone input[type="file"] {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
   opacity: 0;
   cursor: pointer;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  min-height: 0;
 }
 
 /* Step 3 error box plays nice with dark mode */
