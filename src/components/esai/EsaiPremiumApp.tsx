@@ -40,11 +40,10 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { ApiError, fetchCompetitions, createCompetition, updateCompetition, deleteCompetition, replaceCompetitionAssets } from "@/lib/esai/api";
 import { filterCalendarEvents, getEventsForDate, getUpcomingEvents } from "@/lib/esai/calendar";
-import { buildCompetitionOverview } from "@/lib/esai/competition-overview";
 import {
   seedCalendarEvents,
-  seedCompetitions,
   seedFiles,
   seedOutputVersions,
 } from "@/lib/esai/seed";
@@ -69,8 +68,9 @@ export function EsaiPremiumApp() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => getStoredValue("esai-theme", "light") === "dark");
-  const [competitions, setCompetitions] = useState(seedCompetitions);
-  const [selectedCompetition, setSelectedCompetition] = useState<Competition | null>(seedCompetitions[0] ?? null);
+  const [competitions, setCompetitions] = useState<Competition[]>([]);
+  const [selectedCompetition, setSelectedCompetition] = useState<Competition | null>(null);
+  const [dataLoading, setDataLoading] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
   const [overviewOpen, setOverviewOpen] = useState(false);
 
@@ -78,6 +78,27 @@ export function EsaiPremiumApp() {
     document.documentElement.dataset.theme = darkMode ? "dark" : "light";
     window.localStorage.setItem("esai-theme", darkMode ? "dark" : "light");
   }, [darkMode]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await fetchCompetitions();
+        if (cancelled) return;
+        setCompetitions(list);
+        setSelectedCompetition(list[0] ?? null);
+      } catch (error) {
+        const err = error as ApiError | Error;
+        const correlationId = (err as ApiError).correlationId ?? "";
+        const msg = encodeURIComponent(err.message ?? "Failed to load dashboard");
+        const cid = encodeURIComponent(correlationId);
+        window.location.href = `/error-page?source=dashboard&message=${msg}&correlationId=${cid}&returnTo=${encodeURIComponent("/")}`;
+      } finally {
+        if (!cancelled) setDataLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const openScreen = (screen: Screen) => {
     setActiveScreen(screen);
@@ -102,14 +123,26 @@ export function EsaiPremiumApp() {
       <div className={`content-shell ${sidebarCollapsed ? "collapsed" : ""}`}>
         <main className={`main-surface ${assistantOpen && activeScreen !== "workbench" && activeScreen !== "validity" ? "with-assistant" : ""}`}>
           {activeScreen === "dashboard" && (
-            <DashboardScreen
-              competitions={competitions}
-              onAdd={() => setShowWizard(true)}
-              onSelect={(competition) => {
-                setSelectedCompetition(competition);
-                setActiveScreen("workbench");
-              }}
-            />
+            dataLoading ? (
+              <section className="screen dashboard-screen"><p style={{ padding: 32, color: "#5f6b7a" }}>Loading…</p></section>
+            ) : (
+              <DashboardScreen
+                competitions={competitions}
+                onAdd={() => setShowWizard(true)}
+                onSelect={(competition) => {
+                  setSelectedCompetition(competition);
+                  setActiveScreen("workbench");
+                }}
+                onDelete={async (id) => {
+                  await deleteCompetition(id);
+                  setCompetitions((items) => items.filter((c) => c.id !== id));
+                }}
+                onEdit={(competition) => {
+                  setSelectedCompetition(competition);
+                  setOverviewOpen(true);
+                }}
+              />
+            )
           )}
           {activeScreen === "calendar" && <CalendarScreen />}
           {activeScreen === "workbench" && selectedCompetition && (
@@ -155,6 +188,16 @@ export function EsaiPremiumApp() {
             setSelectedCompetition(competition);
             setActiveScreen("workbench");
             setOverviewOpen(false);
+          }}
+          onUpdated={(updated) => {
+            setCompetitions((items) => items.map((c) => (c.id === updated.id ? { ...c, ...updated } : c)));
+            setSelectedCompetition(updated);
+          }}
+          onDeleted={(id) => {
+            setCompetitions((items) => items.filter((c) => c.id !== id));
+            setSelectedCompetition(null);
+            setOverviewOpen(false);
+            setActiveScreen("dashboard");
           }}
         />
       ) : null}
@@ -227,201 +270,429 @@ function DashboardScreen({
   competitions,
   onAdd,
   onSelect,
+  onDelete,
+  onEdit,
 }: {
   competitions: Competition[];
   onAdd: () => void;
   onSelect: (competition: Competition) => void;
+  onDelete: (id: string) => Promise<void>;
+  onEdit: (competition: Competition) => void;
 }) {
+  const [pendingDelete, setPendingDelete] = useState<Competition | null>(null);
+
+  if (competitions.length === 0) {
+    return (
+      <section className="screen dashboard-screen">
+        <header className="screen-header">
+          <div>
+            <h1>Dashboard</h1>
+            <p>Track your active academic competitions.</p>
+          </div>
+          <button className="btn-primary" onClick={onAdd}>
+            <Plus size={17} /> Add Competition
+          </button>
+        </header>
+        <div style={{ padding: "64px 0", textAlign: "center" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 72, height: 72, borderRadius: 18, background: "#ecf5f2", marginBottom: 16 }}>
+            <Plus size={36} color="#147d64" />
+          </div>
+          <h2 style={{ margin: 0 }}>No competitions yet</h2>
+          <p style={{ color: "#5f6b7a", marginTop: 6 }}>Add your first competition to start the workflow.</p>
+          <button className="btn-primary" onClick={onAdd} style={{ marginTop: 18 }}>
+            <Plus size={17} /> Add Competition
+          </button>
+        </div>
+      </section>
+    );
+  }
+
   return (
-    <section className="screen">
+    <section className="screen dashboard-screen">
       <header className="screen-header">
         <div>
           <h1>Dashboard</h1>
-          <p>Select a competition or create one. No demo competitions are loaded.</p>
+          <p>Track your active academic competitions.</p>
         </div>
         <button className="btn-primary" onClick={onAdd}>
-          <Plus size={17} />
-          Add Competition
+          <Plus size={17} /> Add Competition
         </button>
       </header>
 
-      {competitions.length === 0 ? (
-        <section className="panel">
-          <div className="panel-header">
-            <div>
-              <h2>No competitions yet</h2>
-              <p>Create a competition to attach guidebooks, choose a compartment, and build the agent pipeline.</p>
+      <div className="dashboard-grid">
+        {competitions.map((competition) => (
+          <article key={competition.id} className="competition-card">
+            <div className="competition-card-poster" onClick={() => onSelect(competition)}>
+              {competition.posterImageUrl ? (
+                <img src={competition.posterImageUrl} alt={competition.title} loading="lazy" />
+              ) : (
+                <div className="competition-card-poster-placeholder" />
+              )}
             </div>
-            <button className="btn-secondary" onClick={onAdd}>
-              <Plus size={16} />
-              Create
-            </button>
-          </div>
-        </section>
-      ) : (
-        <div className="output-grid">
-          {competitions.map((competition) => (
-            <button className="output-card" key={competition.id} onClick={() => onSelect(competition)}>
-              <FileText size={24} />
-              <div>
-                <strong>{competition.title}</strong>
-                <small>
-                  {competition.category} - {competition.deadline}
-                </small>
+            <div className="competition-card-body">
+              <h3 onClick={() => onSelect(competition)}>{competition.title}</h3>
+              <small>{competition.institution} - {competition.category}</small>
+              <div className="competition-card-actions">
+                <button className="btn-ghost" onClick={() => onEdit(competition)}>Edit</button>
+                <button
+                  className="btn-ghost danger"
+                  onClick={() => setPendingDelete(competition)}
+                >
+                  Delete
+                </button>
               </div>
-              <ArrowRight size={18} />
-            </button>
-          ))}
-        </div>
-      )}
+            </div>
+          </article>
+        ))}
+      </div>
+
+      {pendingDelete ? (
+        <DeleteConfirmDialog
+          competition={pendingDelete}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={async () => {
+            await onDelete(pendingDelete.id);
+            setPendingDelete(null);
+          }}
+        />
+      ) : null}
     </section>
   );
 }
 
-function CompetitionOverviewModal({ competition, onAdd, onClose, onSelect }: { competition: Competition; onAdd: () => void; onClose: () => void; onSelect: (competition: Competition) => void }) {
-  const overview = buildCompetitionOverview(competition, seedFiles);
+function DeleteConfirmDialog({
+  competition,
+  onCancel,
+  onConfirm,
+}: {
+  competition: Competition;
+  onCancel: () => void;
+  onConfirm: () => Promise<void>;
+}) {
+  const [confirmed, setConfirmed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   return (
-    <div className="reference-overview-modal" role="dialog" aria-modal="true" onClick={onClose}>
-      <section className="reference-overview-screen" onClick={(event) => event.stopPropagation()}>
-        <div className="reference-overview-inner">
-        <header className="reference-overview-title">
-          <div>
-            <h1>{overview.title}</h1>
-            <p>{overview.subtitle}</p>
-          </div>
-          <div className="reference-overview-actions">
-            <button className="btn-primary reference-submit">Submit Final</button>
-            <button className="ghost-icon" onClick={onClose} aria-label="Close overview"><X size={18} /></button>
-          </div>
-        </header>
-
-        <section className="reference-card">
-          <div className="reference-section-heading">
-            <div>
-              <h2>Info</h2>
-              <p>Competition status, deadline, and registration access.</p>
-            </div>
-            <span className="reference-status">Active</span>
-          </div>
-          <div className="reference-info-grid">
-            <div className="reference-info-tile">
-              <small>Deadline</small>
-              <strong>{overview.deadline}</strong>
-              <span>Auto-synced into Calendar.</span>
-            </div>
-            <div className="reference-info-tile">
-              <small>Progress</small>
-              <strong className="accent">{overview.progress}%</strong>
-              <div className="reference-progress"><span style={{ width: `${overview.progress}%` }} /></div>
-            </div>
-            <div className="reference-info-tile">
-              <small>Link Registration</small>
-              <a href={competition.registrationLink ?? "#"}>{overview.registrationDisplay}</a>
-              <span>Pinned for every stage and output export.</span>
-            </div>
-          </div>
-        </section>
-
-        <section className="reference-card">
-          <div className="reference-section-heading">
-            <div>
-              <h2>Asset Maker</h2>
-              <p>Create registration assets without leaving the competition workspace.</p>
-            </div>
-            <button className="btn-primary reference-small-button">Generate Combined Photo</button>
-          </div>
-          <div className="reference-asset-grid">
-            <div>
-              <div className="reference-asset-preview">
-                <div className="reference-twibbon-frame">
-                  <span className="reference-photo-placeholder" />
-                </div>
-              </div>
-              <div className="reference-preview-caption">
-                <strong>Twibbon + Photo Preview</strong>
-                <span>Drag photo to reposition</span>
-              </div>
-            </div>
-            <div className="reference-asset-side">
-              <div className="reference-panel">
-                <small>Photo Controls</small>
-                <label>
-                  <span>Photo position</span>
-                  <input type="range" defaultValue="58" />
-                </label>
-                <label>
-                  <span>Scale</span>
-                  <input type="range" defaultValue="44" />
-                </label>
-              </div>
-              <div className="reference-panel">
-                <small>Instagram Caption</small>
-                <textarea placeholder="Write a caption after competition metadata is saved." />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="reference-card">
-          <div className="reference-section-heading">
-            <div>
-              <h2>Files</h2>
-              <p>Separate raw uploads from AI-generated stage outputs.</p>
-            </div>
-            <button className="reference-text-button" onClick={onAdd}>Add Files</button>
-          </div>
-          <div className="reference-files-grid">
-            <div className="reference-file-group">
-              <h3>User Uploaded Content</h3>
-              <div className="reference-file-list">
-                {overview.userUploadedFiles.map((file) => (
-                  <div key={file.name} className="reference-file-row">
-                    <strong>{file.name}</strong>
-                    <span>{file.state}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="reference-file-group">
-              <h3>Output of AI Agent</h3>
-              <div className="reference-file-list">
-                {overview.agentOutputFiles.map((file) => (
-                  <button key={file.name} className="reference-file-row interactive" onClick={() => onSelect(competition)}>
-                    <strong>{file.name}</strong>
-                    <span>{file.state}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
+    <div className="modal-backdrop">
+      <div className="small-modal">
+        <div className="modal-header">
+          <h2>Delete competition</h2>
+          <button className="ghost-icon" onClick={onCancel}>
+            <X size={18} />
+          </button>
         </div>
-      </section>
+        <p>
+          <strong>{competition.title}</strong> and all related files (poster, guidebook, outputs, events) will be deleted
+          permanently. This cannot be undone.
+        </p>
+        <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
+          I understand this will permanently delete all data for this competition.
+        </label>
+        {err ? <p style={{ color: "#c52b2b" }}>{err}</p> : null}
+        <div className="modal-actions">
+          <button className="btn-ghost" onClick={onCancel} disabled={busy}>
+            Cancel
+          </button>
+          <button
+            className="btn-primary"
+            disabled={!confirmed || busy}
+            onClick={async () => {
+              try {
+                setBusy(true);
+                setErr(null);
+                await onConfirm();
+              } catch (error) {
+                setErr(error instanceof Error ? error.message : "Delete failed.");
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {busy ? "Deleting…" : "Delete"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CompetitionOverviewModal({
+  competition,
+  onAdd,
+  onClose,
+  onSelect,
+  onUpdated,
+  onDeleted,
+}: {
+  competition: Competition;
+  onAdd: () => void;
+  onClose: () => void;
+  onSelect: (competition: Competition) => void;
+  onUpdated: (competition: Competition) => void;
+  onDeleted: (id: string) => void;
+}) {
+  const [draft, setDraft] = useState({
+    title: competition.title,
+    category: competition.category,
+    institution: competition.institution,
+    deadline: competition.deadline,
+    registrationLink: competition.registrationLink ?? "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const updated = await updateCompetition(competition.id, {
+        title: draft.title,
+        category: draft.category,
+        institution: draft.institution,
+        deadline: draft.deadline,
+        registrationLink: draft.registrationLink,
+      });
+      onUpdated(updated);
+    } catch (err) {
+      const ae = err as ApiError;
+      setError(ae.message ?? "Failed to update.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const replaceFile = async (role: "poster" | "guidebook", file: File) => {
+    const form = new FormData();
+    form.set(role, file);
+    try {
+      const updated = await replaceCompetitionAssets(competition.id, form);
+      onUpdated(updated);
+    } catch (err) {
+      const ae = err as ApiError;
+      setError(ae.message ?? "Replace failed.");
+    }
+  };
+
+  return (
+    <div className="modal-backdrop">
+      <div className="overview-modal">
+        <div className="modal-header">
+          <h2>Competition Overview</h2>
+          <button className="ghost-icon" onClick={onClose}>
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="form-grid">
+          <label>
+            Title
+            <input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
+          </label>
+          <label>
+            Category
+            <select value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })}>
+              <option>Sains & Teknologi</option>
+              <option>Sosial & Humaniora</option>
+              <option>Inovasi Digital</option>
+              <option>KTI</option>
+              <option>Business Plan</option>
+              <option>Essay</option>
+            </select>
+          </label>
+          <label>
+            Institution
+            <input value={draft.institution} onChange={(e) => setDraft({ ...draft, institution: e.target.value })} />
+          </label>
+          <label>
+            Deadline
+            <input type="date" value={draft.deadline} onChange={(e) => setDraft({ ...draft, deadline: e.target.value })} />
+          </label>
+          <label className="wide">
+            Registration link
+            <input value={draft.registrationLink} onChange={(e) => setDraft({ ...draft, registrationLink: e.target.value })} />
+          </label>
+        </div>
+
+        <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+          <label className="btn-ghost" style={{ cursor: "pointer" }}>
+            Replace poster
+            <input type="file" accept="image/png,image/jpeg,image/webp" style={{ display: "none" }}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) replaceFile("poster", f); }} />
+          </label>
+          <label className="btn-ghost" style={{ cursor: "pointer" }}>
+            Replace guidebook
+            <input type="file" accept=".pdf,.docx,.md,.txt" style={{ display: "none" }}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) replaceFile("guidebook", f); }} />
+          </label>
+        </div>
+
+        {error ? <p style={{ color: "#c52b2b" }}>{error}</p> : null}
+
+        <div className="modal-actions">
+          <button className="btn-ghost danger" onClick={() => setPendingDelete(true)}>Delete</button>
+          <span style={{ flex: 1 }} />
+          <button className="btn-ghost" onClick={onClose}>Close</button>
+          <button className="btn-primary" onClick={save} disabled={saving}>
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </div>
+
+        {pendingDelete ? (
+          <DeleteConfirmDialog
+            competition={competition}
+            onCancel={() => setPendingDelete(false)}
+            onConfirm={async () => {
+              await deleteCompetition(competition.id);
+              setPendingDelete(false);
+              onDeleted(competition.id);
+              onClose();
+            }}
+          />
+        ) : null}
+      </div>
     </div>
   );
 }
 
 function AddCompetitionWizard({ onCancel, onFinish }: { onCancel: () => void; onFinish: (competition: Competition) => void }) {
   const [step, setStep] = useState(1);
-  const [draft, setDraft] = useState(() => {
-    const saved = getStoredValue("esai-add-competition-draft", "");
-    return saved ? JSON.parse(saved) as { title: string; category: string; institution: string; deadline: string; registrationLink: string } : { title: "", category: "Sains & Teknologi", institution: "", deadline: "2026-09-01", registrationLink: "" };
+  const [fields, setFields] = useState({
+    title: "",
+    category: "Sains & Teknologi",
+    institution: "",
+    deadline: "2026-09-01",
+    registrationLink: "",
   });
-  useEffect(() => { window.localStorage.setItem("esai-add-competition-draft", JSON.stringify(draft)); }, [draft]);
-  const finish = () => {
-    window.localStorage.removeItem("esai-add-competition-draft");
-    onFinish({ id: `comp-${Date.now()}`, title: draft.title.trim() || "Untitled Competition", category: draft.category, institution: draft.institution.trim() || "Institution", status: "Setup", progress: 0, deadline: draft.deadline, registrationLink: draft.registrationLink, currentStageId: "onboarding" });
+  const [poster, setPoster] = useState<File | null>(null);
+  const [guidebook, setGuidebook] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<{ message: string; correlationId?: string } | null>(null);
+
+  const posterOk = poster && /^image\/(png|jpeg|webp)$/.test(poster.type) && poster.size <= 5 * 1024 * 1024;
+  const guidebookOk = guidebook && /^(application\/pdf|application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document|text\/markdown|text\/plain)$/.test(guidebook.type) && guidebook.size <= 20 * 1024 * 1024;
+  const canFinish = Boolean(fields.title.trim() && posterOk && guidebookOk);
+
+  const finish = async () => {
+    if (!canFinish || submitting) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.set("title", fields.title);
+      formData.set("category", fields.category);
+      formData.set("institution", fields.institution);
+      formData.set("deadline", fields.deadline);
+      formData.set("registrationLink", fields.registrationLink);
+      formData.set("poster", poster!);
+      formData.set("guidebook", guidebook!);
+
+      const competition = await createCompetition(formData);
+      onFinish(competition);
+    } catch (err) {
+      const ae = err as ApiError;
+      setError({ message: ae.message ?? "Failed to create competition.", correlationId: ae.correlationId });
+    } finally {
+      setSubmitting(false);
+    }
   };
+
   return (
-    <div className="modal-backdrop"><div className="wizard">
-      <div className="modal-header"><h2>Setup Kompetisi Baru</h2><button className="ghost-icon" onClick={onCancel}><X size={18} /></button></div>
-      <div className="step-track">{[1, 2, 3].map((item) => <span key={item} className={item <= step ? "active" : ""} />)}</div>
-      {step === 1 ? <div className="form-grid"><label>Nama Kompetisi<input value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} placeholder="Competition name" /></label><label>Kategori<select value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value })}><option>Sains & Teknologi</option><option>Sosial & Humaniora</option><option>Inovasi Digital</option><option>KTI</option></select></label><label>Institusi<input value={draft.institution} onChange={(event) => setDraft({ ...draft, institution: event.target.value })} placeholder="Institution" /></label><label>Deadline<input type="date" value={draft.deadline} onChange={(event) => setDraft({ ...draft, deadline: event.target.value })} /></label><label className="wide">Link pendaftaran<input value={draft.registrationLink} onChange={(event) => setDraft({ ...draft, registrationLink: event.target.value })} placeholder="https://..." /></label></div> : null}
-      {step === 2 ? <div className="upload-zone"><UploadCloud size={30} /><strong>Upload Guidebook / Poster</strong><span>PDF, PNG, JPG, or WebP. Upload routes are Supabase-ready.</span></div> : null}
-      {step === 3 ? <div className="success-pane"><Check size={34} /><h3>Semua Siap</h3><p>AI akan memetakan pipeline pengerjaan berdasarkan guidebook dan metadata Anda.</p></div> : null}
-      <div className="modal-actions"><button className="btn-ghost" onClick={() => (step > 1 ? setStep(step - 1) : onCancel())}>{step === 1 ? "Batal" : "Kembali"}</button><button className="btn-primary" onClick={() => (step < 3 ? setStep(step + 1) : finish())}>{step === 3 ? "Mulai Sekarang" : "Lanjut"}</button></div>
-    </div></div>
+    <div className="modal-backdrop">
+      <div className="wizard">
+        <div className="modal-header">
+          <h2>Setup Kompetisi Baru</h2>
+          <button className="ghost-icon" onClick={onCancel}>
+            <X size={18} />
+          </button>
+        </div>
+        <div className="step-track">
+          {[1, 2, 3].map((item) => (
+            <span key={item} className={item <= step ? "active" : ""} />
+          ))}
+        </div>
+
+        {step === 1 ? (
+          <div className="form-grid">
+            <label>
+              Nama Kompetisi
+              <input value={fields.title} onChange={(e) => setFields({ ...fields, title: e.target.value })} placeholder="Competition name" />
+            </label>
+            <label>
+              Kategori
+              <select value={fields.category} onChange={(e) => setFields({ ...fields, category: e.target.value })}>
+                <option>Sains & Teknologi</option>
+                <option>Sosial & Humaniora</option>
+                <option>Inovasi Digital</option>
+                <option>KTI</option>
+                <option>Business Plan</option>
+                <option>Essay</option>
+              </select>
+            </label>
+            <label>
+              Institusi
+              <input value={fields.institution} onChange={(e) => setFields({ ...fields, institution: e.target.value })} placeholder="Institution" />
+            </label>
+            <label>
+              Deadline
+              <input type="date" value={fields.deadline} onChange={(e) => setFields({ ...fields, deadline: e.target.value })} />
+            </label>
+            <label className="wide">
+              Link pendaftaran
+              <input value={fields.registrationLink} onChange={(e) => setFields({ ...fields, registrationLink: e.target.value })} placeholder="https://..." />
+            </label>
+          </div>
+        ) : null}
+
+        {step === 2 ? (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <div className="upload-zone">
+              <UploadCloud size={30} />
+              <strong>Poster</strong>
+              <span>PNG, JPG, or WebP. Max 5 MB.</span>
+              <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setPoster(e.target.files?.[0] ?? null)} />
+              {poster ? <small style={{ color: posterOk ? "#147d64" : "#c52b2b" }}>{poster.name} ({Math.round(poster.size / 1024)} KB)</small> : null}
+            </div>
+            <div className="upload-zone">
+              <UploadCloud size={30} />
+              <strong>Guidebook</strong>
+              <span>PDF, DOCX, MD, or TXT. Max 20 MB.</span>
+              <input type="file" accept=".pdf,.docx,.md,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/markdown,text/plain" onChange={(e) => setGuidebook(e.target.files?.[0] ?? null)} />
+              {guidebook ? <small style={{ color: guidebookOk ? "#147d64" : "#c52b2b" }}>{guidebook.name} ({Math.round(guidebook.size / 1024)} KB)</small> : null}
+            </div>
+          </div>
+        ) : null}
+
+        {step === 3 ? (
+          <div className="success-pane">
+            <Check size={34} />
+            <h3>Semua Siap</h3>
+            <p>AI akan memetakan pipeline pengerjaan berdasarkan guidebook dan metadata Anda.</p>
+            {error ? (
+              <div style={{ marginTop: 16, padding: 12, border: "1px solid #f3b7b7", background: "#fdecec", borderRadius: 8 }}>
+                <strong>Gagal:</strong> {error.message}
+                {error.correlationId ? <div><small>Correlation ID: <code>{error.correlationId}</code></small></div> : null}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div className="modal-actions">
+          <button className="btn-ghost" onClick={() => (step > 1 ? setStep(step - 1) : onCancel())} disabled={submitting}>
+            {step === 1 ? "Batal" : "Kembali"}
+          </button>
+          <button
+            className="btn-primary"
+            onClick={() => (step < 3 ? setStep(step + 1) : finish())}
+            disabled={(step === 2 && !(posterOk && guidebookOk)) || (step === 3 && !canFinish) || submitting}
+          >
+            {step === 3 ? (submitting ? "Mengunggah…" : "Mulai Sekarang") : "Lanjut"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
