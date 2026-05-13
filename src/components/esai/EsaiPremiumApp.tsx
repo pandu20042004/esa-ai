@@ -40,19 +40,13 @@ import {
   UploadCloud,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { ApiError, fetchCompetitions, fetchCompetitionFiles, createCompetition, updateCompetition, deleteCompetition, replaceCompetitionAssets, uploadAssetMakerImage, saveInstagramCaption, deleteFile, getFileSignedUrl } from "@/lib/esai/api";
-import { filterCalendarEvents, getEventsForDate, getUpcomingEvents } from "@/lib/esai/calendar";
-import {
-  seedCalendarEvents,
-  seedFiles,
-  seedOutputVersions,
-} from "@/lib/esai/seed";
 import { STAGES } from "@/lib/esai/stages";
-import { createValidityUploadFile, getValidityPaneFiles, type ValidityPane } from "@/lib/esai/validity";
-import { getStageState, isModelSelectionReady } from "@/lib/esai/workflow";
-import type { CalendarCategory, CalendarEvent, Competition, CompetitionFile, StageId } from "@/types/esai";
+import { isModelSelectionReady } from "@/lib/esai/workflow";
+import { getBrowserSupabase } from "@/lib/supabase/browser";
+import type { CalendarCategory, Competition, CompetitionFile, StageId } from "@/types/esai";
 import { DevsAgentsWorkspace } from "./DevsAgentsWorkspace";
 
 type Screen = "dashboard" | "calendar" | "workbench" | "validity" | "outputs" | "devs" | "profile";
@@ -1371,47 +1365,239 @@ function AddCompetitionWizard({ onCancel, onFinish }: { onCancel: () => void; on
 }
 
 function CalendarScreen() {
-  const [events, setEvents] = useState(seedCalendarEvents);
-  const [view, setView] = useState<"month" | "week" | "day" | "list">("month");
-  const [currentDate, setCurrentDate] = useState(new Date("2026-05-07T00:00:00.000Z"));
-  const [query, setQuery] = useState("");
-  const [category, setCategory] = useState<CalendarCategory | "All">("All");
-  const [tag, setTag] = useState("All");
-  const [modalOpen, setModalOpen] = useState(false);
-  const filteredEvents = filterCalendarEvents(events, { query, category, tag });
-  const upcoming = getUpcomingEvents(filteredEvents, currentDate, 5);
-  const days = useMemo(() => Array.from({ length: 35 }, (_, index) => new Date(2026, 4, index + 1)), []);
-  const addEvent = () => {
-    const start = new Date(currentDate);
-    start.setDate(start.getDate() + 2);
-    setEvents((items) => [...items, { id: `ev-${Date.now()}`, title: "Review reminder", description: "User-created review checkpoint.", startTime: start.toISOString(), endTime: new Date(start.getTime() + 3600000).toISOString(), category: "Review", color: "accent", tags: ["personal"], source: "user" }]);
-    setModalOpen(false);
-  };
   return (
     <section className="screen calendar-screen">
-      <header className="screen-header"><div><h1>Calendar</h1><p>Deadlines, guidebook dates, agent tasks, review reminders, and submission milestones.</p></div><button className="btn-primary" onClick={() => setModalOpen(true)}><Plus size={17} />New Event</button></header>
-      <div className="calendar-toolbar"><div className="segmented">{(["month", "week", "day", "list"] as const).map((item) => <button key={item} className={view === item ? "active" : ""} onClick={() => setView(item)}>{item}</button>)}</div><div className="date-nav"><button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 7))}><ChevronLeft size={16} /></button><button onClick={() => setCurrentDate(new Date("2026-05-07T00:00:00.000Z"))}>Today</button><button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + 7))}><ChevronRight size={16} /></button></div><label className="search-field"><Search size={15} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search events" /></label></div>
-      <div className="filter-row"><select value={category} onChange={(event) => setCategory(event.target.value as CalendarCategory | "All")}>{categories.map((item) => <option key={item}>{item}</option>)}</select><select value={tag} onChange={(event) => setTag(event.target.value)}>{tags.map((item) => <option key={item}>{item}</option>)}</select><span className="filter-chip">{category}</span><span className="filter-chip">{tag}</span></div>
-      <div className={`calendar-layout ${view}`}><div className="calendar-board">{view === "month" ? days.map((day) => { const dayEvents = getEventsForDate(filteredEvents, day); return <div key={day.toISOString()} className="calendar-cell"><strong>{day.getDate()}</strong>{dayEvents.slice(0, 2).map((event) => <span key={event.id} className={`event-chip ${event.color}`}>{event.title}</span>)}</div>; }) : filteredEvents.map((event) => <EventRow key={event.id} event={event} onDelete={() => setEvents((items) => items.filter((item) => item.id !== event.id))} />)}</div><aside className="upcoming-panel"><h2>Upcoming Events</h2>{upcoming.map((event) => <EventRow key={event.id} event={event} compact onDelete={() => setEvents((items) => items.filter((item) => item.id !== event.id))} />)}</aside></div>
-      {modalOpen ? <div className="modal-backdrop"><div className="small-modal"><div className="modal-header"><h2>New Event</h2><button className="ghost-icon" onClick={() => setModalOpen(false)}><X size={18} /></button></div><p>Create a local event now. Supabase persistence is wired through /api/calendar-events when credentials are available.</p><div className="modal-actions"><button className="btn-ghost" onClick={() => setModalOpen(false)}>Cancel</button><button className="btn-primary" onClick={addEvent}>Create</button></div></div></div> : null}
+      <header className="screen-header">
+        <div>
+          <h1>Calendar</h1>
+          <p>Deadlines, guidebook dates, agent tasks, review reminders, and submission milestones.</p>
+        </div>
+      </header>
+      <div className="dashboard-empty">
+        <div className="dashboard-empty-icon">
+          <CalendarDays size={36} />
+        </div>
+        <h2>No events yet</h2>
+        <p>Events auto-sync from approved stage outputs and competition deadlines. Create a competition to seed this view.</p>
+      </div>
     </section>
   );
-}
-
-function EventRow({ event, compact = false, onDelete }: { event: CalendarEvent; compact?: boolean; onDelete: () => void }) {
-  return <div className={`event-row ${compact ? "compact" : ""}`}><span className={`event-dot ${event.color}`} /><div><strong>{event.title}</strong><small>{new Date(event.startTime).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })} - {event.category}</small></div><button className="ghost-icon" onClick={onDelete}><Trash2 size={14} /></button></div>;
 }
 
 function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssistant, onToggleTheme }: { competition: Competition; assistantOpen: boolean; darkMode: boolean; onBack: () => void; onToggleAssistant: () => void; onToggleTheme: () => void }) {
   const [railCollapsed, setRailCollapsed] = useState(false);
   const [currentStageId, setCurrentStageId] = useState<StageId>(competition.currentStageId);
   const [outputOpen, setOutputOpen] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const approvedOutputNames = seedFiles.filter((file) => file.approved).map((file) => file.fileName);
+  const [stages, setStages] = useState<StageStateEntry[]>([]);
+  const [models, setModels] = useState<ModelOption[]>([]);
+  const [selectedModel, setSelectedModel] = useState<string>("");
+  const [reasoningEffort, setReasoningEffort] = useState<"low" | "medium" | "high" | "xhigh">("medium");
+  const [thread, setThread] = useState<ThreadMessage[]>([]);
+  const [streamingRun, setStreamingRun] = useState<ActiveRun | null>(null);
+  const [composerValue, setComposerValue] = useState("");
+  const [rerunTarget, setRerunTarget] = useState<StageStateEntry | null>(null);
+  const [runError, setRunError] = useState<string | null>(null);
+
   const currentStage = STAGES.find((stage) => stage.id === currentStageId) ?? STAGES[0];
   const currentStageIndex = STAGES.findIndex((stage) => stage.id === currentStage.id);
   const nextStage = STAGES[currentStageIndex + 1];
-  const activeInputName = currentStage.input;
+  const currentStageEntry = stages.find((s) => s.nodeKey === currentStage.id) ?? null;
+  const outputFile = currentStageEntry?.outputFile ?? null;
+  const isApproved = outputFile?.status === "approved";
+  const isStale = outputFile?.status === "stale";
+  const stageUnlocked = currentStageEntry?.unlocked ?? (currentStage.id === "onboarding");
+  const isRunning = streamingRun !== null;
+  const modelReady = selectedModel.length > 0;
+  const isMainAgentStage = currentStage.id === "onboarding";
+  const runButtonDisabled = isRunning || !stageUnlocked || !modelReady || !isMainAgentStage;
+
+  const reloadStageState = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/competitions/${competition.id}/stage-state`, { cache: "no-store" });
+      const json = await res.json();
+      const list: StageStateEntry[] = json?.data?.stages ?? [];
+      setStages(list);
+    } catch {
+      setStages([]);
+    }
+  }, [competition.id]);
+
+  const reloadThread = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/competitions/${competition.id}/agent-thread?stageId=${currentStage.id}`, { cache: "no-store" });
+      const json = await res.json();
+      setThread(json?.data ?? []);
+    } catch {
+      setThread([]);
+    }
+  }, [competition.id, currentStage.id]);
+
+  // Load models once.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/models", { cache: "no-store" });
+        const json = await res.json();
+        const list: ModelOption[] = (json?.data ?? []).map((m: { provider: string; id: string; label: string }) => ({
+          provider: m.provider,
+          id: m.id,
+          label: m.label,
+        }));
+        if (cancelled) return;
+        setModels(list);
+        if (list.length > 0) setSelectedModel(`${list[0].provider}::${list[0].id}`);
+      } catch {
+        setModels([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Reload stage state + thread when stage or competition changes.
+  useEffect(() => {
+    reloadStageState();
+    reloadThread();
+  }, [reloadStageState, reloadThread]);
+
+  const startRun = async () => {
+    setRunError(null);
+    if (!stageUnlocked) { setRunError("Upstream stage not approved yet."); return; }
+    if (!modelReady) { setRunError("Pick a model first."); return; }
+
+    const [provider, modelId] = selectedModel.split("::");
+    try {
+      const res = await fetch("/api/agent-runs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          competitionId: competition.id,
+          stageId: currentStage.id,
+          modelProvider: provider,
+          modelId,
+          reasoningEffort,
+          userMessage: composerValue.trim() ? composerValue.trim() : undefined,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setRunError(err?.error ?? `Run failed (${res.status}).`);
+        return;
+      }
+      const json = await res.json();
+      const runId: string = json?.data?.runId;
+      setStreamingRun({ runId, tokens: "", toolWrites: [] });
+      setComposerValue("");
+      // Thread will have the user message; reload.
+      await reloadThread();
+    } catch (error) {
+      setRunError((error as Error).message ?? "Run failed.");
+    }
+  };
+
+  // Realtime subscribe to events for the active run.
+  useEffect(() => {
+    if (!streamingRun) return;
+    const runId = streamingRun.runId;
+
+    let active = true;
+    let cleanup = () => {};
+
+    (async () => {
+      const supabase = getBrowserSupabase();
+      if (!supabase) return;
+      const channel = supabase
+        .channel(`agent-run-${runId}`)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "agent_run_events", filter: `run_id=eq.${runId}` },
+          (payload: { new: { event_type: string; payload: Record<string, unknown> } }) => {
+            if (!active) return;
+            handleRunEvent(payload.new.event_type, payload.new.payload);
+          },
+        )
+        .subscribe();
+
+      // Replay any prior events that fired before the subscription attached.
+      try {
+        const res = await fetch(`/api/agent-runs/${runId}`, { cache: "no-store" });
+        const json = await res.json();
+        for (const e of json?.data?.events ?? []) {
+          if (!active) break;
+          handleRunEvent(e.eventType, e.payload);
+        }
+      } catch { /* ignore */ }
+
+      cleanup = () => {
+        active = false;
+        supabase.removeChannel(channel);
+      };
+    })();
+
+    return () => cleanup();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [streamingRun?.runId]);
+
+  const handleRunEvent = (eventType: string, payload: Record<string, unknown>) => {
+    setStreamingRun((prev) => {
+      if (!prev) return prev;
+      if (eventType === "token") {
+        const text = typeof payload.text === "string" ? payload.text : "";
+        return { ...prev, tokens: prev.tokens + text };
+      }
+      if (eventType === "tool_result" && payload.ok === true) {
+        return { ...prev, toolWrites: [...prev.toolWrites, { fileName: String(payload.fileName ?? "output"), fileId: String(payload.fileId ?? "") }] };
+      }
+      if (eventType === "status" && payload.phase === "completed") {
+        // finalize after short delay so the user sees the "Saved" chip.
+        queueMicrotask(() => {
+          reloadStageState();
+          reloadThread();
+          setStreamingRun(null);
+        });
+        return prev;
+      }
+      if (eventType === "error") {
+        setRunError(String(payload.message ?? payload.reason ?? "Run error."));
+      }
+      return prev;
+    });
+  };
+
+  const approve = async () => {
+    if (!outputFile) return;
+    setRunError(null);
+    const res = await fetch(`/api/competition-files/${outputFile.id}/approve`, { method: "POST" });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      setRunError(err?.error ?? "Approve failed.");
+      return;
+    }
+    await reloadStageState();
+  };
+
+  const requestRerun = () => {
+    if (!currentStageEntry) return;
+    if (isApproved && (currentStageEntry.downstreamStageKeys ?? []).length > 0) {
+      setRerunTarget(currentStageEntry);
+      return;
+    }
+    // no approved output or no downstream → just run immediately
+    void startRun();
+  };
+
+  const confirmRerun = async () => {
+    setRerunTarget(null);
+    // Mark downstream as stale, then start the run.
+    try {
+      await fetch(`/api/competitions/${competition.id}/mark-stale`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fromStageKey: currentStage.id }),
+      });
+    } catch { /* not fatal */ }
+    void startRun();
+  };
 
   return (
     <section className="reference-workbench">
@@ -1433,24 +1619,33 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
 
         <div className="reference-stage-list">
           {STAGES.map((stage) => {
-            const state = getStageState(stage.id, competition.currentStageId, approvedOutputNames);
+            const entry = stages.find((s) => s.nodeKey === stage.id);
+            const unlocked = entry?.unlocked ?? (stage.id === "onboarding");
+            const file = entry?.outputFile;
+            const status = file?.status;
+            const statusClass = status === "approved"
+              ? "completed"
+              : status === "stale"
+                ? "stale"
+                : unlocked
+                  ? "active"
+                  : "locked";
             const active = stage.id === currentStageId;
-
             return (
               <button
                 key={stage.id}
-                disabled={state.status === "locked"}
-                className={`reference-stage-row ${state.status} ${active ? "selected" : ""}`}
+                disabled={!unlocked}
+                className={`reference-stage-row ${statusClass} ${active ? "selected" : ""}`}
                 onClick={() => setCurrentStageId(stage.id)}
                 title={stage.label}
               >
                 <span className="reference-stage-dot">
-                  {state.status === "completed" ? <Check size={10} /> : state.status === "locked" ? <Lock size={9} /> : null}
+                  {status === "approved" ? <Check size={10} /> : !unlocked ? <Lock size={9} /> : null}
                 </span>
                 {!railCollapsed ? (
                   <span className="reference-stage-copy">
                     <strong>{stage.label}</strong>
-                    <small>Needs: {stage.input}</small>
+                    <small>{status === "stale" ? "Upstream changed — needs re-run" : `Needs: ${stage.input}`}</small>
                   </span>
                 ) : null}
               </button>
@@ -1461,48 +1656,123 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
 
       <div className="reference-workbench-center">
         <div className="reference-stage-summary-strip">
-          <FileControl label="Input file" fileName={activeInputName} source="Agent Output - Research output" />
-          <FileControl label="Output file" fileName={currentStage.output} source="Produced by selected stage" />
+          <FileControl label="Input file" fileName={currentStage.input} source={isMainAgentStage ? "Guidebook" : "Upstream agent output"} />
+          <FileControl label="Output file" fileName={outputFile?.fileName ?? currentStage.output} source={outputFile?.status ?? "Not produced yet"} />
         </div>
 
         <div className="reference-ready-line">
           <span><Bot size={18} /></span>
-          <p><strong>Input gate:</strong> this stage can run after its connected source artifacts are approved.</p>
+          <p>
+            <strong>Input gate:</strong>{" "}
+            {stageUnlocked
+              ? "ready — upstream inputs approved."
+              : "locked — approve upstream outputs first."}
+          </p>
         </div>
 
-        <section className="reference-agent-question">
-          <div className="reference-choice-header">
-            <span>Agent question</span>
-            <small>from active run</small>
-          </div>
-          <div className="reference-choice-body">
-            <h2>No active choice request.</h2>
-            <p>When an agent emits `needs_user_choice`, the options will appear here and will be saved to the run history.</p>
-          </div>
-        </section>
+        {!isMainAgentStage ? (
+          <section className="reference-agent-question">
+            <div className="reference-choice-header">
+              <span>Stage status</span>
+              <small>ship-one</small>
+            </div>
+            <div className="reference-choice-body">
+              <h2>This agent isn&apos;t wired yet.</h2>
+              <p>Main Agent ships first. The remaining stages will run once their skills are wired.</p>
+            </div>
+          </section>
+        ) : null}
 
-        <section className="reference-handoff">
-          <div>
-            <small>Stage Handoff</small>
-            <h2>Approve this stage output to unlock connected downstream inputs.</h2>
-          </div>
-          <div className="reference-handoff-actions">
-            <button className="reference-text-button">Review</button>
-            <button className="btn-primary reference-small-button"><Check size={14} /> Use MD</button>
-          </div>
-        </section>
+        {outputFile ? (
+          <section className="reference-handoff">
+            <div>
+              <small>Stage Handoff</small>
+              <h2>
+                {isApproved
+                  ? "Approved. Next stage unlocked."
+                  : isStale
+                    ? "Upstream changed. Re-run this stage to refresh the output."
+                    : "Approve this stage output to unlock connected downstream inputs."}
+              </h2>
+            </div>
+            <div className="reference-handoff-actions">
+              {!isApproved ? (
+                <button className="btn-primary reference-small-button" onClick={approve} disabled={isStale}>
+                  <Check size={14} /> Approve &amp; unlock next stage
+                </button>
+              ) : (
+                <span className="comp-status-pill">Approved</span>
+              )}
+            </div>
+          </section>
+        ) : null}
 
-        <button className="btn-primary reference-review-ai" onClick={onToggleAssistant}>
-          <Sparkles size={16} /> Review with AI
-        </button>
+        <div className="reference-agent-thread">
+          {thread.length === 0 && !streamingRun ? (
+            <p className="reference-thread-empty">No messages yet. Click Run below to start the Main Agent.</p>
+          ) : null}
+          {thread.map((message) => (
+            <div key={message.id} className={`reference-chat-bubble ${message.role}`}>
+              <span className="reference-chat-role">{message.role === "user" ? "You" : "Agent"}</span>
+              <p>{message.content}</p>
+            </div>
+          ))}
+          {streamingRun ? (
+            <div className="reference-chat-bubble assistant streaming">
+              <span className="reference-chat-role">Agent · streaming</span>
+              <p>{streamingRun.tokens || "…"}</p>
+              {streamingRun.toolWrites.length > 0 ? (
+                <div className="reference-tool-writes">
+                  {streamingRun.toolWrites.map((w) => (
+                    <span key={w.fileId} className="reference-tool-chip">
+                      <FileText size={12} /> {w.fileName}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+          {runError ? <p className="reference-run-error">{runError}</p> : null}
+        </div>
 
         <div className="reference-chat-composer">
-          <textarea placeholder={`Message ${currentStage.label}...`} />
+          <textarea
+            placeholder={`Optional: instructions for ${currentStage.label}. Leave blank to let the agent start.`}
+            value={composerValue}
+            onChange={(event) => setComposerValue(event.target.value)}
+            disabled={isRunning}
+          />
           <div className="reference-chat-controls">
-            <select defaultValue="GPT-5.4"><option>GPT-5.4</option></select>
-            <select defaultValue="Medium"><option>Medium</option><option>High</option></select>
-            <button className="btn-secondary">Tools</button>
-            <button className="send-button"><Send size={17} /></button>
+            <select
+              value={selectedModel}
+              onChange={(event) => setSelectedModel(event.target.value)}
+              disabled={models.length === 0 || isRunning}
+            >
+              {models.length === 0 ? <option value="">No models configured</option> : null}
+              {models.map((m) => (
+                <option key={`${m.provider}::${m.id}`} value={`${m.provider}::${m.id}`}>
+                  {m.label} ({m.provider})
+                </option>
+              ))}
+            </select>
+            <select
+              value={reasoningEffort}
+              onChange={(event) => setReasoningEffort(event.target.value as "low" | "medium" | "high" | "xhigh")}
+              disabled={isRunning}
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="xhigh">Extra high</option>
+            </select>
+            <button
+              className="btn-primary reference-small-button"
+              onClick={requestRerun}
+              disabled={runButtonDisabled}
+              title={runButtonDisabled && !modelReady ? "Pick a model first" : undefined}
+            >
+              {isRunning ? "Running…" : isApproved ? "Re-run" : "Run"} <Send size={14} />
+            </button>
           </div>
         </div>
       </div>
@@ -1512,46 +1782,142 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
           <div className="reference-current-head">
             <div>
               <small>Current File</small>
-              <strong>{currentStage.output}</strong>
+              <strong>{outputFile?.fileName ?? currentStage.output}</strong>
             </div>
-            <span>Drafting</span>
+            <span>{outputFile?.status ?? "Not produced"}</span>
           </div>
           <div className="reference-unlocks">
             <small>Unlocks Next</small>
             <p>{nextStage ? `${nextStage.label} can run after this file is approved.` : "All required stage outputs are ready for final review."}</p>
           </div>
-          <div className="reference-skeleton">
-            <span />
-            <span />
-            <span />
-          </div>
-          <button className="reference-fullscreen-button" onClick={() => setOutputOpen(true)}>
-            <Maximize2 size={15} /> Full screen
-          </button>
+          {outputFile ? (
+            <button className="reference-fullscreen-button" onClick={() => setOutputOpen(true)}>
+              <Maximize2 size={15} /> Full screen
+            </button>
+          ) : (
+            <p className="reference-thread-empty">Nothing produced yet.</p>
+          )}
         </div>
       </aside>
 
       {assistantOpen ? (
         <aside className="workspace-assistant reference-assistant">
-          <AssistantPanel context={`Workbench stage: ${currentStage.label}. Input: ${activeInputName}. Output: ${currentStage.output}.`} onClose={onToggleAssistant} />
+          <AssistantPanel context={`Workbench stage: ${currentStage.label}. Input: ${currentStage.input}. Output: ${outputFile?.fileName ?? currentStage.output}.`} onClose={onToggleAssistant} />
         </aside>
       ) : null}
-      {historyOpen ? <VersionHistory onClose={() => setHistoryOpen(false)} /> : null}
-      {outputOpen ? <FullscreenEditor fileName={currentStage.output} onClose={() => setOutputOpen(false)} onAskAi={onToggleAssistant} onHistory={() => setHistoryOpen((value) => !value)} /> : null}
+      {rerunTarget ? (
+        <RerunConfirmDialog
+          stage={rerunTarget}
+          onCancel={() => setRerunTarget(null)}
+          onConfirm={confirmRerun}
+        />
+      ) : null}
+      {outputOpen && outputFile ? (
+        <FullscreenOutputReader
+          fileId={outputFile.id}
+          fileName={outputFile.fileName}
+          onClose={() => setOutputOpen(false)}
+        />
+      ) : null}
     </section>
+  );
+}
+
+type StageStateEntry = {
+  nodeId: string;
+  nodeKey: string;
+  label: string;
+  positionIndex: number;
+  unlocked: boolean;
+  outputFile: { id: string; fileName: string; status: string } | null;
+  downstreamStageKeys: string[];
+};
+
+type ModelOption = { provider: string; id: string; label: string };
+
+type ThreadMessage = {
+  id: string;
+  role: string;
+  content: string;
+  stageId?: string;
+  modelProvider?: string;
+  modelId?: string;
+  context?: Record<string, unknown>;
+  createdAt: string;
+};
+
+type ActiveRun = {
+  runId: string;
+  tokens: string;
+  toolWrites: Array<{ fileName: string; fileId: string }>;
+};
+
+function RerunConfirmDialog({ stage, onCancel, onConfirm }: { stage: StageStateEntry; onCancel: () => void; onConfirm: () => void }) {
+  const downstream = stage.downstreamStageKeys;
+  return (
+    <div className="modal-backdrop">
+      <div className="small-modal">
+        <div className="modal-header">
+          <h2>Re-run {stage.label}?</h2>
+          <button className="ghost-icon" onClick={onCancel}><X size={18} /></button>
+        </div>
+        <p>
+          Re-running will replace the current output. Approved downstream outputs will be
+          marked <strong>stale</strong> and need re-approval or re-run:
+        </p>
+        {downstream.length > 0 ? (
+          <ul className="reference-stale-list">
+            {downstream.map((key) => <li key={key}>• {stageLabelFor(key)}</li>)}
+          </ul>
+        ) : <p><em>No downstream stages currently consume this output.</em></p>}
+        <div className="modal-actions">
+          <button className="btn-ghost" onClick={onCancel}>Cancel</button>
+          <button className="btn-primary" onClick={onConfirm}>Re-run and mark downstream stale</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function stageLabelFor(nodeKey: string): string {
+  const s = STAGES.find((stg) => stg.id === nodeKey);
+  return s?.label ?? nodeKey;
+}
+
+function FullscreenOutputReader({ fileId, fileName, onClose }: { fileId: string; fileName: string; onClose: () => void }) {
+  const [content, setContent] = useState<string>("Loading…");
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/files/${fileId}`, { cache: "no-store" });
+        const json = await res.json();
+        if (!cancelled) setContent(String(json?.data?.contentText ?? "No content."));
+      } catch {
+        if (!cancelled) setContent("Failed to load file.");
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [fileId]);
+  return (
+    <div className="reference-editor-overlay">
+      <div className="reference-editor-shell">
+        <header className="reference-editor-header">
+          <div><small>Stage Output</small><strong>{fileName}</strong></div>
+          <button className="reference-round-button" onClick={onClose}><Minimize2 size={15} /></button>
+        </header>
+        <main className="reference-editor-body">
+          <article className="reference-document-page">
+            <pre style={{ whiteSpace: "pre-wrap", fontFamily: "var(--font-body)" }}>{content}</pre>
+          </article>
+        </main>
+      </div>
+    </div>
   );
 }
 
 function FileControl({ label, fileName, source }: { label: string; fileName: string; source: string }) {
   return <button className="file-control reference-file-control"><span><small>{label}</small><strong>{fileName}</strong><em>{source}</em></span>{label === "Output file" ? <FileText size={16} /> : <span>Agent Output</span>}</button>;
-}
-
-function VersionHistory({ onClose }: { onClose: () => void }) {
-  return <div className="floating-panel"><div className="modal-header"><h2>Version History</h2><button className="ghost-icon" onClick={onClose}><X size={16} /></button></div>{seedOutputVersions.map((version) => <div key={version.id} className="version-row"><strong>Version {version.versionNumber}</strong><small>{version.changeSummary}</small></div>)}</div>;
-}
-
-function FullscreenEditor({ fileName, onClose, onAskAi, onHistory }: { fileName: string; onClose: () => void; onAskAi: () => void; onHistory: () => void }) {
-  return <div className="reference-editor-overlay"><div className="reference-editor-shell"><header className="reference-editor-header"><div><small>Editable Stage Output</small><strong>{fileName}</strong></div><div><button className="reference-text-button" onClick={onAskAi}>Ask AI</button><button className="reference-text-button" onClick={onHistory}>History</button><button className="btn-primary reference-small-button" onClick={onClose}>Save</button><button className="reference-round-button" onClick={onClose}><Minimize2 size={15} /></button></div></header><main className="reference-editor-body"><div className="reference-editor-toolbar"><button>B</button><button><em>I</em></button><button></button><button></button><button>H2</button><span>Competition Vault / {fileName}</span></div><article className="reference-document-page"><h1>Stage Output Draft</h1><p>This editable output file is connected to the Competition Vault. Users can revise paragraphs, request AI help, and save versions before approving the file for the next stage.</p><h2>Working Notes</h2><p><strong>Required input:</strong> linked stage context, guidebook rules, and previous approved output.</p><p><strong>Next step:</strong> clean the argument, verify dependencies, then save this as the next approved version.</p></article></main></div></div>;
 }
 
 function ByokSettings() {
@@ -1710,190 +2076,67 @@ function Panel({ title, action, children }: { title: string; action?: React.Reac
   return <section className="panel"><div className="panel-header"><h2>{title}</h2>{action}</div>{children}</section>;
 }
 
-function ValidityChecker({ assistantOpen, onToggleAssistant }: { assistantOpen: boolean; onToggleAssistant: () => void }) {
-  const [files, setFiles] = useState(seedFiles);
-  const outputFiles = getValidityPaneFiles(files, "output");
-  const inputFiles = getValidityPaneFiles(files, "input");
-  const [selectedOutputId, setSelectedOutputId] = useState(outputFiles[0]?.id ?? "");
-  const [selectedInputId, setSelectedInputId] = useState(inputFiles[0]?.id ?? "");
-  const [vaultPane, setVaultPane] = useState<ValidityPane | null>(null);
-  const [claim, setClaim] = useState("");
-  const selectedOutput = outputFiles.find((file) => file.id === selectedOutputId) ?? outputFiles[0];
-  const selectedInput = inputFiles.find((file) => file.id === selectedInputId) ?? inputFiles[0];
-
-  const uploadToPane = (pane: ValidityPane) => {
-    const next = createValidityUploadFile(pane, files.length + 1);
-    setFiles((items) => [...items, next]);
-    if (pane === "output") setSelectedOutputId(next.id);
-    if (pane === "input") setSelectedInputId(next.id);
-  };
-
+function ValidityChecker({ assistantOpen: _assistantOpen, onToggleAssistant: _onToggleAssistant }: { assistantOpen: boolean; onToggleAssistant: () => void }) {
   return (
     <section className="screen validity-screen">
-      <div className="validity-topbar">
-        <ValidityFileStrip
-          pane="output"
-          title="Output"
-          files={outputFiles}
-          selectedId={selectedOutput?.id}
-          onSelect={setSelectedOutputId}
-          onOpenVault={() => setVaultPane("output")}
-          onUpload={() => uploadToPane("output")}
-        />
-        <ValidityFileStrip
-          pane="input"
-          title="Input Journal"
-          files={inputFiles}
-          selectedId={selectedInput?.id}
-          onSelect={setSelectedInputId}
-          onOpenVault={() => setVaultPane("input")}
-          onUpload={() => uploadToPane("input")}
-        />
-      </div>
-
-      <div className="validity-workspace enhanced">
-        <DocumentPane title="Output" file={selectedOutput} pane="output" />
-        <DocumentPane title="Input Journal" file={selectedInput} pane="input" />
-      </div>
-
-      <div className="claim-box">
-        <label>Selected claim<textarea value={claim} onChange={(event) => setClaim(event.target.value)} /></label>
-        <button className="btn-primary" onClick={onToggleAssistant}><ShieldCheck size={16} />Check Citation</button>
-      </div>
-
-      {assistantOpen ? <div className="validity-bottom-ai"><AssistantPanel context={`Claim: ${claim}. Output: ${selectedOutput?.fileName}. Journal: ${selectedInput?.fileName}.`} onClose={onToggleAssistant} /></div> : null}
-
-      {vaultPane ? (
-        <ValidityVaultModal
-          pane={vaultPane}
-          files={vaultPane === "output" ? outputFiles : inputFiles}
-          selectedId={vaultPane === "output" ? selectedOutput?.id : selectedInput?.id}
-          onClose={() => setVaultPane(null)}
-          onUpload={() => uploadToPane(vaultPane)}
-          onSelect={(file) => {
-            if (vaultPane === "output") setSelectedOutputId(file.id);
-            if (vaultPane === "input") setSelectedInputId(file.id);
-            setVaultPane(null);
-          }}
-        />
-      ) : null}
-    </section>
-  );
-}
-
-function ValidityFileStrip({
-  pane,
-  title,
-  files,
-  selectedId,
-  onSelect,
-  onOpenVault,
-  onUpload,
-}: {
-  pane: ValidityPane;
-  title: string;
-  files: CompetitionFile[];
-  selectedId?: string;
-  onSelect: (id: string) => void;
-  onOpenVault: () => void;
-  onUpload: () => void;
-}) {
-  return (
-    <section className="validity-strip">
-      <div className="validity-strip-heading">
-        <h1>{title}</h1>
-        <button className="btn-secondary" onClick={onOpenVault}>Vault</button>
-      </div>
-      <div className="pdf-tab-row">
-        {files.map((file) => (
-          <button key={file.id} className={`pdf-tab ${selectedId === file.id ? "active" : ""}`} onClick={() => onSelect(file.id)}>
-            {file.fileName}
-          </button>
-        ))}
-        <button className="pdf-tab upload" onClick={onUpload}>{pane === "output" ? "+ Upload" : "+"}</button>
-      </div>
-    </section>
-  );
-}
-
-function DocumentPane({ title, file, pane }: { title: string; file?: CompetitionFile; pane: ValidityPane }) {
-  return (
-    <section className="validity-pane">
-      <article className="pdf-page">
-        <small>{file?.fileName.toUpperCase()}</small>
-        {pane === "output" ? (
-          <>
-            <h2>Adsorbent Material Basis</h2>
-            <p>{file?.contentText ?? "Select or upload an output file to review its claims."}</p>
-            <button className="highlighted-claim">No selected claim yet.</button>
-            <p>Selected output text will appear here after upload or agent generation.</p>
-            <p>Zeolite 13X contributes selective CO2 uptake under dry gas conditions.</p>
-          </>
-        ) : (
-          <>
-            <p>Paragraph 3 discusses chemically activated porous carbon derived from plastic waste and its relationship to surface area and CO2 uptake.</p>
-            <p className="support-highlight">Highlight paragraph used as citation: activation improves pore development and adsorption capacity under the tested conditions.</p>
-            <p>{file?.contentText ?? "Select or upload a journal PDF to compare evidence."}</p>
-            <p className="risk-highlight">Evidence risks will appear here after parsing and comparison.</p>
-            <div className="supported-box"><Check size={16} /><span><strong>Supported paragraph</strong><small>AI can save this paragraph as evidence.</small></span></div>
-          </>
-        )}
-      </article>
-      <span className="sr-only">{title}</span>
-    </section>
-  );
-}
-
-function ValidityVaultModal({
-  pane,
-  files,
-  selectedId,
-  onClose,
-  onUpload,
-  onSelect,
-}: {
-  pane: ValidityPane;
-  files: CompetitionFile[];
-  selectedId?: string;
-  onClose: () => void;
-  onUpload: () => void;
-  onSelect: (file: CompetitionFile) => void;
-}) {
-  const title = pane === "output" ? "Output Vault" : "Input Journal Vault";
-  const subtitle = pane === "output" ? "Output files for the left document pane." : "Journal PDF files for the right document pane.";
-  const label = pane === "output" ? "OUTPUT FILES" : "INPUT JOURNAL PDFS";
-
-  return (
-    <div className="vault-overlay" onClick={onClose}>
-      <section className="vault-dialog" onClick={(event) => event.stopPropagation()}>
-        <header className="vault-header">
-          <div>
-            <small>Vault</small>
-            <h2>{title}</h2>
-            <p>{subtitle}</p>
-          </div>
-          <button className="btn-ghost" onClick={onUpload}>Upload</button>
-        </header>
-        <div className="vault-body">
-          <small>{label}</small>
-          <div className="vault-file-list">
-            {files.map((file) => (
-              <button key={file.id} className={`vault-file-row ${selectedId === file.id ? "active" : ""}`} onClick={() => onSelect(file)}>
-                <span className="vault-thumb" />
-                <span className="vault-file-main"><strong>{file.fileName}</strong><em>{file.sourceDetail}</em></span>
-                <span>{file.fileSource === "agent_output" ? "Agent output" : "User input"}</span>
-                <span>Ready</span>
-              </button>
-            ))}
-          </div>
+      <header className="screen-header">
+        <div>
+          <h1>Validity Checker</h1>
+          <p>Compare agent outputs against source journals to verify citations.</p>
         </div>
-      </section>
-    </div>
+      </header>
+      <div className="dashboard-empty">
+        <div className="dashboard-empty-icon">
+          <ShieldCheck size={36} />
+        </div>
+        <h2>Nothing to check yet</h2>
+        <p>Run a writing or research stage first, then come back to validate citations against journal PDFs.</p>
+      </div>
+    </section>
   );
 }
 
 function FinalOutputs({ competitions }: { competitions: Competition[] }) {
-  return <section className="screen"><header className="screen-header"><div><h1>Final Outputs</h1><p>All final submission files generated across competitions.</p></div></header><div className="output-grid">{competitions.map((competition) => <div className="output-card" key={competition.id}><FileText size={24} /><div><strong>{competition.title} - Final Submission</strong><small>PDF - generated output route ready</small></div><button className="ghost-icon"><Download size={18} /></button></div>)}</div></section>;
+  if (competitions.length === 0) {
+    return (
+      <section className="screen">
+        <header className="screen-header">
+          <div>
+            <h1>Final Outputs</h1>
+            <p>All final submission files generated across competitions.</p>
+          </div>
+        </header>
+        <div className="dashboard-empty">
+          <div className="dashboard-empty-icon">
+            <FileCheck size={36} />
+          </div>
+          <h2>No final outputs yet</h2>
+          <p>Approve a Supervisor review to move its output here for download and submission.</p>
+        </div>
+      </section>
+    );
+  }
+  return (
+    <section className="screen">
+      <header className="screen-header">
+        <div>
+          <h1>Final Outputs</h1>
+          <p>All final submission files generated across competitions.</p>
+        </div>
+      </header>
+      <div className="output-grid">
+        {competitions.map((competition) => (
+          <div className="output-card" key={competition.id}>
+            <FileText size={24} />
+            <div>
+              <strong>{competition.title} — Final Submission</strong>
+              <small>Approve a Supervisor review to enable download.</small>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 function AnalyticalBoard({ darkMode, onToggleTheme }: { darkMode: boolean; onToggleTheme: () => void }) {

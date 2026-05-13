@@ -7,11 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "worker": "tsx --tsconfig tsconfig.worker.json scripts/worker.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.105.3",
+    "dotenv": "^17.4.2",
     "lucide-react": "^1.14.0",
     "mammoth": "^1.12.0",
     "next": "16.2.5",
@@ -36,6 +38,7 @@
     "jsdom": "^29.1.1",
     "playwright": "^1.59.1",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5",
     "vitest": "^4.1.5"
   }

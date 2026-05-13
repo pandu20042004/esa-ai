@@ -1,11 +1,3 @@
-import {
-  seedAgents,
-  seedCalendarEvents,
-  seedCompetitions,
-  seedFiles,
-  seedOutputVersions,
-  seedValidityChecks,
-} from "@/lib/esai/seed";
 import { createApiEnvelope } from "@/lib/esai/api";
 import { isSupabaseAdminConfigured } from "@/lib/supabase/env";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -169,7 +161,7 @@ export function createEsaiRepository(options: RepositoryOptions = {}) {
         return createApiEnvelope(withUrls, { supabaseConfigured });
       }
 
-      return createApiEnvelope(seedCompetitions, { supabaseConfigured });
+      return createApiEnvelope([] as Competition[], { supabaseConfigured });
     },
 
     async getCompetition(id: string) {
@@ -199,8 +191,7 @@ export function createEsaiRepository(options: RepositoryOptions = {}) {
         return createApiEnvelope(withUrls, { supabaseConfigured });
       }
 
-      const competition = seedCompetitions.find((item) => item.id === id) ?? null;
-      return createApiEnvelope(competition, { supabaseConfigured });
+      return createApiEnvelope(null as Competition | null, { supabaseConfigured });
     },
 
     async createCompetition(input: Partial<Competition>) {
@@ -737,7 +728,7 @@ export function createEsaiRepository(options: RepositoryOptions = {}) {
         return createApiEnvelope((data ?? []).map(mapFile), { supabaseConfigured });
       }
 
-      return createApiEnvelope(seedFiles, { supabaseConfigured });
+      return createApiEnvelope([] as CompetitionFile[], { supabaseConfigured });
     },
 
     async getFile(id: string) {
@@ -753,7 +744,7 @@ export function createEsaiRepository(options: RepositoryOptions = {}) {
         return createApiEnvelope(data ? mapFile(data) : null, { supabaseConfigured });
       }
 
-      return createApiEnvelope(seedFiles.find((file) => file.id === id) ?? null, { supabaseConfigured });
+      return createApiEnvelope(null as CompetitionFile | null, { supabaseConfigured });
     },
 
     async listAgents() {
@@ -769,7 +760,7 @@ export function createEsaiRepository(options: RepositoryOptions = {}) {
         return createApiEnvelope((data ?? []).map(mapAgent), { supabaseConfigured });
       }
 
-      return createApiEnvelope(seedAgents, { supabaseConfigured });
+      return createApiEnvelope([] as AgentDefinition[], { supabaseConfigured });
     },
 
     async listCalendarEvents() {
@@ -784,7 +775,7 @@ export function createEsaiRepository(options: RepositoryOptions = {}) {
         return createApiEnvelope((data ?? []).map(mapCalendarEvent), { supabaseConfigured });
       }
 
-      return createApiEnvelope(seedCalendarEvents, { supabaseConfigured });
+      return createApiEnvelope([] as CalendarEvent[], { supabaseConfigured });
     },
 
     async createCalendarEvent(input: Partial<CalendarEvent>) {
@@ -841,7 +832,7 @@ export function createEsaiRepository(options: RepositoryOptions = {}) {
         return createApiEnvelope((data ?? []) as OutputVersion[], { supabaseConfigured });
       }
 
-      return createApiEnvelope(seedOutputVersions, { supabaseConfigured });
+      return createApiEnvelope([] as OutputVersion[], { supabaseConfigured });
     },
 
     async listValidityChecks() {
@@ -856,7 +847,7 @@ export function createEsaiRepository(options: RepositoryOptions = {}) {
         return createApiEnvelope((data ?? []) as ValidityCheck[], { supabaseConfigured });
       }
 
-      return createApiEnvelope(seedValidityChecks, { supabaseConfigured });
+      return createApiEnvelope([] as ValidityCheck[], { supabaseConfigured });
     },
 
     async listModels() {

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ESAI Agent Pipeline — User Guide</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Source+Code+Pro:wght@400;500&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; color: #1a1a2e; line-height: 1.6; padding: 60px; max-width: 900px; margin: 0 auto; }
+h1 { font-size: 36px; font-weight: 900; margin-bottom: 8px; }
+h2 { font-size: 24px; font-weight: 700; margin: 48px 0 16px; border-bottom: 2px solid #10b981; padding-bottom: 8px; }
+h3 { font-size: 18px; font-weight: 600; margin: 28px 0 10px; color: #065f46; }
+p { margin: 10px 0; }
+.subtitle { color: #6b7280; font-size: 14px; margin-bottom: 40px; }
+.pipeline-flow { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 24px; margin: 24px 0; font-family: 'Source Code Pro', monospace; font-size: 13px; line-height: 2; white-space: pre-wrap; }
+.agent-card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; margin: 20px 0; background: #fafafa; }
+.agent-card h3 { margin-top: 0; color: #1a1a2e; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 6px; }
+.badge-input { background: #dbeafe; color: #1e40af; }
+.badge-output { background: #d1fae5; color: #065f46; }
+.badge-stage { background: #fef3c7; color: #92400e; }
+table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+th, td { border: 1px solid #e5e7eb; padding: 10px 12px; text-align: left; }
+th { background: #f9fafb; font-weight: 600; }
+tr:nth-child(even) { background: #f9fafb; }
+code { font-family: 'Source Code Pro', monospace; background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+.page-break { page-break-before: always; }
+.footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 12px; text-align: center; }
+</style>
+</head>
+<body>
+
+<h1>ESAI Agent Pipeline</h1>
+<p class="subtitle">User Guide — How the 10 AI Agents Work Together to Produce Competition Essays</p>
+
+<h2>Pipeline Overview</h2>
+<p>The ESAI suite uses 10 specialized AI agents arranged in a sequential pipeline. Each agent has defined inputs (Needs) and outputs (Produces). The Main Agent orchestrates the flow.</p>
+
+<div class="pipeline-flow">Style Profile Builder (once, prerequisite)
+        ↓
+Main Agent (orchestrates everything below)
+        ↓
+1. Ideation Agent        → 01_ideation.md
+        ↓
+2. Research Agent        → 02_research_main.md + 02_research_sources.md
+        ↓
+3. Parts List Agent      → 02_research_parts_list.md (if hardware)
+        ↓
+4. Writing Agent         → 03_essay_draft_v{N}.md + outline + references
+        ↓
+5. Supervisor Agent      → 07_judge_review_v{N}.md
+        ↓ (revision loop back to Writing if needed)
+6. Flowchart Agent       → 04_diagrams/
+7. Prototype Design Agent → 05_prototypes/
+8. UI Design Agent       → 06_uidesign/
+        ↓
+Ready for submission</div>
+
+<h2>Agent Details</h2>
+
+<div class="agent-card">
+<h3>1. Style Profile Builder</h3>
+<p><strong>Purpose:</strong> Analyzes 5+ winning essay PDFs to produce a reusable writing style profile with executable directives across 8 dimensions.</p>
+<p><span class="badge badge-input">NEEDS</span> Winning Essay PDFs (user upload)</p>
+<p><span class="badge badge-output">PRODUCES</span> <code>00_style_profile.md</code> — Style Profile</p>
+<p><span class="badge badge-stage">STAGE</span> Foundation — runs once per essay collection, not per competition</p>
+<p><strong>Key behavior:</strong> Extracts concrete patterns (sentence rhythm, vocabulary fingerprint, opening signatures, evidence integration style). Output is directives, not descriptions.</p>
+</div>
+
+<div class="agent-card">
+<h3>2. Main Agent (Conductor)</h3>
+<p><strong>Purpose:</strong> Orchestrates the entire pipeline. Inspects state, recommends next skill, supports Interactive and Full Automation modes.</p>
+<p><span class="badge badge-input">NEEDS</span> Competition Guidebook (optional), Style Profile (optional)</p>
+<p><span class="badge badge-output">PRODUCES</span> <code>00_automation_session.md</code> — Session State</p>
+<p><span class="badge badge-stage">STAGE</span> Meta-conductor — sits above all agents</p>
+<p><strong>Key behavior:</strong> Two modes: Interactive (user confirms each step) and Full Automation (auto-decides, flags uncertainties, sends Gmail summary). Hard floors: never fabricates citations, stops on disqualifying issues.</p>
+</div>
+
+<div class="agent-card">
+<h3>3. Ideation Agent</h3>
+<p><strong>Purpose:</strong> Generates 5 rubric-aligned, trend-aware essay angles validated against the guidebook and current news/academic trends.</p>
+<p><span class="badge badge-input">NEEDS</span> Style Profile + Competition Guidebook</p>
+<p><span class="badge badge-output">PRODUCES</span> <code>01_ideation.md</code> — Ideation Angles with CHOSEN ANGLE</p>
+<p><span class="badge badge-stage">STAGE</span> First substantive skill</p>
+<p><strong>Key behavior:</strong> Slot strategy (1 safe / 1 distinctive / 1 contrarian / 1 Indonesian-specific / 1 wildcard). Web-searches news + academic sources. Refuses to proceed without guidebook.</p>
+</div>
+
+<div class="agent-card">
+<h3>4. Research Agent</h3>
+<p><strong>Purpose:</strong> Deep-researches the chosen angle and builds a verified evidence dossier with a gatekept Citation Table.</p>
+<p><span class="badge badge-input">NEEDS</span> Ideation Output + Style Profile + Guidebook</p>
+<p><span class="badge badge-output">PRODUCES</span> <code>02_research_main.md</code> (Research Findings) + <code>02_research_sources.md</code> (Citation Table)</p>
+<p><span class="badge badge-stage">STAGE</span> Second in pipeline</p>
+<p><strong>Key behavior:</strong> Every citation requires a verbatim passage + DOI/URL. Minimum 15 sources. A-first quality descent (academic → institutional → news). Counterargument hunting. Rejected candidates logged with reasons.</p>
+</div>
+
+<div class="agent-card">
+<h3>5. Parts List Agent</h3>
+<p><strong>Purpose:</strong> Builds a verified procurement-ready parts list for physical devices — real prices, dimensions, and sourcing from Indonesian marketplaces.</p>
+<p><span class="badge badge-input">NEEDS</span> Essay Draft + Guidebook</p>
+<p><span class="badge badge-output">PRODUCES</span> <code>02_research_parts_list.md</code> — Parts List</p>
+<p><span class="badge badge-stage">STAGE</span> Optional bridge (hardware essays only)</p>
+<p><strong>Key behavior:</strong> Indonesian marketplace priority (Tokopedia, Shopee, Bukalapak). Every price/dimension must have a verifiable URL. Subsystem decomposition. Budget tracking. Primary + alternative suppliers.</p>
+</div>
+
+<div class="agent-card">
+<h3>6. Writing Agent</h3>
+<p><strong>Purpose:</strong> Drafts a polished, rubric-aligned, style-matched essay using only verified citations. Plans image slots for downstream visual agents.</p>
+<p><span class="badge badge-input">NEEDS</span> Research Findings + Citation Table + Style Profile + Guidebook</p>
+<p><span class="badge badge-output">PRODUCES</span> <code>03_essay_draft_v{N}.md</code> — Essay Draft</p>
+<p><span class="badge badge-stage">STAGE</span> Central integration point</p>
+<p><strong>Key behavior:</strong> 4-checkpoint drafting flow (outline → intro → first body → full draft). Citation gatekeeping (Strict or Batch mode). Image slot markers for Flowchart/Prototype/UI agents. Judge-guided revision mode when supervisor review exists.</p>
+</div>
+
+<div class="agent-card">
+<h3>7. Supervisor Agent (Judge Panel)</h3>
+<p><strong>Purpose:</strong> Simulates 2–5 judge personas from the rubric. Produces per-criterion scoring, consensus synthesis, score prediction, and prioritized fix list.</p>
+<p><span class="badge badge-input">NEEDS</span> Essay Draft + Citation Table + Guidebook</p>
+<p><span class="badge badge-output">PRODUCES</span> <code>07_judge_review_v{N}.md</code> — Supervisor Review</p>
+<p><span class="badge badge-stage">STAGE</span> Quality-control loop</p>
+<p><strong>Key behavior:</strong> Quick pass (~5 min) or Deep pass (~20-30 min). Score prediction with placement brackets (competitive / submittable / revise). Go/no-go recommendation. Fix list feeds back into Writing Agent revision mode.</p>
+</div>
+
+<div class="agent-card">
+<h3>8. Flowchart Agent</h3>
+<p><strong>Purpose:</strong> Generates Mermaid-based diagrams (15 types) with rendered PNG previews, filling image slots in the essay draft.</p>
+<p><span class="badge badge-input">NEEDS</span> Essay Draft + Research Findings (optional) + Guidebook</p>
+<p><span class="badge badge-output">PRODUCES</span> <code>.mermaid</code> source + <code>.png</code> renders in <code>04_diagrams/</code></p>
+<p><span class="badge badge-stage">STAGE</span> Post-writing visual enrichment</p>
+<p><strong>Key behavior:</strong> Slot-driven or standalone mode. 15 diagram types (flowchart, sequence, gantt, timeline, pie, mindmap, sankey, etc.). Type-selection logic. Versioned backup before modifying draft.</p>
+</div>
+
+<div class="agent-card">
+<h3>9. Prototype Design Agent</h3>
+<p><strong>Purpose:</strong> Produces 3D device visualizations using three.js — interactive HTML, static SVG (normal + exploded views).</p>
+<p><span class="badge badge-input">NEEDS</span> Essay Draft + Research Findings (optional)</p>
+<p><span class="badge badge-output">PRODUCES</span> <code>_prototype.html</code> + <code>_prototype.svg</code> in <code>05_prototypes/</code></p>
+<p><span class="badge badge-stage">STAGE</span> Post-writing visual (hardware essays)</p>
+<p><strong>Key behavior:</strong> Three fidelity tiers (Primitives / Custom geometry / Textured). Parts list integration for real dimensions. Exploded-view toggle. Scene brief required before code generation.</p>
+</div>
+
+<div class="agent-card">
+<h3>10. UI Design Agent</h3>
+<p><strong>Purpose:</strong> Generates web/mobile/product mockups with a consistent design system — SVGs, interactive HTML, optional 3D device renders.</p>
+<p><span class="badge badge-input">NEEDS</span> Prototype Design (or Essay Draft)</p>
+<p><span class="badge badge-output">PRODUCES</span> Device-framed SVGs + Interactive HTML + PNGs in <code>06_uidesign/</code></p>
+<p><span class="badge badge-stage">STAGE</span> Post-writing visual (software/platform essays)</p>
+<p><strong>Key behavior:</strong> One design system per session (Clean/Institutional/Modern SaaS/Environmental/Academic/Custom). No lorem ipsum — thematic data from essay context. Multi-screen HTML with navigation. 4 slot types: web_mockup, app_mockup, product_mockup, ui_screen.</p>
+</div>
+
+<h2 class="page-break">Needs & Produces Summary</h2>
+
+<table>
+<tr><th>Agent</th><th>Needs (Inputs)</th><th>Produces (Outputs)</th></tr>
+<tr><td>Style Profile Builder</td><td>Winning Essay PDFs</td><td>Style Profile (<code>00_style_profile.md</code>)</td></tr>
+<tr><td>Main Agent</td><td>Guidebook, Style Profile</td><td>Automation Session State</td></tr>
+<tr><td>Ideation Agent</td><td>Style Profile, Guidebook</td><td>Ideation Angles (<code>01_ideation.md</code>)</td></tr>
+<tr><td>Research Agent</td><td>Ideation Output, Style Profile, Guidebook</td><td>Research Findings + Citation Table</td></tr>
+<tr><td>Parts List Agent</td><td>Essay Draft, Guidebook</td><td>Parts List (<code>02_research_parts_list.md</code>)</td></tr>
+<tr><td>Writing Agent</td><td>Research, Citations, Style Profile, Guidebook</td><td>Essay Draft (<code>03_essay_draft_v{N}.md</code>)</td></tr>
+<tr><td>Supervisor Agent</td><td>Essay Draft, Citations, Guidebook</td><td>Judge Review (<code>07_judge_review_v{N}.md</code>)</td></tr>
+<tr><td>Flowchart Agent</td><td>Essay Draft, Research, Guidebook</td><td>Mermaid Diagrams + PNG renders</td></tr>
+<tr><td>Prototype Design Agent</td><td>Essay Draft, Research</td><td>3D HTML + SVG prototypes</td></tr>
+<tr><td>UI Design Agent</td><td>Prototype/Essay Draft</td><td>UI Mockups (SVG + HTML + PNG)</td></tr>
+</table>
+
+<h2>How Users Interact</h2>
+
+<h3>Starting a Competition</h3>
+<ol>
+<li>Upload competition guidebook (PDF) to the Competition Vault</li>
+<li>Main Agent checks prerequisites (style profile exists?)</li>
+<li>Main Agent routes to Ideation Agent</li>
+<li>User reviews 5 angles, picks one</li>
+<li>Pipeline continues: Research → Writing → Supervisor → Visuals</li>
+</ol>
+
+<h3>The Revision Loop</h3>
+<ol>
+<li>Writing Agent produces draft v1</li>
+<li>Supervisor Agent reviews → produces fix list + score prediction</li>
+<li>Writing Agent enters judge-guided revision mode → produces draft v2</li>
+<li>Supervisor re-reviews → score should improve</li>
+<li>Once score is in target bracket → proceed to visuals</li>
+</ol>
+
+<h3>Visual Enrichment (parallel)</h3>
+<p>After the draft is stable, three visual agents can run in parallel on their respective image slots:</p>
+<ul>
+<li><strong>Flowchart Agent</strong> — fills diagram slots (flowchart, timeline, pie, etc.)</li>
+<li><strong>Prototype Design Agent</strong> — fills prototype slots (3D hardware models)</li>
+<li><strong>UI Design Agent</strong> — fills web_mockup, app_mockup, product_mockup slots</li>
+</ul>
+
+<h3>Full Automation Mode</h3>
+<p>For overnight runs: Main Agent auto-decides at every checkpoint, flags uncertain decisions with severity tiers (🔴 must review / 🟡 should review / 🟢 info only), and sends a Gmail summary when done or blocked.</p>
+
+<div class="footer">
+ESAI Premium Dashboard — Agent Pipeline Guide — Generated May 2026
+</div>
+
+</body>
+</html>
