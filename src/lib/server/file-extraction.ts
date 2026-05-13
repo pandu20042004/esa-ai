@@ -12,7 +12,8 @@ export async function extractText(file: File): Promise<string> {
   }
 
   if (mime === "application/pdf") {
-    const pdfParse = (await import("pdf-parse")).default;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdfParse = require("pdf-parse") as (buffer: Buffer) => Promise<{ text: string }>;
     const buffer = Buffer.from(await file.arrayBuffer());
     const result = await pdfParse(buffer);
     return truncate(result.text ?? "");
