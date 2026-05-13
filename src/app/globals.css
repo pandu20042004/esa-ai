@@ -1203,7 +1203,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-border); 
   font-size: 13px;
 }
 .validation-alert strong { font-size: 12px; }
-.validation-alert span { color: var(--text); }
+.validation-alert span { color: var(--fg); }
 .validation-alert-error {
   border-color: #fca5a5;
   background: #fef2f2;
@@ -1214,6 +1214,16 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-border); 
   background: #fffbeb;
 }
 .validation-alert-warning strong { color: #92400e; }
+:root[data-theme="dark"] .validation-alert-error {
+  border-color: color-mix(in oklch, #f87171 72%, var(--border));
+  background: color-mix(in oklch, #7f1d1d 42%, var(--surface));
+}
+:root[data-theme="dark"] .validation-alert-error strong { color: #fca5a5; }
+:root[data-theme="dark"] .validation-alert-warning {
+  border-color: color-mix(in oklch, #fbbf24 68%, var(--border));
+  background: color-mix(in oklch, #78350f 38%, var(--surface));
+}
+:root[data-theme="dark"] .validation-alert-warning strong { color: #fcd34d; }
 .form-warning { color: #b42318; font-size: 13px; }
 .form-note { color: var(--muted); font-size: 13px; }
 
