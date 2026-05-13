@@ -1,19 +1,35 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import { EsaiPremiumApp } from "@/components/esai/EsaiPremiumApp";
 
+// Mock the API module so fetchCompetitions resolves immediately with empty array
+vi.mock("@/lib/esai/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/esai/api")>();
+  return {
+    ...actual,
+    fetchCompetitions: vi.fn().mockResolvedValue([]),
+  };
+});
+
 describe("dashboard overview flow", () => {
-  it("starts without demo competitions and opens the create flow", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("starts without demo competitions and opens the create flow", async () => {
     render(<EsaiPremiumApp />);
 
-    expect(screen.getByText("No competitions yet")).toBeInTheDocument();
+    // Wait for loading to finish and empty state to appear
+    await waitFor(() => {
+      expect(screen.getByText("No competitions yet")).toBeInTheDocument();
+    });
     expect(screen.queryByText("Workflow Pipeline")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Create" }));
+    fireEvent.click(screen.getAllByRole("button", { name: /Add Competition/i })[0]);
 
-    expect(screen.getByText("Add Competition")).toBeInTheDocument();
+    expect(screen.getByText("Setup Kompetisi Baru")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Competition name")).toBeInTheDocument();
   });
 });
