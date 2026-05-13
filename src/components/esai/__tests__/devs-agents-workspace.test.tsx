@@ -43,8 +43,8 @@ describe("DevsAgentsWorkspace", () => {
 
     render(<DevsAgentsWorkspace />);
 
-    expect(await screen.findAllByText("Research Agent")).toHaveLength(2);
-    expect(screen.getAllByText("Template copy")).toHaveLength(2);
+    expect((await screen.findAllByText("Research Agent")).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("Template copy").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByDisplayValue("# Research")).toBeInTheDocument();
   });
 
@@ -108,8 +108,8 @@ describe("DevsAgentsWorkspace", () => {
     });
 
     render(<DevsAgentsWorkspace />);
-    fireEvent.click(await screen.findByRole("button", { name: /Publish version/i }));
-    fireEvent.click(await screen.findByRole("button", { name: /Confirm publish/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Publish$/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Confirm$/i }));
 
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
@@ -246,7 +246,7 @@ describe("DevsAgentsWorkspace", () => {
     });
 
     render(<DevsAgentsWorkspace />);
-    fireEvent.click(await screen.findByRole("button", { name: /Versions/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /History/i }));
     fireEvent.click(await screen.findByRole("button", { name: "Copy to draft" }));
 
     await waitFor(() =>

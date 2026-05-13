@@ -308,6 +308,62 @@ export function DevsAgentsWorkspace() {
       {notice ? <p className="form-note">{notice}</p> : null}
 
       <div className="devs-agent-grid">
+        <header className="devs-agent-stage-header">
+          <div>
+            <small>Editable Agent Draft</small>
+            <strong>{selectedAgent?.name ?? "Select an agent"}</strong>
+          </div>
+          <div className="devs-agent-stage-actions">
+            <button
+              className={tab === "assistant" ? "reference-text-button active" : "reference-text-button"}
+              type="button"
+              onClick={() => setTab("assistant")}
+            >
+              Assistant
+            </button>
+            <button
+              className={tab === "contracts" ? "reference-text-button active" : "reference-text-button"}
+              type="button"
+              onClick={() => setTab("contracts")}
+            >
+              Needs / Produces
+            </button>
+            <button
+              className={tab === "versions" ? "reference-text-button active" : "reference-text-button"}
+              type="button"
+              onClick={() => setTab("versions")}
+            >
+              History
+            </button>
+            <button
+              className={tab === "template" ? "reference-text-button active" : "reference-text-button"}
+              type="button"
+              onClick={() => setTab("template")}
+            >
+              Template
+            </button>
+            <SaveStatusBadge status={saveStatus} />
+            {selectedAgent ? (
+              !publishConfirmOpen ? (
+                <button className="btn-primary reference-small-button" type="button" onClick={() => setPublishConfirmOpen(true)}>
+                  Publish
+                </button>
+              ) : (
+                <div className="publish-confirm">
+                  <span>Publish this draft?</span>
+                  <button className="btn-primary reference-small-button" type="button" onClick={publishAgent}>
+                    Confirm
+                  </button>
+                  <button className="btn-secondary reference-small-button" type="button" onClick={() => setPublishConfirmOpen(false)}>
+                    Cancel
+                  </button>
+                </div>
+              )
+            ) : null}
+          </div>
+        </header>
+
+        <div className="devs-agent-stage-body">
         <aside className="devs-agent-list" aria-label="Agents">
           {agents.length === 0 ? <p className="form-note">No agents in this compartment yet.</p> : null}
           {agents.map((agent) => (
@@ -338,52 +394,38 @@ export function DevsAgentsWorkspace() {
         <main className="devs-agent-editor">
           {selectedAgent ? (
             <>
-              <header>
-                <div>
-                  <h2>{selectedAgent.name}</h2>
-                  <p>{selectedAgent.kind === "template_copy" ? "Template copy" : "Custom agent"}</p>
-                </div>
-                <div className="agent-editor-actions">
-                  <SaveStatusBadge status={saveStatus} />
-                  {!publishConfirmOpen ? (
-                    <button className="btn-primary" type="button" onClick={() => setPublishConfirmOpen(true)}>
-                      Publish version
-                    </button>
-                  ) : (
-                    <div className="publish-confirm">
-                      <span>Publish this draft?</span>
-                      <button className="btn-primary" type="button" onClick={publishAgent}>
-                        Confirm publish
-                      </button>
-                      <button className="btn-secondary" type="button" onClick={() => setPublishConfirmOpen(false)}>
-                        Cancel
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </header>
-              <label className="agent-description-field">
-                Agent description
-                <AutoGrowTextarea
-                  value={descriptionDraft}
-                  placeholder="Short purpose shown in the agent list"
-                  onBlur={saveDescription}
-                  onChange={(event) => {
-                    setDescriptionDraft(event.target.value);
-                    setSaveStatus("dirty");
-                  }}
-                />
-              </label>
-              <AutoGrowTextarea
-                className="agent-prompt-textarea"
-                aria-label="Agent prompt"
-                value={promptDraft}
-                onChange={(event) => {
-                  setPromptDraft(event.target.value);
-                  setSaveStatus("dirty");
-                }}
-              />
-              <ValidationMessages blocking={validation?.blocking ?? []} warnings={validation?.warnings ?? []} />
+              <div className="devs-agent-document-toolbar">
+                <span>Agent Vault / {selectedAgent.name}</span>
+                <em>{selectedAgent.kind === "template_copy" ? "Template copy" : "Custom agent"}</em>
+              </div>
+              <article className="devs-agent-document-page">
+                <h2>{selectedAgent.name}</h2>
+                <label className="agent-description-field">
+                  Agent description
+                  <AutoGrowTextarea
+                    value={descriptionDraft}
+                    placeholder="Short purpose shown in the agent list"
+                    onBlur={saveDescription}
+                    onChange={(event) => {
+                      setDescriptionDraft(event.target.value);
+                      setSaveStatus("dirty");
+                    }}
+                  />
+                </label>
+                <label className="agent-prompt-field">
+                  Agent prompt
+                  <AutoGrowTextarea
+                    className="agent-prompt-textarea"
+                    aria-label="Agent prompt"
+                    value={promptDraft}
+                    onChange={(event) => {
+                      setPromptDraft(event.target.value);
+                      setSaveStatus("dirty");
+                    }}
+                  />
+                </label>
+                <ValidationMessages blocking={validation?.blocking ?? []} warnings={validation?.warnings ?? []} />
+              </article>
             </>
           ) : (
             <p className="form-note">Select or create an agent.</p>
@@ -391,39 +433,12 @@ export function DevsAgentsWorkspace() {
         </main>
 
         <aside className="devs-agent-side">
-          <div className="side-tabs">
-            <button
-              className={tab === "assistant" ? "active" : ""}
-              type="button"
-              onClick={() => setTab("assistant")}
-            >
-              <Sparkles size={14} />
-              Assistant
-            </button>
-            <button
-              className={tab === "contracts" ? "active" : ""}
-              type="button"
-              onClick={() => setTab("contracts")}
-            >
-              Needs / Produces
-            </button>
-            <button
-              className={tab === "versions" ? "active" : ""}
-              type="button"
-              onClick={() => setTab("versions")}
-            >
-              <History size={14} />
-              Versions
-            </button>
-            <button
-              className={tab === "template" ? "active" : ""}
-              type="button"
-              onClick={() => setTab("template")}
-            >
-              <RotateCcw size={14} />
-              Template
-            </button>
-          </div>
+          <header className="devs-agent-side-header">
+            {tab === "assistant" ? <Sparkles size={16} /> : null}
+            {tab === "versions" ? <History size={16} /> : null}
+            {tab === "template" ? <RotateCcw size={16} /> : null}
+            <strong>{tab === "contracts" ? "Needs / Produces" : tab === "versions" ? "History" : tab === "template" ? "Template" : "Assistant"}</strong>
+          </header>
           {selectedAgent && tab === "assistant" ? (
             <AssistantDraftPanel
               agent={selectedAgent}
@@ -446,6 +461,7 @@ export function DevsAgentsWorkspace() {
             <TemplatePanel agent={selectedAgent} onRevert={() => revertAgent("template")} />
           ) : null}
         </aside>
+        </div>
       </div>
     </section>
   );
