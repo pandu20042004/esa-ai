@@ -2175,6 +2175,28 @@ function StyleBuilderWorkspace() {
     }
   };
 
+  const handleUploadExistingProfile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setError(null);
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/style-profile/upload-existing", { method: "POST", body: form });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error ?? "Upload failed.");
+      }
+      await reload();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setUploading(false);
+      event.target.value = "";
+    }
+  };
+
   const generate = async () => {
     setError(null);
     if (sources.length === 0) { setError("Upload at least one essay PDF first."); return; }
@@ -2281,6 +2303,16 @@ function StyleBuilderWorkspace() {
               style={{ display: "none" }}
               disabled={uploading}
               onChange={handleUpload}
+            />
+          </label>
+          <label className="source-card" style={{ cursor: uploading ? "wait" : "pointer" }}>
+            <FileText size={20} /> Upload existing style profile
+            <input
+              type="file"
+              accept=".md,.txt,text/markdown,text/plain"
+              style={{ display: "none" }}
+              disabled={uploading}
+              onChange={handleUploadExistingProfile}
             />
           </label>
         </div>
