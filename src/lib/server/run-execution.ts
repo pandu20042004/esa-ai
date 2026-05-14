@@ -63,6 +63,15 @@ export async function executeRun(
       onToken: async (chunk) => {
         if (chunk) await emitter.emit("token", { text: chunk });
       },
+      onStderr: async (chunk) => {
+        if (chunk) {
+          const text = chunk.trim();
+          if (text) {
+            console.error(`[run ${input.runId.slice(0, 8)}] CLI stderr: ${text}`);
+            await emitter.emit("status", { phase: "cli_stderr", text: text.slice(0, 500) });
+          }
+        }
+      },
     });
   } catch (err) {
     const message = (err as Error).message ?? String(err);
@@ -161,6 +170,8 @@ type CallModelArgs = {
   reasoningEffort: string;
   prompt: string;
   onToken: (chunk: string) => Promise<void> | void;
+  onStderr?: (chunk: string) => Promise<void> | void;
+  signal?: AbortSignal;
 };
 
 async function callModel(args: CallModelArgs): Promise<string> {
@@ -175,15 +186,15 @@ async function callModel(args: CallModelArgs): Promise<string> {
 }
 
 async function callClaudeCli(args: CallModelArgs): Promise<string> {
-  return streamSpawnWithStdin("claude", ["--model", args.modelId, "-p", "--permission-mode", "bypassPermissions"], args.prompt, args.onToken);
+  return streamSpawnWithStdin("claude", ["--model", args.modelId, "-p", "--permission-mode", "bypassPermissions"], args.prompt, args.onToken, args.onStderr);
 }
 
 async function callCodexCli(args: CallModelArgs): Promise<string> {
-  return streamSpawnWithStdin("codex", ["exec", "--model", args.modelId, "--skip-git-repo-check", "-"], args.prompt, args.onToken);
+  return streamSpawnWithStdin("codex", ["exec", "--model", args.modelId, "--skip-git-repo-check", "-"], args.prompt, args.onToken, args.onStderr);
 }
 
 async function callGeminiCli(args: CallModelArgs): Promise<string> {
-  return streamSpawnWithStdin("gemini", ["--model", args.modelId, "-p", "-"], args.prompt, args.onToken);
+  return streamSpawnWithStdin("gemini", ["--model", args.modelId, "-p", "-"], args.prompt, args.onToken, args.onStderr);
 }
 
 async function callMockCli(args: CallModelArgs): Promise<string> {
@@ -245,8 +256,10 @@ function streamSpawnWithStdin(
   cliArgs: string[],
   stdinData: string,
   onToken: (s: string) => Promise<void> | void,
+  onStderr?: (s: string) => Promise<void> | void,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
+    console.log(`[run-exec] spawning: ${command} ${cliArgs.join(" ")} (stdin: ${stdinData.length} chars)`);
     const child = spawn(command, cliArgs, { shell: false });
     let out = "";
     let err = "";
@@ -258,11 +271,17 @@ function streamSpawnWithStdin(
     });
     child.stderr.on("data", (chunk: string) => {
       err += chunk;
+      if (onStderr) void onStderr(chunk);
     });
     child.on("error", (error) => reject(error));
     child.on("close", (code) => {
       if (code === 0) resolve(out);
-      else reject(new Error(`${command} exited with code ${code}: ${err.slice(0, 500)}`));
+      else reject(new Error(`${command} ${cliArgs.slice(0, 3).join(" ")} exited with code ${code}.${err ? " stderr: " + err.slice(0, 800) : ""}`));
+    });
+
+    // Pipe prompt via stdin
+    child.stdin.on("error", (error) => {
+      reject(error);
     });
     child.stdin.write(stdinData, "utf8");
     child.stdin.end();

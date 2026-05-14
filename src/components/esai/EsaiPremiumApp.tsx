@@ -1392,13 +1392,14 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
   const [models, setModels] = useState<ModelOption[]>(() => {
     if (typeof window === "undefined") return [];
     try {
-      const cached = window.localStorage.getItem("esai-models");
+      // Cache key bumped to v2 — old "gpt-5.4" entries dropped.
+      const cached = window.localStorage.getItem("esai-models-v2");
       return cached ? JSON.parse(cached) : [];
     } catch { return []; }
   });
   const [selectedModel, setSelectedModel] = useState<string>(() => {
     if (typeof window === "undefined") return "";
-    return window.localStorage.getItem("esai-selected-model") ?? "";
+    return window.localStorage.getItem("esai-selected-model-v2") ?? "";
   });
   const [reasoningEffort, setReasoningEffort] = useState<"low" | "medium" | "high" | "xhigh">(() => {
     if (typeof window === "undefined") return "medium";
@@ -1451,6 +1452,31 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
   }, [competition.id, currentStage.id]);
 
   // Load models once, cache in localStorage.
+  const refreshModels = useCallback(async () => {
+    setModelsLoading(true);
+    try {
+      const res = await fetch("/api/models?refresh=1", { cache: "no-store" });
+      const json = await res.json();
+      const list: ModelOption[] = (json?.data ?? []).map((m: { provider: string; id: string; label: string }) => ({
+        provider: m.provider,
+        id: m.id,
+        label: m.label,
+      }));
+      setModels(list);
+      window.localStorage.setItem("esai-models-v2", JSON.stringify(list));
+      // If current selection no longer in list, pick first.
+      if (selectedModel && !list.some((m) => `${m.provider}::${m.id}` === selectedModel) && list.length > 0) {
+        const first = `${list[0].provider}::${list[0].id}`;
+        setSelectedModel(first);
+        window.localStorage.setItem("esai-selected-model-v2", first);
+      }
+    } catch {
+      // keep cached
+    } finally {
+      setModelsLoading(false);
+    }
+  }, [selectedModel]);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -1465,12 +1491,12 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
         }));
         if (cancelled) return;
         setModels(list);
-        window.localStorage.setItem("esai-models", JSON.stringify(list));
+        window.localStorage.setItem("esai-models-v2", JSON.stringify(list));
         // Only auto-select if user hasn't picked one yet.
         if (!selectedModel && list.length > 0) {
           const first = `${list[0].provider}::${list[0].id}`;
           setSelectedModel(first);
-          window.localStorage.setItem("esai-selected-model", first);
+          window.localStorage.setItem("esai-selected-model-v2", first);
         }
       } catch {
         // keep cached models if fetch fails
@@ -1484,7 +1510,7 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
 
   // Persist model selection.
   useEffect(() => {
-    if (selectedModel) window.localStorage.setItem("esai-selected-model", selectedModel);
+    if (selectedModel) window.localStorage.setItem("esai-selected-model-v2", selectedModel);
   }, [selectedModel]);
   useEffect(() => {
     window.localStorage.setItem("esai-reasoning", reasoningEffort);
@@ -1644,6 +1670,11 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
         if (phase === "prompt_built") {
           const length = Number(payload.length ?? 0);
           return { ...prev, phase: "prompt_built", phaseDetail: `Prompt built (${length.toLocaleString()} chars). Calling model…` };
+        }
+        if (phase === "cli_stderr") {
+          const text = String(payload.text ?? "").trim();
+          if (!text) return prev;
+          return { ...prev, phaseDetail: `CLI: ${text.slice(0, 200)}` };
         }
         if (phase === "completed") {
           queueMicrotask(() => {
@@ -1898,6 +1929,15 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
                 </option>
               ))}
             </select>
+            <button
+              className="ghost-icon"
+              type="button"
+              onClick={refreshModels}
+              disabled={modelsLoading}
+              title="Refresh model list (re-scans installed CLIs)"
+            >
+              <RefreshCw size={14} className={modelsLoading ? "spin" : ""} />
+            </button>
             <select
               value={reasoningEffort}
               onChange={(event) => setReasoningEffort(event.target.value as "low" | "medium" | "high" | "xhigh")}
@@ -2315,13 +2355,13 @@ function StyleBuilderWorkspace() {
   const [models, setModels] = useState<Array<{ provider: string; id: string; label: string }>>(() => {
     if (typeof window === "undefined") return [];
     try {
-      const cached = window.localStorage.getItem("esai-models");
+      const cached = window.localStorage.getItem("esai-models-v2");
       return cached ? JSON.parse(cached) : [];
     } catch { return []; }
   });
   const [selectedModel, setSelectedModel] = useState(() => {
     if (typeof window === "undefined") return "";
-    return window.localStorage.getItem("esai-selected-model") ?? "";
+    return window.localStorage.getItem("esai-selected-model-v2") ?? "";
   });
   const [reasoningEffort, setReasoningEffort] = useState<"low" | "medium" | "high" | "xhigh">(() => {
     if (typeof window === "undefined") return "medium";
@@ -2359,11 +2399,11 @@ function StyleBuilderWorkspace() {
         const json = await res.json();
         const list = (json?.data ?? []) as Array<{ provider: string; id: string; label: string }>;
         setModels(list);
-        window.localStorage.setItem("esai-models", JSON.stringify(list));
+        window.localStorage.setItem("esai-models-v2", JSON.stringify(list));
         if (!selectedModel && list.length > 0) {
           const first = `${list[0].provider}::${list[0].id}`;
           setSelectedModel(first);
-          window.localStorage.setItem("esai-selected-model", first);
+          window.localStorage.setItem("esai-selected-model-v2", first);
         }
       } catch {
         // keep cached
