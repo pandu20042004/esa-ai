@@ -27,7 +27,6 @@ import { RunEventEmitter, loadRunEvents } from "@/lib/server/run-events";
 import { executeRun, type RunExecutionInput } from "@/lib/server/run-execution";
 
 const POLL_INTERVAL_MS = 2000;
-const STUCK_RUN_THRESHOLD_MS = 5 * 60 * 1000;
 
 async function main() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -212,23 +211,23 @@ function extractUserMessage(snapshot: Record<string, unknown> | null): string {
 }
 
 async function recoverStuckRuns(supabase: SupabaseClient): Promise<void> {
-  const threshold = new Date(Date.now() - STUCK_RUN_THRESHOLD_MS).toISOString();
+  // Single-tenant assumption: any run still in 'running' on startup is orphaned.
+  // The worker that owned it is gone. Mark them failed so the user can retry.
   const { data, error } = await supabase
     .from("agent_runs")
     .update({
       status: "failed",
       completed_at: new Date().toISOString(),
-      error: "worker crashed before finishing — recovered on restart",
+      error: "worker stopped before finishing — recovered on restart",
     })
     .eq("status", "running")
-    .lt("started_at", threshold)
     .select("id");
   if (error) {
     console.error("[worker] recoverStuckRuns error:", error.message);
     return;
   }
   if (data && data.length > 0) {
-    console.log(`[worker] recovered ${data.length} stuck runs.`);
+    console.log(`[worker] recovered ${data.length} orphaned runs (worker had stopped mid-run).`);
   }
 }
 

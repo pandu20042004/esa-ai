@@ -1576,6 +1576,63 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [streamingRun?.runId]);
 
+  // Poll run status from DB while waiting — catches cases where worker died after queueing
+  // or finished without our subscription getting events. Stops once we see streaming or completion.
+  useEffect(() => {
+    if (!streamingRun) return;
+    if (streamingRun.phase === "completed" || streamingRun.phase === "failed") return;
+    const runId = streamingRun.runId;
+    let stopped = false;
+
+    const check = async () => {
+      if (stopped) return;
+      try {
+        const res = await fetch(`/api/agent-runs/${runId}`, { cache: "no-store" });
+        if (!res.ok) return;
+        const json = await res.json();
+        const dbStatus = json?.data?.run?.status;
+        const dbError = json?.data?.run?.error;
+        const queuedAt = json?.data?.run?.queuedAt ? new Date(json.data.run.queuedAt).getTime() : 0;
+        const queuedSec = queuedAt ? (Date.now() - queuedAt) / 1000 : 0;
+
+        if (dbStatus === "failed" && !stopped) {
+          setStreamingRun((prev) => prev ? {
+            ...prev,
+            phase: "failed",
+            phaseDetail: dbError || "Run failed.",
+          } : prev);
+          setRunError(dbError || "Run failed.");
+          setRunSubmitting(false);
+        } else if (dbStatus === "completed" && !stopped) {
+          reloadStageState();
+          reloadThread();
+          setStreamingRun(null);
+          setRunSubmitting(false);
+        } else if (dbStatus === "queued" && queuedSec > 30 && !stopped) {
+          // Worker likely not running.
+          setStreamingRun((prev) => prev && prev.phase === "queued" ? {
+            ...prev,
+            phaseDetail: `Still queued after ${Math.floor(queuedSec)}s. The worker process may not be running. Start it with: npm run worker`,
+          } : prev);
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    // Poll every 3s while not in active streaming.
+    const id = setInterval(() => {
+      // Skip polling if we're already actively receiving tokens.
+      setStreamingRun((prev) => {
+        if (prev && prev.phase !== "streaming") void check();
+        return prev;
+      });
+    }, 3000);
+
+    return () => { stopped = true; clearInterval(id); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [streamingRun?.runId, streamingRun?.phase]);
+
   const handleRunEvent = (eventType: string, payload: Record<string, unknown>) => {
     setStreamingRun((prev) => {
       if (!prev) return prev;
