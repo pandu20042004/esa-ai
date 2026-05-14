@@ -1412,6 +1412,7 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
   const [rerunTarget, setRerunTarget] = useState<StageStateEntry | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
   const [runSubmitting, setRunSubmitting] = useState(false);
+  const [runWaitingLong, setRunWaitingLong] = useState(false);
 
   const currentStage = STAGES.find((stage) => stage.id === currentStageId) ?? STAGES[0];
   const currentStageIndex = STAGES.findIndex((stage) => stage.id === currentStage.id);
@@ -1525,11 +1526,20 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
       const runId: string = json?.data?.runId;
       setStreamingRun({ runId, tokens: "", toolWrites: [] });
       setComposerValue("");
-      // Thread will have the user message; reload.
+      setRunWaitingLong(false);
+      // Set a 10s timer — if no tokens by then, show "worker might not be running" hint.
+      setTimeout(() => {
+        setStreamingRun((current) => {
+          if (current && current.runId === runId && current.tokens.length === 0) {
+            setRunWaitingLong(true);
+          }
+          return current;
+        });
+      }, 10000);
+      // Keep runSubmitting true — it will be cleared when first token arrives or on error.
       await reloadThread();
     } catch (error) {
       setRunError((error as Error).message ?? "Run failed.");
-    } finally {
       setRunSubmitting(false);
     }
   };
@@ -1582,6 +1592,7 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
       if (!prev) return prev;
       if (eventType === "token") {
         const text = typeof payload.text === "string" ? payload.text : "";
+        if (text) setRunSubmitting(false); // first token = worker is producing
         return { ...prev, tokens: prev.tokens + text };
       }
       if (eventType === "tool_result" && payload.ok === true) {
@@ -1593,11 +1604,13 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
           reloadStageState();
           reloadThread();
           setStreamingRun(null);
+          setRunSubmitting(false);
         });
         return prev;
       }
       if (eventType === "error") {
         setRunError(String(payload.message ?? payload.reason ?? "Run error."));
+        setRunSubmitting(false);
       }
       return prev;
     });
@@ -1778,6 +1791,21 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
             </div>
           ) : null}
           {runError ? <p className="reference-run-error">{runError}</p> : null}
+          {runSubmitting && !streamingRun ? (
+            <div className="reference-run-status">
+              <RefreshCw size={14} className="spin" /> Submitting run… waiting for worker to pick it up.
+            </div>
+          ) : null}
+          {streamingRun && streamingRun.tokens.length === 0 ? (
+            <div className="reference-run-status">
+              <RefreshCw size={14} className="spin" /> Worker picked up the run. Waiting for first tokens…
+              {runWaitingLong ? (
+                <p style={{ color: "#c52b2b", marginTop: 8, fontSize: 12 }}>
+                  No response after 10s. Is <code>npm run worker</code> running in another terminal?
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         <div className="reference-chat-composer">
@@ -2148,9 +2176,21 @@ function StyleBuilderWorkspace() {
   const [loading, setLoading] = useState(true);
   const [initialLoaded, setInitialLoaded] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [models, setModels] = useState<Array<{ provider: string; id: string; label: string }>>([]);
-  const [selectedModel, setSelectedModel] = useState("");
-  const [reasoningEffort, setReasoningEffort] = useState<"low" | "medium" | "high" | "xhigh">("medium");
+  const [models, setModels] = useState<Array<{ provider: string; id: string; label: string }>>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const cached = window.localStorage.getItem("esai-models");
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
+  const [selectedModel, setSelectedModel] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return window.localStorage.getItem("esai-selected-model") ?? "";
+  });
+  const [reasoningEffort, setReasoningEffort] = useState<"low" | "medium" | "high" | "xhigh">(() => {
+    if (typeof window === "undefined") return "medium";
+    return (window.localStorage.getItem("esai-reasoning") as "low" | "medium" | "high" | "xhigh") ?? "medium";
+  });
   const [activeRun, setActiveRun] = useState<{ runId: string; tokens: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
@@ -2175,17 +2215,25 @@ function StyleBuilderWorkspace() {
   useEffect(() => { void reload(); }, [reload]);
 
   useEffect(() => {
+    // Only fetch if localStorage cache was empty.
+    if (models.length > 0) return;
     (async () => {
       try {
         const res = await fetch("/api/models", { cache: "no-store" });
         const json = await res.json();
         const list = (json?.data ?? []) as Array<{ provider: string; id: string; label: string }>;
         setModels(list);
-        if (list.length > 0) setSelectedModel(`${list[0].provider}::${list[0].id}`);
+        window.localStorage.setItem("esai-models", JSON.stringify(list));
+        if (!selectedModel && list.length > 0) {
+          const first = `${list[0].provider}::${list[0].id}`;
+          setSelectedModel(first);
+          window.localStorage.setItem("esai-selected-model", first);
+        }
       } catch {
-        setModels([]);
+        // keep cached
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -2422,7 +2470,7 @@ function StyleBuilderWorkspace() {
               onChange={(e) => setSelectedModel(e.target.value)}
               disabled={models.length === 0 || activeRun !== null}
             >
-              {models.length === 0 ? <option value="">No models configured</option> : null}
+              {models.length === 0 ? <option value="">Loading models…</option> : null}
               {models.map((m) => (
                 <option key={`${m.provider}::${m.id}`} value={`${m.provider}::${m.id}`}>
                   {m.label} ({m.provider})

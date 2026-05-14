@@ -81,6 +81,10 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .main-surface.with-assistant { max-width: none; }
 .screen { max-width: 1440px; animation: fadeIn .28s ease both; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.spin { animation: spin 1s linear infinite; }
+.reference-run-status { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 8px; background: var(--surface-alt, #f0fdf4); border: 1px solid var(--border, #bbf7d0); font-size: 13px; color: var(--text, #1a1a2e); margin-top: 8px; }
+.reference-run-error { color: #c52b2b; font-size: 13px; margin-top: 8px; padding: 8px 12px; border-radius: 6px; background: #fef2f2; border: 1px solid #fecaca; }
 .screen-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-bottom: 28px; }
 .screen-header h1, .stage-summary h1 { font-size: clamp(28px, 3vw, 38px); line-height: 1.05; font-weight: 900; letter-spacing: 0; margin: 0; }
 .screen-header p, .stage-summary p, .panel-header p { color: var(--muted); margin: 6px 0 0; }
