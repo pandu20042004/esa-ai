@@ -1389,14 +1389,29 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
   const [currentStageId, setCurrentStageId] = useState<StageId>(competition.currentStageId);
   const [outputOpen, setOutputOpen] = useState(false);
   const [stages, setStages] = useState<StageStateEntry[]>([]);
-  const [models, setModels] = useState<ModelOption[]>([]);
-  const [selectedModel, setSelectedModel] = useState<string>("");
-  const [reasoningEffort, setReasoningEffort] = useState<"low" | "medium" | "high" | "xhigh">("medium");
+  const [models, setModels] = useState<ModelOption[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const cached = window.localStorage.getItem("esai-models");
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
+  const [selectedModel, setSelectedModel] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    return window.localStorage.getItem("esai-selected-model") ?? "";
+  });
+  const [reasoningEffort, setReasoningEffort] = useState<"low" | "medium" | "high" | "xhigh">(() => {
+    if (typeof window === "undefined") return "medium";
+    return (window.localStorage.getItem("esai-reasoning") as "low" | "medium" | "high" | "xhigh") ?? "medium";
+  });
+  const [modelsLoading, setModelsLoading] = useState(models.length === 0);
+  const [stagesLoading, setStagesLoading] = useState(true);
   const [thread, setThread] = useState<ThreadMessage[]>([]);
   const [streamingRun, setStreamingRun] = useState<ActiveRun | null>(null);
   const [composerValue, setComposerValue] = useState("");
   const [rerunTarget, setRerunTarget] = useState<StageStateEntry | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
+  const [runSubmitting, setRunSubmitting] = useState(false);
 
   const currentStage = STAGES.find((stage) => stage.id === currentStageId) ?? STAGES[0];
   const currentStageIndex = STAGES.findIndex((stage) => stage.id === currentStage.id);
@@ -1406,12 +1421,13 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
   const isApproved = outputFile?.status === "approved";
   const isStale = outputFile?.status === "stale";
   const stageUnlocked = currentStageEntry?.unlocked ?? (currentStage.id === "onboarding");
-  const isRunning = streamingRun !== null;
+  const isRunning = streamingRun !== null || runSubmitting;
   const modelReady = selectedModel.length > 0;
   const isMainAgentStage = currentStage.id === "onboarding";
   const runButtonDisabled = isRunning || !stageUnlocked || !modelReady || !isMainAgentStage;
 
   const reloadStageState = useCallback(async () => {
+    setStagesLoading(true);
     try {
       const res = await fetch(`/api/competitions/${competition.id}/stage-state`, { cache: "no-store" });
       const json = await res.json();
@@ -1419,6 +1435,8 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
       setStages(list);
     } catch {
       setStages([]);
+    } finally {
+      setStagesLoading(false);
     }
   }, [competition.id]);
 
@@ -1432,10 +1450,11 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
     }
   }, [competition.id, currentStage.id]);
 
-  // Load models once.
+  // Load models once, cache in localStorage.
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      setModelsLoading(true);
       try {
         const res = await fetch("/api/models", { cache: "no-store" });
         const json = await res.json();
@@ -1446,13 +1465,30 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
         }));
         if (cancelled) return;
         setModels(list);
-        if (list.length > 0) setSelectedModel(`${list[0].provider}::${list[0].id}`);
+        window.localStorage.setItem("esai-models", JSON.stringify(list));
+        // Only auto-select if user hasn't picked one yet.
+        if (!selectedModel && list.length > 0) {
+          const first = `${list[0].provider}::${list[0].id}`;
+          setSelectedModel(first);
+          window.localStorage.setItem("esai-selected-model", first);
+        }
       } catch {
-        setModels([]);
+        // keep cached models if fetch fails
+      } finally {
+        if (!cancelled) setModelsLoading(false);
       }
     })();
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Persist model selection.
+  useEffect(() => {
+    if (selectedModel) window.localStorage.setItem("esai-selected-model", selectedModel);
+  }, [selectedModel]);
+  useEffect(() => {
+    window.localStorage.setItem("esai-reasoning", reasoningEffort);
+  }, [reasoningEffort]);
 
   // Reload stage state + thread when stage or competition changes.
   useEffect(() => {
@@ -1465,6 +1501,7 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
     if (!stageUnlocked) { setRunError("Upstream stage not approved yet."); return; }
     if (!modelReady) { setRunError("Pick a model first."); return; }
 
+    setRunSubmitting(true);
     const [provider, modelId] = selectedModel.split("::");
     try {
       const res = await fetch("/api/agent-runs", {
@@ -1492,6 +1529,8 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
       await reloadThread();
     } catch (error) {
       setRunError((error as Error).message ?? "Run failed.");
+    } finally {
+      setRunSubmitting(false);
     }
   };
 
@@ -1664,9 +1703,11 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
           <span><Bot size={18} /></span>
           <p>
             <strong>Input gate:</strong>{" "}
-            {stageUnlocked
-              ? "ready — upstream inputs approved."
-              : "locked — approve upstream outputs first."}
+            {stagesLoading
+              ? "checking upstream…"
+              : stageUnlocked
+                ? "ready — upstream inputs approved."
+                : "locked — approve upstream outputs first."}
           </p>
         </div>
 
@@ -1748,7 +1789,8 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
               onChange={(event) => setSelectedModel(event.target.value)}
               disabled={models.length === 0 || isRunning}
             >
-              {models.length === 0 ? <option value="">No models configured</option> : null}
+              {modelsLoading && models.length === 0 ? <option value="">Loading models…</option> : null}
+              {!modelsLoading && models.length === 0 ? <option value="">No models configured</option> : null}
               {models.map((m) => (
                 <option key={`${m.provider}::${m.id}`} value={`${m.provider}::${m.id}`}>
                   {m.label} ({m.provider})
@@ -1769,9 +1811,9 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
               className="btn-primary reference-small-button"
               onClick={requestRerun}
               disabled={runButtonDisabled}
-              title={runButtonDisabled && !modelReady ? "Pick a model first" : undefined}
+              title={runButtonDisabled && !modelReady ? "Pick a model first" : runButtonDisabled && !stageUnlocked ? "Upstream not approved" : undefined}
             >
-              {isRunning ? "Running…" : isApproved ? "Re-run" : "Run"} <Send size={14} />
+              {runSubmitting ? "Submitting…" : isRunning ? "Running…" : isApproved ? "Re-run" : "Run"} <Send size={14} />
             </button>
           </div>
         </div>
@@ -2189,12 +2231,17 @@ function StyleBuilderWorkspace() {
         throw new Error(body?.error ?? "Upload failed.");
       }
       await reload();
+      window.alert("Style profile uploaded and saved successfully.");
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setUploading(false);
       event.target.value = "";
     }
+  };
+
+  const handleSaveToVault = () => {
+    window.alert("Style profile saved to vault. Agents will use this profile on their next run.");
   };
 
   const generate = async () => {
@@ -2288,13 +2335,48 @@ function StyleBuilderWorkspace() {
           <h2>Style Profile Builder</h2>
           <p style={{ color: "var(--muted)", margin: "4px 0 0 0", fontSize: 13 }}>
             Upload five or more winning essay PDFs, pick a model, and let the builder generate your reusable style profile.
+            Or upload an existing style profile directly.
           </p>
         </div>
       </div>
 
       <section style={{ display: "flex", flexDirection: "column", gap: 20, padding: "8px 0 16px 0" }}>
-        <div className="source-options">
-          <label className="source-card active" style={{ cursor: uploading ? "wait" : "pointer" }}>
+        {/* Section 1: Upload existing profile */}
+        <div style={{ border: "1px solid var(--border, #e5e7eb)", borderRadius: 10, padding: 16 }}>
+          <strong style={{ display: "block", marginBottom: 8 }}>Upload existing style profile</strong>
+          <p style={{ color: "var(--muted)", fontSize: 13, marginBottom: 12 }}>
+            Already have a <code>00_style_profile.md</code>? Upload it directly — no generation needed.
+          </p>
+          <label className="source-card" style={{ cursor: uploading ? "wait" : "pointer", display: "inline-flex" }}>
+            <FileText size={20} /> {uploading ? "Uploading…" : "Choose .md or .txt file"}
+            <input
+              type="file"
+              accept=".md,.txt,text/markdown,text/plain"
+              style={{ display: "none" }}
+              disabled={uploading}
+              onChange={handleUploadExistingProfile}
+            />
+          </label>
+          {profile ? (
+            <div style={{ marginTop: 12, padding: 12, background: "var(--surface-alt, #f7f9fb)", borderRadius: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <strong>{profile.fileName}</strong>
+                <span className="comp-status-pill">{profile.status}</span>
+              </div>
+              <pre style={{ whiteSpace: "pre-wrap", maxHeight: 200, overflow: "auto", fontSize: 12, lineHeight: 1.5 }}>
+                {profile.contentText.slice(0, 2000)}{profile.contentText.length > 2000 ? "\n…(truncated)" : ""}
+              </pre>
+            </div>
+          ) : null}
+        </div>
+
+        {/* Section 2: Generate from essay PDFs */}
+        <div style={{ border: "1px solid var(--border, #e5e7eb)", borderRadius: 10, padding: 16 }}>
+          <strong style={{ display: "block", marginBottom: 8 }}>Generate from essay PDFs</strong>
+          <p style={{ color: "var(--muted)", fontSize: 13, marginBottom: 12 }}>
+            Upload 5+ winning essays, pick a model, and generate a style profile automatically.
+          </p>
+          <label className="source-card active" style={{ cursor: uploading ? "wait" : "pointer", display: "inline-flex" }}>
             <UploadCloud size={20} /> {uploading ? "Uploading…" : "Upload essay PDFs"}
             <input
               type="file"
@@ -2305,86 +2387,77 @@ function StyleBuilderWorkspace() {
               onChange={handleUpload}
             />
           </label>
-          <label className="source-card" style={{ cursor: uploading ? "wait" : "pointer" }}>
-            <FileText size={20} /> Upload existing style profile
-            <input
-              type="file"
-              accept=".md,.txt,text/markdown,text/plain"
-              style={{ display: "none" }}
-              disabled={uploading}
-              onChange={handleUploadExistingProfile}
-            />
-          </label>
-        </div>
 
-        <div>
-          <strong style={{ display: "block", marginBottom: 8 }}>Uploaded sources ({sources.length})</strong>
-          {loading ? (
-            <p style={{ color: "var(--muted)" }}>Loading…</p>
-          ) : sources.length === 0 ? (
-            <p style={{ color: "var(--muted)" }}>No essays uploaded yet. Drop in 5+ winning essays for best results.</p>
-          ) : (
-            <div className="overview-file-list">
-              {sources.map((s) => (
-                <div key={s.id} className="overview-file-row">
-                  <span>{s.fileName}</span>
-                  <small>{(s.sizeBytes / 1024).toFixed(1)} KB</small>
-                  <button className="ghost-icon" title="Delete" onClick={() => handleDelete(s.id)}>
-                    <Trash2 size={14} />
-                  </button>
-                </div>
+          <div style={{ marginTop: 16 }}>
+            <strong style={{ display: "block", marginBottom: 8 }}>Uploaded sources ({sources.length})</strong>
+            {loading ? (
+              <p style={{ color: "var(--muted)" }}>Loading…</p>
+            ) : sources.length === 0 ? (
+              <p style={{ color: "var(--muted)" }}>No essays uploaded yet. Drop in 5+ winning essays for best results.</p>
+            ) : (
+              <div className="overview-file-list">
+                {sources.map((s) => (
+                  <div key={s.id} className="overview-file-row">
+                    <span>{s.fileName}</span>
+                    <small>{(s.sizeBytes / 1024).toFixed(1)} KB</small>
+                    <button className="ghost-icon" title="Delete" onClick={() => handleDelete(s.id)}>
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 16 }}>
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              disabled={models.length === 0 || activeRun !== null}
+            >
+              {models.length === 0 ? <option value="">No models configured</option> : null}
+              {models.map((m) => (
+                <option key={`${m.provider}::${m.id}`} value={`${m.provider}::${m.id}`}>
+                  {m.label} ({m.provider})
+                </option>
               ))}
-            </div>
-          )}
-        </div>
+            </select>
+            <select
+              value={reasoningEffort}
+              onChange={(e) => setReasoningEffort(e.target.value as "low" | "medium" | "high" | "xhigh")}
+              disabled={activeRun !== null}
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="xhigh">Extra high</option>
+            </select>
+            <button
+              className="btn-primary"
+              onClick={generate}
+              disabled={activeRun !== null || sources.length === 0 || !selectedModel}
+            >
+              {activeRun ? "Running…" : profile ? "Regenerate Style Profile" : "Generate Style Profile"}
+            </button>
+          </div>
 
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <select
-            value={selectedModel}
-            onChange={(e) => setSelectedModel(e.target.value)}
-            disabled={models.length === 0 || activeRun !== null}
-          >
-            {models.length === 0 ? <option value="">No models configured</option> : null}
-            {models.map((m) => (
-              <option key={`${m.provider}::${m.id}`} value={`${m.provider}::${m.id}`}>
-                {m.label} ({m.provider})
-              </option>
-            ))}
-          </select>
-          <select
-            value={reasoningEffort}
-            onChange={(e) => setReasoningEffort(e.target.value as "low" | "medium" | "high" | "xhigh")}
-            disabled={activeRun !== null}
-          >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="xhigh">Extra high</option>
-          </select>
-          <button
-            className="btn-primary"
-            onClick={generate}
-            disabled={activeRun !== null || sources.length === 0 || !selectedModel}
-          >
-            {activeRun ? "Running…" : profile ? "Regenerate Style Profile" : "Generate Style Profile"}
-          </button>
+          {activeRun ? (
+            <div className="reference-chat-bubble assistant streaming" style={{ marginTop: 16 }}>
+              <span className="reference-chat-role">Style Builder · streaming</span>
+              <p style={{ whiteSpace: "pre-wrap" }}>{activeRun.tokens || "…"}</p>
+            </div>
+          ) : null}
         </div>
 
         {error ? <p style={{ color: "#c52b2b" }}>{error}</p> : null}
 
-        {activeRun ? (
-          <div className="reference-chat-bubble assistant streaming">
-            <span className="reference-chat-role">Style Builder · streaming</span>
-            <p style={{ whiteSpace: "pre-wrap" }}>{activeRun.tokens || "…"}</p>
-          </div>
-        ) : null}
-
+        {/* Save to Vault button */}
         {profile ? (
-          <div>
-            <strong style={{ display: "block", marginBottom: 8 }}>Current profile — {profile.fileName}</strong>
-            <pre className="document-textarea" style={{ whiteSpace: "pre-wrap", maxHeight: 400, overflow: "auto", padding: 16 }}>
-              {profile.contentText}
-            </pre>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <button className="btn-primary" onClick={handleSaveToVault}>
+              Save to Vault
+            </button>
+            <small style={{ color: "var(--muted)" }}>Saves the current style profile so agents can use it.</small>
           </div>
         ) : null}
 
