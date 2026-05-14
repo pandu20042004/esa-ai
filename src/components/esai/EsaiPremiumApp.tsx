@@ -1616,7 +1616,11 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
   };
 
   const requestRerun = () => {
-    if (!currentStageEntry) return;
+    if (!currentStageEntry) {
+      // Pipeline not bootstrapped yet — first run will create it.
+      void startRun();
+      return;
+    }
     if (isApproved && (currentStageEntry.downstreamStageKeys ?? []).length > 0) {
       setRerunTarget(currentStageEntry);
       return;
@@ -2142,12 +2146,14 @@ function StyleBuilderWorkspace() {
   const [profile, setProfile] = useState<StyleProfile | null>(null);
   const [versions, setVersions] = useState<StyleVersion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initialLoaded, setInitialLoaded] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [models, setModels] = useState<Array<{ provider: string; id: string; label: string }>>([]);
   const [selectedModel, setSelectedModel] = useState("");
   const [reasoningEffort, setReasoningEffort] = useState<"low" | "medium" | "high" | "xhigh">("medium");
   const [activeRun, setActiveRun] = useState<{ runId: string; tokens: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     try {
@@ -2162,6 +2168,7 @@ function StyleBuilderWorkspace() {
       setVersions([]);
     } finally {
       setLoading(false);
+      setInitialLoaded(true);
     }
   }, []);
 
@@ -2231,7 +2238,7 @@ function StyleBuilderWorkspace() {
         throw new Error(body?.error ?? "Upload failed.");
       }
       await reload();
-      window.alert("Style profile uploaded and saved successfully.");
+      setAlertMessage("Style profile uploaded and saved successfully. Agents will use this on their next run.");
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -2241,7 +2248,7 @@ function StyleBuilderWorkspace() {
   };
 
   const handleSaveToVault = () => {
-    window.alert("Style profile saved to vault. Agents will use this profile on their next run.");
+    setAlertMessage("Style profile saved to vault. Agents will use this profile on their next run.");
   };
 
   const generate = async () => {
@@ -2358,12 +2365,12 @@ function StyleBuilderWorkspace() {
             />
           </label>
           {profile ? (
-            <div style={{ marginTop: 12, padding: 12, background: "var(--surface-alt, #f7f9fb)", borderRadius: 8 }}>
+            <div style={{ marginTop: 12, padding: 12, background: "var(--surface-alt, #f7f9fb)", borderRadius: 8, border: "1px solid var(--border, #e5e7eb)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                 <strong>{profile.fileName}</strong>
                 <span className="comp-status-pill">{profile.status}</span>
               </div>
-              <pre style={{ whiteSpace: "pre-wrap", maxHeight: 200, overflow: "auto", fontSize: 12, lineHeight: 1.5 }}>
+              <pre style={{ whiteSpace: "pre-wrap", maxHeight: 200, overflow: "auto", fontSize: 12, lineHeight: 1.5, color: "var(--text, inherit)", background: "transparent" }}>
                 {profile.contentText.slice(0, 2000)}{profile.contentText.length > 2000 ? "\n…(truncated)" : ""}
               </pre>
             </div>
@@ -2390,7 +2397,7 @@ function StyleBuilderWorkspace() {
 
           <div style={{ marginTop: 16 }}>
             <strong style={{ display: "block", marginBottom: 8 }}>Uploaded sources ({sources.length})</strong>
-            {loading ? (
+            {loading && !initialLoaded ? (
               <p style={{ color: "var(--muted)" }}>Loading…</p>
             ) : sources.length === 0 ? (
               <p style={{ color: "var(--muted)" }}>No essays uploaded yet. Drop in 5+ winning essays for best results.</p>
@@ -2475,6 +2482,8 @@ function StyleBuilderWorkspace() {
             </div>
           </div>
         ) : null}
+
+        {alertMessage ? <AlertModal message={alertMessage} onClose={() => setAlertMessage(null)} /> : null}
       </section>
     </section>
   );
@@ -2482,6 +2491,22 @@ function StyleBuilderWorkspace() {
 
 function Panel({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return <section className="panel"><div className="panel-header"><h2>{title}</h2>{action}</div>{children}</section>;
+}
+
+function AlertModal({ message, onClose }: { message: string; onClose: () => void }) {
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="small-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420, textAlign: "center" }}>
+        <div style={{ padding: "24px 24px 8px" }}>
+          <Check size={32} style={{ color: "var(--accent, #10b981)", marginBottom: 12 }} />
+          <p style={{ fontSize: 15, lineHeight: 1.5 }}>{message}</p>
+        </div>
+        <div className="modal-actions" style={{ justifyContent: "center" }}>
+          <button className="btn-primary" onClick={onClose}>OK</button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function ValidityChecker({ assistantOpen: _assistantOpen, onToggleAssistant: _onToggleAssistant }: { assistantOpen: boolean; onToggleAssistant: () => void }) {
