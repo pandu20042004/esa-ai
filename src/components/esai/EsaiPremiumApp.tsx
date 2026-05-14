@@ -1412,7 +1412,6 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
   const [rerunTarget, setRerunTarget] = useState<StageStateEntry | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
   const [runSubmitting, setRunSubmitting] = useState(false);
-  const [runWaitingLong, setRunWaitingLong] = useState(false);
 
   const currentStage = STAGES.find((stage) => stage.id === currentStageId) ?? STAGES[0];
   const currentStageIndex = STAGES.findIndex((stage) => stage.id === currentStage.id);
@@ -1524,18 +1523,8 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
       }
       const json = await res.json();
       const runId: string = json?.data?.runId;
-      setStreamingRun({ runId, tokens: "", toolWrites: [] });
+      setStreamingRun({ runId, tokens: "", toolWrites: [], phase: "queued", phaseDetail: "Run queued. Worker polls every 2s.", startedAt: Date.now() });
       setComposerValue("");
-      setRunWaitingLong(false);
-      // Set a 10s timer — if no tokens by then, show "worker might not be running" hint.
-      setTimeout(() => {
-        setStreamingRun((current) => {
-          if (current && current.runId === runId && current.tokens.length === 0) {
-            setRunWaitingLong(true);
-          }
-          return current;
-        });
-      }, 10000);
       // Keep runSubmitting true — it will be cleared when first token arrives or on error.
       await reloadThread();
     } catch (error) {
@@ -1590,27 +1579,56 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
   const handleRunEvent = (eventType: string, payload: Record<string, unknown>) => {
     setStreamingRun((prev) => {
       if (!prev) return prev;
+      if (eventType === "status") {
+        const phase = String(payload.phase ?? "");
+        if (phase === "started") {
+          return { ...prev, phase: "started", phaseDetail: "Worker started the run." };
+        }
+        if (phase === "prompt_built") {
+          const length = Number(payload.length ?? 0);
+          return { ...prev, phase: "prompt_built", phaseDetail: `Prompt built (${length.toLocaleString()} chars). Calling model…` };
+        }
+        if (phase === "completed") {
+          queueMicrotask(() => {
+            reloadStageState();
+            reloadThread();
+            setStreamingRun(null);
+            setRunSubmitting(false);
+          });
+          return { ...prev, phase: "completed", phaseDetail: "Run complete." };
+        }
+        return prev;
+      }
       if (eventType === "token") {
         const text = typeof payload.text === "string" ? payload.text : "";
-        if (text) setRunSubmitting(false); // first token = worker is producing
-        return { ...prev, tokens: prev.tokens + text };
+        if (text) setRunSubmitting(false);
+        const nextTokens = prev.tokens + text;
+        return {
+          ...prev,
+          phase: "streaming",
+          phaseDetail: `Streaming response… ${nextTokens.length.toLocaleString()} chars received`,
+          tokens: nextTokens,
+        };
       }
-      if (eventType === "tool_result" && payload.ok === true) {
-        return { ...prev, toolWrites: [...prev.toolWrites, { fileName: String(payload.fileName ?? "output"), fileId: String(payload.fileId ?? "") }] };
+      if (eventType === "tool_call") {
+        const tool = String(payload.tool ?? "tool");
+        const fileName = (payload.params as { file_name?: string } | undefined)?.file_name ?? "";
+        return { ...prev, phase: "tool_writing", phaseDetail: `Calling ${tool}${fileName ? ` → ${fileName}` : ""}…` };
       }
-      if (eventType === "status" && payload.phase === "completed") {
-        // finalize after short delay so the user sees the "Saved" chip.
-        queueMicrotask(() => {
-          reloadStageState();
-          reloadThread();
-          setStreamingRun(null);
-          setRunSubmitting(false);
-        });
-        return prev;
+      if (eventType === "tool_result") {
+        if (payload.ok === true) {
+          return {
+            ...prev,
+            toolWrites: [...prev.toolWrites, { fileName: String(payload.fileName ?? "output"), fileId: String(payload.fileId ?? "") }],
+            phaseDetail: `Saved ${String(payload.fileName ?? "output")} (${Number(payload.bytes ?? 0).toLocaleString()} bytes)`,
+          };
+        }
+        return { ...prev, phaseDetail: `Tool failed: ${String(payload.error ?? "unknown")}` };
       }
       if (eventType === "error") {
         setRunError(String(payload.message ?? payload.reason ?? "Run error."));
         setRunSubmitting(false);
+        return { ...prev, phase: "failed", phaseDetail: String(payload.message ?? payload.reason ?? "Run error.") };
       }
       return prev;
     });
@@ -1791,20 +1809,14 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
             </div>
           ) : null}
           {runError ? <p className="reference-run-error">{runError}</p> : null}
-          {runSubmitting && !streamingRun ? (
-            <div className="reference-run-status">
-              <RefreshCw size={14} className="spin" /> Submitting run… waiting for worker to pick it up.
-            </div>
-          ) : null}
-          {streamingRun && streamingRun.tokens.length === 0 ? (
-            <div className="reference-run-status">
-              <RefreshCw size={14} className="spin" /> Worker picked up the run. Waiting for first tokens…
-              {runWaitingLong ? (
-                <p style={{ color: "#c52b2b", marginTop: 8, fontSize: 12 }}>
-                  No response after 10s. Is <code>npm run worker</code> running in another terminal?
-                </p>
-              ) : null}
-            </div>
+          {streamingRun || runSubmitting ? (
+            <RunStatusBar
+              phase={streamingRun?.phase ?? (runSubmitting ? "submitting" : "")}
+              detail={streamingRun?.phaseDetail ?? "Submitting run to backend…"}
+              startedAt={streamingRun?.startedAt}
+              tokens={streamingRun?.tokens.length ?? 0}
+              toolWrites={streamingRun?.toolWrites.length ?? 0}
+            />
           ) : null}
         </div>
 
@@ -1924,7 +1936,74 @@ type ActiveRun = {
   runId: string;
   tokens: string;
   toolWrites: Array<{ fileName: string; fileId: string }>;
+  phase: string; // 'queued' | 'started' | 'prompt_built' | 'streaming' | 'tool_writing' | 'completed' | 'failed'
+  phaseDetail: string;
+  startedAt: number;
 };
+
+function RunStatusBar({
+  phase,
+  detail,
+  startedAt,
+  tokens,
+  toolWrites,
+}: {
+  phase: string;
+  detail: string;
+  startedAt?: number;
+  tokens: number;
+  toolWrites: number;
+}) {
+  const [, force] = useState(0);
+  // Tick once a second for elapsed time display.
+  useEffect(() => {
+    const id = setInterval(() => force((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const elapsedSec = startedAt ? Math.floor((Date.now() - startedAt) / 1000) : 0;
+  const elapsedDisplay = formatElapsed(elapsedSec);
+
+  const phaseLabel = ({
+    submitting: "Submitting",
+    queued: "Queued",
+    started: "Worker started",
+    prompt_built: "Prompt built",
+    streaming: "Streaming",
+    tool_writing: "Writing file",
+    completed: "Completed",
+    failed: "Failed",
+  } as Record<string, string>)[phase] ?? phase;
+
+  const isFailed = phase === "failed";
+  const isComplete = phase === "completed";
+
+  return (
+    <div className={`reference-run-status ${isFailed ? "failed" : isComplete ? "complete" : ""}`}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "space-between", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {isFailed ? <X size={14} /> : isComplete ? <Check size={14} /> : <RefreshCw size={14} className="spin" />}
+          <strong style={{ fontSize: 13 }}>{phaseLabel}</strong>
+          <span style={{ color: "var(--muted)", fontSize: 12 }}>· {elapsedDisplay}</span>
+        </div>
+        <div style={{ display: "flex", gap: 12, fontSize: 12, color: "var(--muted)" }}>
+          {tokens > 0 ? <span>{tokens.toLocaleString()} chars streamed</span> : null}
+          {toolWrites > 0 ? <span>{toolWrites} file{toolWrites !== 1 ? "s" : ""} written</span> : null}
+        </div>
+      </div>
+      <p style={{ margin: "6px 0 0 22px", fontSize: 12, color: "var(--muted)" }}>{detail}</p>
+    </div>
+  );
+}
+
+function formatElapsed(sec: number): string {
+  if (sec < 60) return `${sec}s`;
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  if (m < 60) return `${m}m ${s}s`;
+  const h = Math.floor(m / 60);
+  return `${h}h ${m % 60}m`;
+}
 
 function RerunConfirmDialog({ stage, onCancel, onConfirm }: { stage: StageStateEntry; onCancel: () => void; onConfirm: () => void }) {
   const downstream = stage.downstreamStageKeys;
