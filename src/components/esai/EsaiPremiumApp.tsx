@@ -1545,7 +1545,7 @@ function CalendarScreen() {
   );
 }
 
-function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssistant, onToggleTheme }: { competition: Competition; assistantOpen: boolean; darkMode: boolean; onBack: () => void; onToggleAssistant: () => void; onToggleTheme: () => void }) {
+export function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssistant, onToggleTheme }: { competition: Competition; assistantOpen: boolean; darkMode: boolean; onBack: () => void; onToggleAssistant: () => void; onToggleTheme: () => void }) {
   const [railCollapsed, setRailCollapsed] = useState(false);
   const [currentStageId, setCurrentStageId] = useState<StageId>(competition.currentStageId);
   const [outputOpen, setOutputOpen] = useState(false);
