@@ -19,16 +19,26 @@
   --font-code-fallback: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
   --bg: oklch(98.5% 0.004 80); --surface: oklch(100% 0 0); --panel: oklch(96.5% 0.006 80);
   --soft: oklch(94% 0.01 80); --fg: oklch(18% 0.012 260); --muted: oklch(52% 0.01 260);
-  --border: oklch(92% 0.004 80); --primary: oklch(78% 0.16 70); --primary-soft: oklch(78% 0.16 70 / 0.1);
+  --border: oklch(92% 0.004 80); --primary: oklch(72% 0.17 55); --primary-soft: oklch(72% 0.17 55 / 0.12);
   --primary-border: oklch(84% 0.12 70); --secondary: oklch(68% 0.14 25);
   --success: oklch(70% 0.16 155); --danger: oklch(62% 0.2 25); --radius: 16px;
+  --sidebar: oklch(99.5% 0.003 80); --nav-active: oklch(95% 0.022 70); --nav-hover: oklch(96.5% 0.01 80);
+  --surface-soft: oklch(98% 0.006 80); --profile-card: oklch(97% 0.012 75); --chip-bg: oklch(96% 0.035 72);
+  --button-soft: oklch(96% 0.026 70); --tip-bg: linear-gradient(110deg, oklch(100% 0 0), oklch(95% 0.03 72));
+  --page-glow: oklch(90% 0.04 70 / 0.42); --page-warm: oklch(92% 0.035 72 / 0.28);
+  --soft-shadow: 0 16px 40px -28px rgb(15 23 42 / .35), 0 8px 20px -24px rgb(15 23 42 / .28);
 }
 
 :root[data-theme="dark"] {
-  --bg: oklch(16% 0.008 260); --surface: oklch(21% 0.008 260); --panel: oklch(24% 0.01 260);
-  --soft: oklch(28% 0.01 260); --fg: oklch(95% 0.004 80); --muted: oklch(68% 0.01 260);
-  --border: oklch(30% 0.008 260); --primary: oklch(82% 0.14 72); --primary-soft: oklch(82% 0.14 72 / 0.15);
-  --primary-border: oklch(64% 0.12 72); --secondary: oklch(74% 0.12 25); color-scheme: dark;
+  --bg: oklch(13% 0.01 250); --surface: oklch(18% 0.012 250); --panel: oklch(21% 0.014 250);
+  --soft: oklch(25% 0.014 250); --fg: oklch(96% 0.004 80); --muted: oklch(72% 0.012 250);
+  --border: oklch(28% 0.012 250); --primary: oklch(74% 0.17 55); --primary-soft: oklch(74% 0.17 55 / 0.15);
+  --primary-border: oklch(58% 0.14 55); --secondary: oklch(74% 0.12 25); --sidebar: oklch(15% 0.012 250);
+  --nav-active: oklch(25% 0.028 55); --nav-hover: oklch(22% 0.014 250); --surface-soft: oklch(20% 0.012 250);
+  --profile-card: oklch(20% 0.014 250); --chip-bg: oklch(28% 0.04 55); --button-soft: oklch(23% 0.028 55);
+  --tip-bg: linear-gradient(110deg, oklch(18% 0.012 250), oklch(24% 0.032 55));
+  --page-glow: oklch(22% 0.045 220 / 0.58); --page-warm: oklch(34% 0.05 55 / 0.2);
+  --soft-shadow: 0 16px 40px -28px rgb(0 0 0 / .8), 0 8px 20px -24px rgb(0 0 0 / .7); color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -40,4 +50,95 @@ button, input, select, textarea { font: inherit; }
 @keyframes confetti-pop { 0% { opacity: 0; translate: 0 0; scale: .6; } 15% { opacity: 1; } 100% { opacity: 0; translate: 0 140px; scale: 1; } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+}
+
+@layer components {
+  .btn-primary, .btn-secondary, .btn-ghost, .ghost-icon, .reference-round-button, .reference-theme-button, .composer-tools-button, .send-button {
+    display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 2.5rem; border-radius: 12px;
+    border: 1px solid var(--border); padding: .6rem .9rem; font-size: .875rem; font-weight: 800; transition: .18s ease;
+  }
+  .btn-primary { background: var(--primary); border-color: var(--primary); color: white; }
+  .btn-secondary, .btn-ghost, .ghost-icon, .reference-round-button, .reference-theme-button, .composer-tools-button { background: var(--surface); color: var(--fg); }
+  .btn-primary:hover, .btn-secondary:hover, .btn-ghost:hover, .ghost-icon:hover, .reference-round-button:hover, .reference-theme-button:hover, .composer-tools-button:hover { transform: translateY(-1px); box-shadow: var(--soft-shadow); }
+  .danger, .modal-error, .reference-run-error { color: var(--danger); }
+  .form-note, .notice { color: var(--muted); font-size: .875rem; }
+
+  .devs-agents, .reference-workbench { min-height: calc(100vh - 7rem); border: 1px solid var(--border); border-radius: 18px; background: var(--surface); box-shadow: var(--soft-shadow); overflow: hidden; }
+  .devs-agent-toolbar, .reference-stage-summary-strip, .reference-thread-toolbar, .reference-chat-controls, .devs-agent-stage-header, .devs-agent-side-header, .devs-agent-document-toolbar, .assistant-model-controls, .modal-header, .modal-actions {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  }
+  .devs-agent-toolbar { padding: 1rem; border-bottom: 1px solid var(--border); }
+  .agent-create-row { display: flex; gap: .75rem; padding: 0 1rem 1rem; }
+  .agent-create-row input, .devs-agents input, .devs-agents select, .devs-agents textarea, .reference-workbench select, .reference-workbench textarea, .assistant-panel textarea, .assistant-panel select {
+    width: 100%; border: 1px solid var(--border); border-radius: 12px; background: var(--panel); color: var(--fg); padding: .75rem .9rem; outline: none;
+  }
+  .devs-agent-grid { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 760px; }
+  .devs-agent-stage-header { padding: 1rem 1.2rem; border-bottom: 1px solid var(--border); background: var(--surface-soft); }
+  .devs-agent-stage-header h2, .reference-rail-header h2, .reference-current-head h2 { margin: 0; font-size: 1.1rem; font-weight: 900; }
+  .devs-agent-stage-actions, .reference-thread-actions, .composer-controls { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+  .reference-text-button { border: 0; background: transparent; color: var(--muted); padding: .45rem .6rem; border-radius: 10px; font-weight: 800; }
+  .reference-text-button.active { background: var(--primary-soft); color: var(--primary); }
+  .devs-agent-stage-body { display: grid; grid-template-columns: 240px minmax(0, 1fr) 320px; min-height: 0; }
+  .devs-agent-list, .devs-agent-side, .reference-workflow-rail, .reference-current-file { background: var(--surface-soft); border-color: var(--border); }
+  .devs-agent-list { border-right: 1px solid var(--border); padding: 1rem; }
+  .devs-agent-list button, .versions-list > div, .contract-editor, .assistant-proposal, .template-panel, .template-confirm, .validation-alert {
+    width: 100%; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); color: var(--fg); padding: .85rem; text-align: left; margin-bottom: .75rem;
+  }
+  .devs-agent-list button.active, .versions-list .active { border-color: var(--primary-border); box-shadow: 0 0 0 3px var(--primary-soft); }
+  .devs-agent-editor { min-width: 0; padding: 1rem; background: var(--bg); }
+  .devs-agent-document-page, .reference-document-page { min-height: 560px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); padding: 1.2rem; box-shadow: var(--soft-shadow); }
+  .agent-description-field, .agent-prompt-field, .contract-check { display: grid; gap: .5rem; margin-bottom: 1rem; font-weight: 800; }
+  .agent-prompt-textarea { min-height: 420px; font-family: var(--font-code), var(--font-code-fallback); line-height: 1.55; }
+  .devs-agent-side { border-left: 1px solid var(--border); padding: 1rem; overflow: auto; }
+  .contracts-panel, .assistant-draft-panel, .versions-list, .template-panel { display: grid; gap: .8rem; }
+  .save-status { border-radius: 999px; padding: .3rem .65rem; background: var(--primary-soft); color: var(--primary); font-size: .75rem; font-weight: 900; }
+
+  .reference-workbench { display: grid; grid-template-columns: 260px minmax(0, 1fr) 320px; background: var(--bg); }
+  .reference-workflow-rail, .reference-current-file { padding: 1rem; overflow: auto; }
+  .reference-workflow-rail { border-right: 1px solid var(--border); }
+  .reference-current-file { border-left: 1px solid var(--border); }
+  .reference-stage-list, .reference-unlocks, .reference-agent-thread, .reference-chat-composer, .reference-current-card { display: grid; gap: .8rem; }
+  .file-control, .reference-file-control {
+    width: 100%; min-height: 74px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface);
+    color: var(--fg); padding: .85rem; text-align: left; display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+  }
+  .file-control span { display: grid; gap: .2rem; min-width: 0; }
+  .file-control small { color: var(--muted); font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+  .file-control strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-control em { color: var(--muted); font-style: normal; font-size: .8rem; }
+  .reference-stage-row { width: 100%; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); color: var(--fg); padding: .85rem; text-align: left; display: flex; gap: .75rem; }
+  .reference-stage-row.selected { border-color: var(--primary-border); background: var(--primary-soft); }
+  .reference-stage-dot, .reference-activity-dot { width: .75rem; height: .75rem; border-radius: 999px; background: var(--primary); margin-top: .25rem; flex: 0 0 auto; }
+  .reference-stage-copy { display: grid; gap: .15rem; }
+  .reference-workbench-center { min-width: 0; padding: 1rem; display: grid; grid-template-rows: auto auto auto minmax(240px,1fr) auto auto; gap: 1rem; }
+  .reference-ready-line, .reference-agent-question, .reference-handoff, .reference-current-card, .assistant-panel, .reference-run-status {
+    border: 1px solid var(--border); border-radius: 16px; background: var(--surface); padding: 1rem; box-shadow: var(--soft-shadow);
+  }
+  .reference-agent-thread { overflow: auto; min-height: 260px; }
+  .reference-thread-empty { color: var(--muted); text-align: center; padding: 2rem; }
+  .reference-chat-bubble { max-width: 88%; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); padding: 1rem; }
+  .reference-chat-bubble.user { margin-left: auto; background: var(--primary-soft); border-color: var(--primary-border); }
+  .reference-chat-role, .reference-chat-time { color: var(--muted); font-size: .75rem; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
+  .reference-message-head, .reference-message-title, .reference-handoff-actions, .composer-row { display: flex; align-items: center; gap: .75rem; }
+  .reference-message-menu-wrap { margin-left: auto; position: relative; }
+  .reference-message-menu { position: absolute; right: 0; z-index: 5; min-width: 180px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); padding: .4rem; box-shadow: var(--soft-shadow); }
+  .reference-chat-composer textarea, .assistant-panel textarea { min-height: 80px; resize: vertical; }
+  .composer-row textarea { flex: 1; }
+  .composer-tools { position: relative; }
+  .composer-tools-menu { position: absolute; bottom: calc(100% + .5rem); right: 0; z-index: 10; min-width: 280px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); padding: .8rem; box-shadow: var(--soft-shadow); }
+  .composer-tools-menu button.active, .reference-choice-pill:hover { background: var(--primary-soft); color: var(--primary); }
+  .reference-live-output, .reference-live-stream, .reference-progress-log { border-radius: 14px; background: var(--panel); padding: 1rem; color: var(--fg); }
+  .reference-progress-log { display: grid; gap: .35rem; font-family: var(--font-code), var(--font-code-fallback); font-size: .78rem; color: var(--muted); }
+  .comp-status-pill, .reference-tool-chip { border-radius: 999px; background: var(--primary-soft); color: var(--primary); padding: .3rem .65rem; font-size: .75rem; font-weight: 900; }
+  .modal-backdrop, .reference-editor-overlay { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: rgb(0 0 0 / .55); padding: 1rem; }
+  .small-modal, .reference-editor-shell { width: min(680px, 100%); border: 1px solid var(--border); border-radius: 18px; background: var(--surface); padding: 1rem; box-shadow: var(--soft-shadow); }
+  .reference-editor-shell { width: min(1080px, 100%); height: min(820px, 92vh); display: grid; grid-template-rows: auto 1fr; }
+  .reference-editor-body { overflow: auto; padding: 1rem; background: var(--bg); }
+  .assistant-header, .assistant-body, .assistant-composer { margin-bottom: 1rem; }
+  .assistant-bubble { display: flex; gap: .75rem; border-radius: 14px; background: var(--primary-soft); padding: .9rem; color: var(--fg); }
+}
+
+@media (max-width: 1180px) {
+  .devs-agent-stage-body, .reference-workbench { grid-template-columns: 1fr; }
+  .devs-agent-list, .devs-agent-side, .reference-workflow-rail, .reference-current-file { border: 0; }
 }

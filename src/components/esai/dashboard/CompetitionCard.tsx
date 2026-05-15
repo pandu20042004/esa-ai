@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -48,11 +48,11 @@ export function CompetitionCard({ competition, selected, onOpen, onEdit, onDelet
         if (event.key === "Enter" || event.key === " ") onOpen(competition);
       }}
       className={cn(
-        "group overflow-hidden rounded-[16px] p-0 transition duration-200 hover:-translate-y-0.5 hover:scale-[1.01] hover:border-[var(--primary-border)] hover:shadow-[0_10px_30px_-10px_rgba(0,0,0,0.1)]",
+        "group overflow-hidden rounded-[16px] border-[var(--border)] bg-[var(--surface)] p-0 shadow-[var(--soft-shadow)] transition duration-200 hover:-translate-y-0.5 hover:scale-[1.01] hover:border-[var(--primary-border)]",
         selected && "border-[var(--primary-border)] shadow-[0_0_0_3px_var(--primary-soft)]",
       )}
     >
-      <div className="relative aspect-[4/3] overflow-hidden bg-[var(--primary-soft)]">
+      <div className="relative aspect-[2/1] overflow-hidden bg-[var(--primary-soft)]">
         {competition.posterImageUrl ? (
           <img src={competition.posterImageUrl} alt={competition.title} className="h-full w-full object-cover" loading="lazy" />
         ) : (
@@ -62,7 +62,7 @@ export function CompetitionCard({ competition, selected, onOpen, onEdit, onDelet
             </span>
           </div>
         )}
-        <Badge className="absolute left-3 top-3 bg-white/90 text-[var(--fg)] shadow-sm">{competition.status || "Setup"}</Badge>
+        <Badge className="absolute bottom-3 left-4 rounded-full bg-[var(--chip-bg)] px-3 py-1 text-[var(--primary)] shadow-sm">{competition.status || "Setup"}</Badge>
         <div
           className={cn(
             "absolute right-3 top-3 transition-opacity md:opacity-0 md:group-hover:opacity-100",
@@ -90,7 +90,7 @@ export function CompetitionCard({ competition, selected, onOpen, onEdit, onDelet
         </div>
       </div>
 
-      <div className="grid gap-4 p-5">
+      <div className="grid gap-5 p-5">
         <div className="grid gap-1">
           <h3 className="truncate text-lg font-bold leading-tight">{competition.title}</h3>
           <p className="truncate text-sm text-[var(--muted)]">
@@ -100,15 +100,28 @@ export function CompetitionCard({ competition, selected, onOpen, onEdit, onDelet
         </div>
 
         <div className="grid gap-2" title={`Progress ${progress}%`}>
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-[var(--muted)]">Progress</span>
+            <strong>{progress}%</strong>
+          </div>
           <Progress value={progress} aria-label={`Progress ${progress}%`} />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[var(--muted)]">
-          <Badge className={cn(deadlineUrgent ? "bg-[var(--secondary)] text-white" : "bg-[var(--soft)] text-[var(--fg)]")}>
-            <CalendarDays className="size-3" />
-            {formatDeadline(competition.deadline)}
-          </Badge>
-          <span className="truncate">{stageLabel}</span>
+        <div className="grid gap-4 text-xs font-semibold text-[var(--muted)]">
+          <div className="flex items-center justify-between gap-3">
+            <span>Deadline</span>
+            <span className={cn("truncate", deadlineUrgent ? "text-[var(--primary)]" : "text-[var(--muted)]")}>
+              {formatDeadline(competition.deadline)}
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button className="flex-1 bg-[var(--button-soft)] text-[var(--primary)] hover:bg-[var(--primary-soft)]" type="button" onClick={(event) => { event.stopPropagation(); onOpen(competition); }}>
+              Lanjutkan
+            </Button>
+            <Button size="icon" variant="outline" type="button" aria-label={`Open ${stageLabel}`} onClick={(event) => { event.stopPropagation(); onEdit(competition); }}>
+              <MoreHorizontal className="size-4" />
+            </Button>
+          </div>
         </div>
       </div>
     </Card>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bot, CalendarDays, Code2, FileCheck, LayoutDashboard, Moon, PanelLeftClose, PanelLeftOpen, Settings, ShieldCheck, Sun, WandSparkles } from "lucide-react";
+import { CalendarDays, ChevronRight, Code2, Feather, FileCheck, Grid2X2, Moon, PanelLeftClose, PanelLeftOpen, Settings, ShieldCheck, Sun, WandSparkles } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -15,7 +15,7 @@ const groups = [
   {
     label: "MAIN",
     items: [
-      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/dashboard", label: "Dashboard", icon: Grid2X2 },
       { href: "/calendar", label: "Calendar", icon: CalendarDays },
     ],
   },
@@ -37,7 +37,7 @@ export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
-  const { selectedCompetition } = useCompetitionsContext();
+  const { competitions, selectedCompetition, selectCompetition } = useCompetitionsContext();
   const { darkMode, toggleTheme } = useTheme();
 
   const resolveHref = (href: string) => {
@@ -52,21 +52,28 @@ export function AppSidebar() {
     router.push("/dashboard");
   };
 
+  const handleCompetitionSelect = (value: string) => {
+    const competition = competitions.find((item) => item.id === value);
+    if (!competition) return;
+    selectCompetition(competition);
+    router.push(`/workbench/${competition.id}`);
+  };
+
   return (
     <aside
       className={cn(
-        "sticky top-0 z-20 flex w-full shrink-0 flex-col border-b border-[var(--border)] bg-[var(--surface)] px-4 py-5 transition-[width] duration-200 md:h-screen md:border-b-0 md:border-r",
-        collapsed ? "md:w-[84px]" : "md:w-[268px]",
+        "sticky top-0 z-20 flex w-full shrink-0 flex-col border-b border-[var(--border)] bg-[var(--sidebar)] px-4 py-7 transition-[width] duration-200 md:h-screen md:border-b-0 md:border-r",
+        collapsed ? "md:w-[88px]" : "md:w-[292px]",
       )}
     >
-      <div className="mb-7 flex min-h-10 items-center gap-3">
-        <div className="grid size-10 place-items-center rounded-[12px] bg-[var(--primary)] text-sm font-extrabold text-white">
-          EA
+      <div className="mb-8 flex min-h-11 items-center gap-3">
+        <div className="grid size-11 place-items-center text-[var(--primary)]">
+          <Feather className="size-10 fill-[var(--primary)] stroke-[var(--primary)]" />
         </div>
         {!collapsed ? (
           <div className="min-w-0">
-            <strong className="block truncate font-[var(--font-display)] text-lg font-extrabold">ESAI.ai</strong>
-            <span className="block truncate text-xs font-medium text-[var(--muted)]">Academic companion</span>
+            <strong className="block truncate font-[var(--font-display)] text-xl font-extrabold">Esai Premium</strong>
+            <span className="block truncate text-xs font-medium text-[var(--muted)]">AI-Powered Essay Companion</span>
           </div>
         ) : null}
       </div>
@@ -74,11 +81,11 @@ export function AppSidebar() {
       <Link
         href="/dashboard"
         className={cn(
-          "mb-6 flex min-h-12 items-center gap-3 rounded-[16px] border border-[var(--primary-border)] bg-[var(--primary-soft)] px-3 text-sm font-bold text-[var(--fg)]",
+          "mb-7 flex min-h-14 items-center gap-3 rounded-[12px] bg-[var(--nav-active)] px-4 text-sm font-bold text-[var(--primary)] shadow-sm",
           collapsed && "justify-center px-0",
         )}
       >
-        <Bot className="size-4 text-[var(--primary)]" />
+        <Grid2X2 className="size-5 fill-[var(--primary)]" />
         {!collapsed ? <span>AI Assistant</span> : null}
       </Link>
 
@@ -100,32 +107,62 @@ export function AppSidebar() {
                     onClick={item.href === "/workbench" ? handleWorkbenchClick : undefined}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "relative flex min-h-10 items-center gap-3 rounded-[12px] px-3 text-sm font-semibold text-[var(--muted)] transition-colors hover:bg-[var(--soft)] hover:text-[var(--fg)]",
+                      "relative flex min-h-12 items-center gap-4 rounded-[12px] px-4 text-base font-medium text-[var(--muted)] transition-colors hover:bg-[var(--nav-hover)] hover:text-[var(--fg)]",
                       collapsed && "justify-center px-0",
-                      active && "bg-[var(--primary-soft)] text-[var(--fg)]",
+                      active && "bg-[var(--nav-active)] text-[var(--primary)]",
                     )}
                   >
-                    {active ? <span className="absolute left-0 h-5 w-[3px] rounded-r-full bg-[var(--primary)]" /> : null}
-                    <Icon className="size-4" />
+                    {active ? <span className="absolute left-0 h-7 w-[3px] rounded-r-full bg-[var(--primary)]" /> : null}
+                    <Icon className="size-5" />
                     {!collapsed ? <span>{item.label}</span> : null}
                   </Link>
                 );
               })}
+              {group.label === "TOOLS" && !collapsed ? (
+                <div className="mx-2 mt-1 grid gap-2 rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+                  <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--muted)]">Workbench competition</span>
+                  <select
+                    value={selectedCompetition?.id ?? ""}
+                    onChange={(event) => handleCompetitionSelect(event.target.value)}
+                    className="h-10 min-w-0 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--fg)] outline-none focus:border-[var(--primary-border)]"
+                    aria-label="Select workbench competition"
+                  >
+                    <option value="">{competitions.length ? "Select competition" : "No competition yet"}</option>
+                    {competitions.map((competition) => (
+                      <option key={competition.id} value={competition.id}>{competition.title}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
             </div>
           </div>
         ))}
       </nav>
 
+      {!collapsed ? (
+        <div className="mb-5 rounded-[14px] border border-[var(--border)] bg-[var(--profile-card)] p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="grid size-11 place-items-center rounded-full bg-[var(--primary-soft)] text-sm font-extrabold text-[var(--primary)]">A</div>
+            <div className="min-w-0 flex-1">
+              <strong className="block truncate text-sm">Akmal Rizky</strong>
+              <span className="block truncate text-xs text-[var(--muted)]">Universitas Indonesia</span>
+            </div>
+            <ChevronRight className="size-4 text-[var(--primary)]" />
+          </div>
+          <span className="ml-14 mt-2 inline-flex rounded-full bg-[var(--primary-soft)] px-3 py-1 text-[11px] font-bold text-[var(--primary)]">Pro Plan</span>
+        </div>
+      ) : null}
+
       <div className="grid gap-2 border-t border-[var(--border)] pt-4">
         <Link
           href="/settings"
           className={cn(
-            "flex min-h-10 items-center gap-3 rounded-[12px] px-3 text-sm font-semibold text-[var(--muted)] hover:bg-[var(--soft)] hover:text-[var(--fg)]",
+            "flex min-h-12 items-center gap-4 rounded-[12px] px-4 text-base font-medium text-[var(--muted)] hover:bg-[var(--nav-hover)] hover:text-[var(--fg)]",
             collapsed && "justify-center px-0",
-            pathname === "/settings" && "bg-[var(--primary-soft)] text-[var(--fg)]",
+            pathname === "/settings" && "bg-[var(--nav-active)] text-[var(--primary)]",
           )}
         >
-          <Settings className="size-4" />
+          <Settings className="size-5" />
           {!collapsed ? <span>Settings</span> : null}
         </Link>
         <div className="flex items-center gap-2">

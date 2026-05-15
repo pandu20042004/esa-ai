@@ -242,7 +242,7 @@ export function Workbench({ competition, assistantOpen, darkMode, onBack, onTogg
       });
       setStreamingRun({ runId, stageId: currentStage.id, tokens: "", activities: [], progressLines: [], toolWrites: [], phase: "queued", phaseDetail: "Run queued. Worker polls every 2s.", startedAt: Date.now() });
       setComposerValue("");
-      // Keep runSubmitting true â€” it will be cleared when first token arrives or on error.
+      // Keep runSubmitting true until the first token arrives or the request errors.
       await reloadThread();
     } catch (error) {
       setRunError((error as Error).message ?? "Run failed.");
@@ -321,7 +321,7 @@ export function Workbench({ competition, assistantOpen, darkMode, onBack, onTogg
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [streamingRun?.runId]);
 
-  // Poll run status from DB while waiting â€” catches cases where worker died after queueing
+  // Poll run status from DB while waiting; catches cases where worker died after queueing.
   // or finished without our subscription getting events. Stops once we see streaming or completion.
   useEffect(() => {
     if (!streamingRun) return;
@@ -415,7 +415,7 @@ export function Workbench({ competition, assistantOpen, darkMode, onBack, onTogg
         }
         if (phase === "prompt_built") {
           const length = Number(payload.length ?? 0);
-          return { ...prev, phase: "prompt_built", phaseDetail: `Prompt built (${length.toLocaleString()} chars). Calling modelâ€¦` };
+          return { ...prev, phase: "prompt_built", phaseDetail: `Prompt built (${length.toLocaleString()} chars). Calling model...` };
         }
         if (phase === "cli_stderr" || phase === "cli_progress") {
           const text = String(payload.text ?? "").trim();
@@ -476,7 +476,7 @@ export function Workbench({ competition, assistantOpen, darkMode, onBack, onTogg
         return {
           ...prev,
           phase: "streaming",
-          phaseDetail: `Streaming responseâ€¦ ${nextTokens.length.toLocaleString()} chars received`,
+          phaseDetail: `Streaming response... ${nextTokens.length.toLocaleString()} chars received`,
           tokens: nextTokens,
         };
       }
@@ -516,7 +516,7 @@ export function Workbench({ competition, assistantOpen, darkMode, onBack, onTogg
       if (eventType === "tool_call") {
         const tool = String(payload.tool ?? "tool");
         const fileName = (payload.params as { file_name?: string } | undefined)?.file_name ?? "";
-        return { ...prev, phase: "tool_writing", phaseDetail: `Calling ${tool}${fileName ? ` â†’ ${fileName}` : ""}â€¦` };
+        return { ...prev, phase: "tool_writing", phaseDetail: `Calling ${tool}${fileName ? ` -> ${fileName}` : ""}...` };
       }
       if (eventType === "tool_result") {
         if (payload.ok === true) {
@@ -560,7 +560,7 @@ export function Workbench({ competition, assistantOpen, darkMode, onBack, onTogg
 
   const requestRerun = () => {
     if (!currentStageEntry) {
-      // Pipeline not bootstrapped yet â€” first run will create it.
+      // Pipeline not bootstrapped yet; first run will create it.
       void startRun();
       return;
     }
@@ -568,7 +568,7 @@ export function Workbench({ competition, assistantOpen, darkMode, onBack, onTogg
       setRerunTarget(currentStageEntry);
       return;
     }
-    // no approved output or no downstream â†’ just run immediately
+    // No approved output or no downstream: run immediately.
     void startRun();
   };
 
@@ -770,7 +770,7 @@ export function Workbench({ competition, assistantOpen, darkMode, onBack, onTogg
                 {!railCollapsed ? (
                   <span className="reference-stage-copy">
                     <strong>{stage.label}</strong>
-                    <small>{status === "stale" ? "Upstream changed â€” needs re-run" : `Needs: ${stage.input}`}</small>
+                    <small>{status === "stale" ? "Upstream changed - needs re-run" : `Needs: ${stage.input}`}</small>
                   </span>
                 ) : null}
               </button>
@@ -790,10 +790,10 @@ export function Workbench({ competition, assistantOpen, darkMode, onBack, onTogg
           <p>
             <strong>Input gate:</strong>{" "}
             {stagesLoading
-              ? "checking upstreamâ€¦"
+              ? "checking upstream..."
               : stageUnlocked
-                ? "ready â€” upstream inputs approved."
-                : "locked â€” approve upstream outputs first."}
+                ? "ready - upstream inputs approved."
+                : "locked - approve upstream outputs first."}
           </p>
         </div>
 
@@ -917,8 +917,8 @@ export function Workbench({ competition, assistantOpen, darkMode, onBack, onTogg
           })}
           {showStreamingBubble && visibleStreamingRun ? (
             <div className="reference-chat-bubble assistant streaming">
-              <span className="reference-chat-role">Agent Â· streaming</span>
-              <MarkdownText text={visibleStreamingRun.tokens || "â€¦"} />
+              <span className="reference-chat-role">Agent - streaming</span>
+              <MarkdownText text={visibleStreamingRun.tokens || "..."} />
               {visibleStreamingRun.needsUserChoice ? (
                 <AgentChoiceCard choice={visibleStreamingRun.needsUserChoice} onSelect={answerAgentChoice} />
               ) : null}
@@ -956,7 +956,7 @@ export function Workbench({ competition, assistantOpen, darkMode, onBack, onTogg
           {visibleStreamingRun || currentStageSubmitting ? (
             <RunStatusBar
               phase={visibleStreamingRun?.phase ?? (currentStageSubmitting ? "submitting" : "")}
-              detail={visibleStreamingRun?.phaseDetail ?? "Submitting run to backendâ€¦"}
+              detail={visibleStreamingRun?.phaseDetail ?? "Submitting run to backend..."}
               startedAt={visibleStreamingRun?.startedAt}
               tokens={visibleStreamingRun?.tokens.length ?? 0}
               toolWrites={visibleStreamingRun?.toolWrites.length ?? 0}
@@ -1001,7 +1001,7 @@ export function Workbench({ competition, assistantOpen, darkMode, onBack, onTogg
               onChange={(event) => setSelectedModel(event.target.value)}
               disabled={models.length === 0 || isRunning}
             >
-              {modelsLoading && models.length === 0 ? <option value="">Loading modelsâ€¦</option> : null}
+              {modelsLoading && models.length === 0 ? <option value="">Loading models...</option> : null}
               {!modelsLoading && models.length === 0 ? <option value="">No models configured</option> : null}
               {models.map((m) => (
                 <option key={buildModelPickerValue(m)} value={buildModelPickerValue(m)}>
@@ -1579,7 +1579,7 @@ function RunStatusBar({
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {isFailed ? <X size={14} /> : isComplete ? <Check size={14} /> : <RefreshCw size={14} className="spin" />}
           <strong style={{ fontSize: 13 }}>{phaseLabel}</strong>
-          <span style={{ color: "var(--muted)", fontSize: 12 }}>Â· {elapsedDisplay}</span>
+          <span style={{ color: "var(--muted)", fontSize: 12 }}>- {elapsedDisplay}</span>
         </div>
         <div style={{ display: "flex", gap: 12, fontSize: 12, color: "var(--muted)" }}>
           {tokens > 0 ? <span>{tokens.toLocaleString()} chars streamed</span> : null}
@@ -1622,7 +1622,7 @@ function RerunConfirmDialog({ stage, onCancel, onConfirm }: { stage: StageStateE
         </p>
         {downstream.length > 0 ? (
           <ul className="reference-stale-list">
-            {downstream.map((key) => <li key={key}>â€¢ {stageLabelFor(key)}</li>)}
+            {downstream.map((key) => <li key={key}>- {stageLabelFor(key)}</li>)}
           </ul>
         ) : <p><em>No downstream stages currently consume this output.</em></p>}
         <div className="modal-actions">
@@ -1640,7 +1640,7 @@ function stageLabelFor(nodeKey: string): string {
 }
 
 function FullscreenOutputReader({ fileId, fileName, onClose }: { fileId: string; fileName: string; onClose: () => void }) {
-  const [content, setContent] = useState<string>("Loadingâ€¦");
+  const [content, setContent] = useState<string>("Loading...");
   useEffect(() => {
     let cancelled = false;
     (async () => {

@@ -29,7 +29,7 @@ export function WorkbenchView({ competitionId }: { competitionId: string }) {
   }
 
   return (
-    <div className="-m-5 sm:-m-8 lg:-m-10">
+    <div className="grid gap-5">
       <Workbench
         competition={competition}
         assistantOpen={false}
