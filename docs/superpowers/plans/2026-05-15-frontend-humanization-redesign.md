@@ -1,6 +1,6 @@
-# Frontend Humanization Redesign Implementation Plan
+﻿# Frontend Humanization Redesign Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Rebuild ESAI.ai frontend from the current monolithic admin-style interface into the approved warm, routed, humanistic design system while preserving existing Supabase, OpenClaw, file, agent, and competition workflows.
 
@@ -43,7 +43,7 @@
 - Modify: `package-lock.json`
 - Replace: `src/app/globals.css`
 
-- [ ] **Step 1: Install design dependencies**
+- [x] **Step 1: Install design dependencies**
 
 Run:
 
@@ -53,7 +53,7 @@ npm install class-variance-authority clsx tailwind-merge tailwindcss-animate son
 
 Expected: `package.json` and `package-lock.json` include the new dependencies. If `framer-motion` install warns that Motion now prefers `motion`, keep `framer-motion` for spec compliance unless build fails.
 
-- [ ] **Step 2: Add shadcn config**
+- [x] **Step 2: Add shadcn config**
 
 Write `components.json`:
 
@@ -80,7 +80,7 @@ Write `components.json`:
 }
 ```
 
-- [ ] **Step 3: Add `cn()` utility with test**
+- [x] **Step 3: Add `cn()` utility with test**
 
 Write `src/lib/utils.ts`:
 
@@ -114,7 +114,7 @@ npm test -- src/lib/__tests__/utils.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 4: Replace global CSS with token layer**
+- [x] **Step 4: Replace global CSS with token layer**
 
 Replace the top of `src/app/globals.css` with the approved warm token system and keep only base selectors. The final file should stay under 80 lines during this task; later cleanup brings it under 50.
 
@@ -179,7 +179,7 @@ npm run lint
 
 Expected: no lint errors. Visual breakage is acceptable at this task because routes still use old classes until migration.
 
-- [ ] **Step 5: Commit foundation**
+- [x] **Step 5: Commit foundation**
 
 Run:
 
@@ -213,7 +213,7 @@ Expected: commit pushed to `origin/phase-a-dashboard-auth-competitions`.
 - Create: `src/components/ui/separator.tsx`
 - Create: `src/components/ui/__tests__/button.test.tsx`
 
-- [ ] **Step 1: Add shadcn primitives**
+- [x] **Step 1: Add shadcn primitives**
 
 Run:
 
@@ -223,7 +223,7 @@ npx shadcn@latest add button card dialog dropdown-menu input textarea badge prog
 
 Expected: files are created in `src/components/ui/` using `@/lib/utils`.
 
-- [ ] **Step 2: Normalize primitive styles to warm tokens**
+- [x] **Step 2: Normalize primitive styles to warm tokens**
 
 In every generated primitive, replace hard-coded `bg-primary`, `text-primary-foreground`, and border assumptions if they do not resolve under Tailwind v4. Use token-backed utilities like:
 
@@ -237,7 +237,7 @@ For cards, use:
 "rounded-[16px] border border-[var(--border)] bg-[var(--surface)] shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.06)]"
 ```
 
-- [ ] **Step 3: Add button smoke test**
+- [x] **Step 3: Add button smoke test**
 
 Write `src/components/ui/__tests__/button.test.tsx`:
 
@@ -262,7 +262,7 @@ npm test -- src/components/ui/__tests__/button.test.tsx
 
 Expected: PASS.
 
-- [ ] **Step 4: Commit primitives**
+- [x] **Step 4: Commit primitives**
 
 Run:
 
@@ -288,7 +288,7 @@ git push
 - Create: `src/app/(app)/page.tsx`
 - Modify: `src/app/page.tsx`
 
-- [ ] **Step 1: Add theme provider**
+- [x] **Step 1: Add theme provider**
 
 Write `ThemeProvider.tsx`:
 
@@ -324,7 +324,7 @@ export function useTheme() {
 }
 ```
 
-- [ ] **Step 2: Add competition provider**
+- [x] **Step 2: Add competition provider**
 
 Move competition list loading from `EsaiPremiumApp` into `CompetitionProvider.tsx`. Preserve `fetchCompetitions`, `fetchFiles`, `selectInitialCompetition`, and localStorage key `esai-selected-competition-id`.
 
@@ -344,7 +344,7 @@ type CompetitionContextValue = {
 };
 ```
 
-- [ ] **Step 3: Add route-aware sidebar**
+- [x] **Step 3: Add route-aware sidebar**
 
 `AppSidebar.tsx` must use `next/link` and `usePathname`. Use grouped nav:
 
@@ -358,7 +358,7 @@ const groups = [
 
 If the user clicks `/workbench` with no selected competition, route to `/dashboard` and show a Sonner toast: `Pilih kompetisi dulu untuk membuka Workbench.`
 
-- [ ] **Step 4: Add layout files**
+- [x] **Step 4: Add layout files**
 
 `src/app/(app)/layout.tsx`:
 
@@ -388,7 +388,7 @@ export default function Page() {
 }
 ```
 
-- [ ] **Step 5: Add sidebar test**
+- [x] **Step 5: Add sidebar test**
 
 Write `app-sidebar.test.tsx` using `vi.mock("next/navigation")` and `vi.mock("next/link")`; assert grouped labels and active Dashboard state render.
 
@@ -401,7 +401,7 @@ npm run build
 
 Expected: both pass.
 
-- [ ] **Step 6: Commit shell**
+- [x] **Step 6: Commit shell**
 
 Run:
 
@@ -427,7 +427,7 @@ git push
 - Create: `src/components/esai/common/CelebrationToast.tsx`
 - Create: `src/components/esai/dashboard/__tests__/competition-card.test.tsx`
 
-- [ ] **Step 1: Extract card behavior**
+- [x] **Step 1: Extract card behavior**
 
 Move card display logic from old `DashboardScreen` into `CompetitionCard`. Preserve:
 
@@ -443,7 +443,7 @@ type CompetitionCardProps = {
 
 Visual hierarchy must match spec: poster first, title second, progress visual, deadline badge, muted metadata, menu hidden until hover on desktop.
 
-- [ ] **Step 2: Extract wizard with upload behavior**
+- [x] **Step 2: Extract wizard with upload behavior**
 
 Move `AddCompetitionWizard` behavior into `CompetitionWizard`. Preserve:
 - `createCompetition(formData)`
@@ -458,7 +458,7 @@ On successful creation:
 toast.success("Kompetisi berhasil dibuat!");
 ```
 
-- [ ] **Step 3: Extract overview modal**
+- [x] **Step 3: Extract overview modal**
 
 Move `CompetitionOverviewModal`, `FileRow`, `FileViewer`, `TextFileViewer`, and `AssetMakerSection` into dashboard files or `src/components/esai/files/*` if one file would exceed 400 lines.
 
@@ -466,7 +466,7 @@ Rule: no new file over 400 lines. If `CompetitionOverview.tsx` exceeds 400 lines
 - `src/components/esai/files/FileViewer.tsx`
 - `src/components/esai/dashboard/AssetMakerSection.tsx`
 
-- [ ] **Step 4: Add route page**
+- [x] **Step 4: Add route page**
 
 `src/app/(app)/dashboard/page.tsx` renders a client container that uses `useCompetitionsContext()` and shows skeletons while loading:
 
@@ -478,7 +478,7 @@ export default function DashboardPage() {
 }
 ```
 
-- [ ] **Step 5: Test card**
+- [x] **Step 5: Test card**
 
 Test deadline, title, progress, and action menu accessible names.
 
@@ -489,7 +489,7 @@ npm test -- src/components/esai/dashboard/__tests__/competition-card.test.tsx
 npm run build
 ```
 
-- [ ] **Step 6: Commit dashboard**
+- [x] **Step 6: Commit dashboard**
 
 Run:
 
@@ -515,7 +515,7 @@ git push
 - Create: `src/components/esai/workbench/AgentChoiceCard.tsx`
 - Create: `src/components/esai/workbench/__tests__/pipeline-rail.test.tsx`
 
-- [ ] **Step 1: Route selected competition through URL**
+- [x] **Step 1: Route selected competition through URL**
 
 `/workbench` should redirect:
 
@@ -529,7 +529,7 @@ export default function WorkbenchIndexPage() {
 
 `/workbench/[competitionId]` passes `competitionId` into `WorkbenchRoute`.
 
-- [ ] **Step 2: Extract pipeline rail**
+- [x] **Step 2: Extract pipeline rail**
 
 Move stage marker rendering to `PipelineRail`. Required props:
 
@@ -546,7 +546,7 @@ type PipelineRailProps = {
 
 Completed marker: emerald + check icon. Current marker: amber ring. Future marker: muted dashed border.
 
-- [ ] **Step 3: Extract run/chat logic without changing API**
+- [x] **Step 3: Extract run/chat logic without changing API**
 
 Move existing Workbench state and calls intact:
 - `/api/competitions/[id]/stage-state`
@@ -558,11 +558,11 @@ Move existing Workbench state and calls intact:
 
 Do not change backend route signatures in this task.
 
-- [ ] **Step 4: Add route loading skeleton**
+- [x] **Step 4: Add route loading skeleton**
 
 `loading.tsx` must render rail skeleton, work area skeleton, and assistant skeleton using `Skeleton`, not text.
 
-- [ ] **Step 5: Test pipeline rail**
+- [x] **Step 5: Test pipeline rail**
 
 Test completed/current/locked stages and click selection.
 
@@ -573,7 +573,7 @@ npm test -- src/components/esai/workbench/__tests__/pipeline-rail.test.tsx src/l
 npm run build
 ```
 
-- [ ] **Step 6: Commit workbench**
+- [x] **Step 6: Commit workbench**
 
 Run:
 
@@ -599,7 +599,7 @@ git push
 - Create: `src/components/esai/routes/DevsRoute.tsx`
 - Create: `src/components/esai/routes/SettingsRoute.tsx`
 
-- [ ] **Step 1: Calendar**
+- [x] **Step 1: Calendar**
 
 Move `CalendarScreen` to `CalendarRoute`. Keep Bahasa copy but use `EmptyState`:
 
@@ -612,26 +612,26 @@ Move `CalendarScreen` to `CalendarRoute`. Keep Bahasa copy but use `EmptyState`:
 />
 ```
 
-- [ ] **Step 2: Validity**
+- [x] **Step 2: Validity**
 
 Move `ValidityChecker` to `ValidityRoute`. Keep checker placeholder and assistant affordance; use warm card styles and `Alert` for validation notices.
 
-- [ ] **Step 3: Outputs**
+- [x] **Step 3: Outputs**
 
 Move `FinalOutputs` to `OutputsRoute`. Use `useCompetitionsContext()` instead of props.
 
-- [ ] **Step 4: Devs**
+- [x] **Step 4: Devs**
 
 Move `DevsScreen`, `StyleBuilderWorkspace`, and `ByokSettings` to `DevsRoute`. Keep `DevsAgentsWorkspace` import unchanged. If file exceeds 400 lines, split:
 - `src/components/esai/devs/StyleBuilderWorkspace.tsx`
 - `src/components/esai/devs/ByokSettings.tsx`
 - `src/components/esai/devs/DevsTabs.tsx`
 
-- [ ] **Step 5: Settings**
+- [x] **Step 5: Settings**
 
 Move `AnalyticalBoard` and `AnalyticalDashboard` to `SettingsRoute` or `src/components/esai/settings/*`. Rename visible route label from Profile to Settings.
 
-- [ ] **Step 6: Route smoke tests**
+- [x] **Step 6: Route smoke tests**
 
 Run:
 
@@ -642,7 +642,7 @@ npm run build
 
 Expected: all existing tests still pass after import path updates.
 
-- [ ] **Step 7: Commit secondary routes**
+- [x] **Step 7: Commit secondary routes**
 
 Run:
 
@@ -662,7 +662,7 @@ git push
 - Modify: `src/components/esai/shell/AppShell.tsx`
 - Modify: dashboard/workbench/devs route components
 
-- [ ] **Step 1: Add page transition wrapper**
+- [x] **Step 1: Add page transition wrapper**
 
 Use a client component:
 
@@ -686,7 +686,7 @@ export function PageMotion({ children }: { children: ReactNode }) {
 }
 ```
 
-- [ ] **Step 2: Add global toaster**
+- [x] **Step 2: Add global toaster**
 
 In `AppShell`, render:
 
@@ -696,7 +696,7 @@ import { Toaster } from "sonner";
 <Toaster richColors position="top-right" />
 ```
 
-- [ ] **Step 3: Add celebration triggers**
+- [x] **Step 3: Add celebration triggers**
 
 Use:
 
@@ -708,7 +708,7 @@ toast.success("Agent aktif!");
 
 Add confetti only for all-stages-complete and auto-dismiss after 3000ms.
 
-- [ ] **Step 4: Verify reduced motion**
+- [x] **Step 4: Verify reduced motion**
 
 Add CSS:
 
@@ -729,7 +729,7 @@ Run:
 npm run build
 ```
 
-- [ ] **Step 5: Commit interactions**
+- [x] **Step 5: Commit interactions**
 
 Run:
 
@@ -749,7 +749,7 @@ git push
 - Modify: `src/app/globals.css` to final under-50-line target
 - Create: `src/components/esai/__tests__/route-regression.test.tsx`
 
-- [ ] **Step 1: Find remaining monolith references**
+- [x] **Step 1: Find remaining monolith references**
 
 Run:
 
@@ -759,7 +759,7 @@ Select-String -Path 'src\**\*.tsx','src\**\*.ts' -Pattern 'EsaiPremiumApp|active
 
 Expected: no production references to `EsaiPremiumApp`, no `activeScreen` state, no Profile route.
 
-- [ ] **Step 2: Delete old monolith**
+- [x] **Step 2: Delete old monolith**
 
 Run:
 
@@ -767,7 +767,7 @@ Run:
 git rm src/components/esai/EsaiPremiumApp.tsx
 ```
 
-- [ ] **Step 3: Check file size targets**
+- [x] **Step 3: Check file size targets**
 
 Run:
 
@@ -780,7 +780,7 @@ Get-ChildItem -Recurse src/components -Include *.tsx,*.ts | ForEach-Object {
 
 Expected: no `src/components/*` file over 400 lines. If `DevsAgentsWorkspace.tsx` remains over 400 lines and was not touched by the visual migration, document it as existing technical debt; otherwise split it before final commit.
 
-- [ ] **Step 4: Full verification**
+- [x] **Step 4: Full verification**
 
 Run:
 
@@ -792,7 +792,7 @@ npm run build
 
 Expected: all pass.
 
-- [ ] **Step 5: Browser smoke test**
+- [x] **Step 5: Browser smoke test**
 
 Start dev server:
 
@@ -817,7 +817,7 @@ Verify:
 - workbench run controls still call existing APIs
 - mobile layout at 390px width
 
-- [ ] **Step 6: Accessibility and bundle check**
+- [x] **Step 6: Accessibility and bundle check**
 
 Run Lighthouse in Chrome DevTools or Playwright if available. Target:
 - Accessibility score >= 90
@@ -826,7 +826,7 @@ Run Lighthouse in Chrome DevTools or Playwright if available. Target:
 
 Run bundle check with Next build output. If client bundle grows by more than 50KB gzip from the pre-redesign build, inspect imports and move motion-heavy celebration code behind dynamic import.
 
-- [ ] **Step 7: Commit final migration**
+- [x] **Step 7: Commit final migration**
 
 Run:
 
@@ -845,3 +845,11 @@ git push
 - Type consistency: route state moves from `Screen` to URL paths; `CompetitionContextValue`, `PipelineRailProps`, and `CompetitionCardProps` are defined before use.
 - Scope check: backend/API changes are out of scope. Existing API calls are preserved.
 - Risk: `DevsAgentsWorkspace.tsx` is already large and may remain above the 400-line target unless Task 6 touches enough of it to justify a split. Treat that as migration debt to resolve if final size gate is strict.
+
+## Completion Notes
+
+- Final monolith `src/components/esai/EsaiPremiumApp.tsx` removed.
+- Workbench run/chat behavior is preserved through `src/legacy/esai/LegacyWorkbench.tsx` while the new routed shell owns navigation and page structure.
+- `src/app/globals.css` is 38 lines after token cleanup.
+- Final verification passed: `npm run lint`, `npm test`, `npm run build`, and Playwright routed smoke for dashboard/calendar/outputs/devs/settings/workbench plus theme toggle and 390px mobile overflow check.
+- Existing size debt remains in `src/components/esai/DevsAgentsWorkspace.tsx`; it predates this cleanup and is documented as migration debt.

@@ -2,10 +2,10 @@
 
 import { useRouter } from "next/navigation";
 
-import { Workbench } from "@/components/esai/EsaiPremiumApp";
 import { useCompetitionsContext } from "@/components/esai/shell/CompetitionProvider";
 import { useTheme } from "@/components/esai/shell/ThemeProvider";
 import { EmptyState } from "@/components/esai/common/EmptyState";
+import { Workbench } from "@/legacy/esai/LegacyWorkbench";
 
 export function WorkbenchView({ competitionId }: { competitionId: string }) {
   const router = useRouter();

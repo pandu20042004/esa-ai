@@ -55,8 +55,8 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        "sticky top-0 flex h-screen shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface)] px-4 py-5 transition-[width] duration-200",
-        collapsed ? "w-[84px]" : "w-[268px]",
+        "sticky top-0 z-20 flex w-full shrink-0 flex-col border-b border-[var(--border)] bg-[var(--surface)] px-4 py-5 transition-[width] duration-200 md:h-screen md:border-b-0 md:border-r",
+        collapsed ? "md:w-[84px]" : "md:w-[268px]",
       )}
     >
       <div className="mb-7 flex min-h-10 items-center gap-3">

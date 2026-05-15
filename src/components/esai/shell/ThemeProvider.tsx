@@ -10,14 +10,22 @@ type ThemeValue = {
 const ThemeContext = createContext<ThemeValue | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [darkMode, setDarkMode] = useState(
-    () => typeof window !== "undefined" && window.localStorage.getItem("esai-theme") === "dark",
-  );
+  const [darkMode, setDarkMode] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    const id = window.setTimeout(() => {
+      setDarkMode(window.localStorage.getItem("esai-theme") === "dark");
+      setHydrated(true);
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
     document.documentElement.dataset.theme = darkMode ? "dark" : "light";
     window.localStorage.setItem("esai-theme", darkMode ? "dark" : "light");
-  }, [darkMode]);
+  }, [darkMode, hydrated]);
 
   const value = useMemo(
     () => ({ darkMode, toggleTheme: () => setDarkMode((current) => !current) }),

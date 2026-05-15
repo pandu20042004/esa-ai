@@ -2,7 +2,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-import { EsaiPremiumApp } from "@/components/esai/EsaiPremiumApp";
+import { DashboardRoute } from "@/components/esai/routes/DashboardRoute";
+import { CompetitionProvider } from "@/components/esai/shell/CompetitionProvider";
 
 // Mock the API module so fetchCompetitions resolves immediately with empty array
 vi.mock("@/lib/esai/api", async (importOriginal) => {
@@ -10,16 +11,23 @@ vi.mock("@/lib/esai/api", async (importOriginal) => {
   return {
     ...actual,
     fetchCompetitions: vi.fn().mockResolvedValue([]),
+    fetchFiles: vi.fn().mockResolvedValue([]),
+    fetchCompetitionFiles: vi.fn().mockResolvedValue([]),
   };
 });
 
 describe("dashboard overview flow", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.clear();
   });
 
   it("starts without demo competitions and opens the create flow", async () => {
-    render(<EsaiPremiumApp />);
+    render(
+      <CompetitionProvider>
+        <DashboardRoute />
+      </CompetitionProvider>,
+    );
 
     // Wait for loading to finish and empty state to appear
     await waitFor(() => {

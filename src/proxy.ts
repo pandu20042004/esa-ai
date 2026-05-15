@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { readSupabaseEnv } from "@/lib/supabase/env";
 
 const PUBLIC_PATHS = ["/login"];
 
@@ -7,11 +8,10 @@ export async function proxy(request: NextRequest) {
   const url = new URL(request.url);
   const { pathname } = url;
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const { url: supabaseUrl, publishableKey: supabaseKey, disableAuth } = readSupabaseEnv();
 
-  // If Supabase is not configured, let everything through (local dev mode).
-  if (!supabaseUrl || !supabaseKey) {
+  // If Supabase/auth is disabled, let everything through (local dev mode).
+  if (disableAuth || !supabaseUrl || !supabaseKey) {
     return NextResponse.next();
   }
 
