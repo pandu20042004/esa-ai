@@ -71,3 +71,18 @@ body {
 }
 h1, h2, h3 { font-family: var(--font-display), var(--font-display-fallback); }
 button, input, select, textarea { font: inherit; }
+
+@keyframes confetti-pop {
+  0% { opacity: 0; translate: 0 0; scale: .6; }
+  15% { opacity: 1; }
+  100% { opacity: 0; translate: 0 140px; scale: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
