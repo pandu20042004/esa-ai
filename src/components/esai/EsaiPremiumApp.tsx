@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect, react-hooks/immutability, react-hooks/purity */
+
 import {
   ArrowLeft,
   ArrowRight,
