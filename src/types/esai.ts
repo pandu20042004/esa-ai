@@ -217,7 +217,7 @@ export type AgentRun = {
   competitionId: string;
   agentId: string;
   stageId: StageId;
-  status: "idle" | "needs_choice" | "running" | "completed" | "failed";
+  status: "idle" | "queued" | "needs_choice" | "running" | "cancelling" | "cancelled" | "completed" | "failed";
   modelId?: string;
   reasoningEffort?: ReasoningEffort;
   inputFileIds: string[];

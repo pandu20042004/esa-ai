@@ -13,7 +13,7 @@ export const STAGES: StageDefinition[] = [
     id: "ideation",
     label: "Ideation",
     input: "01_onboarding_map.md",
-    output: "02_ideation_options.md",
+    output: "01_ideation.md",
     rule: "Runs after onboarding confirms the competition rules and writing style context.",
     index: 1,
   },
@@ -68,4 +68,3 @@ export const STAGES: StageDefinition[] = [
 ];
 
 export const stageById = new Map(STAGES.map((stage) => [stage.id, stage]));
-

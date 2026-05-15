@@ -10,7 +10,7 @@ import {
 describe("workflow stage gating", () => {
   it("shows every stage but locks stages after the current approved output chain", () => {
     const states = STAGES.map((stage) =>
-      getStageState(stage.id, "research", ["01_onboarding_map.md", "02_ideation_options.md"]),
+      getStageState(stage.id, "research", ["01_onboarding_map.md", "01_ideation.md"]),
     );
 
     expect(states.map((state) => state.visibility)).toEqual(Array(STAGES.length).fill("visible"));
@@ -34,4 +34,3 @@ describe("model selection validation", () => {
     expect(isModelSelectionReady("GPT-5.4")).toEqual({ ready: true, message: null });
   });
 });
-

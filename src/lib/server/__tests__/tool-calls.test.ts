@@ -63,6 +63,7 @@ describe("parseToolCalls", () => {
     const result = parseToolCalls("Just some regular chat, no tools here.");
     expect(result.toolCalls).toHaveLength(0);
     expect(result.invalid).toHaveLength(0);
+    expect(result.needsUserChoice).toBeNull();
     expect(result.chatText).toBe("Just some regular chat, no tools here.");
   });
 
@@ -80,5 +81,22 @@ describe("parseToolCalls", () => {
     expect(result.toolCalls).toHaveLength(2);
     expect(result.toolCalls[0].params.artifact_key).toBe("a");
     expect(result.toolCalls[1].params.artifact_key).toBe("b");
+  });
+
+  it("extracts needs_user_choice JSON fences from assistant prose", () => {
+    const choice = {
+      needs_user_choice: true,
+      question: "Guidebook text is empty. Continue?",
+      options: [
+        { id: "redo_ocr", label: "Redo OCR", description: "Upload readable guidebook." },
+        { id: "continue", label: "Continue anyway", description: "Proceed with limited guidebook context." },
+      ],
+    };
+    const result = parseToolCalls(["Before", "```json", JSON.stringify(choice), "```", "After"].join("\n"));
+
+    expect(result.needsUserChoice).toEqual(choice);
+    expect(result.chatText).toContain("Before");
+    expect(result.chatText).toContain("After");
+    expect(result.chatText).not.toContain("needs_user_choice");
   });
 });

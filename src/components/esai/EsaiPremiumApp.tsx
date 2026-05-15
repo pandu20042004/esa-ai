@@ -40,16 +40,81 @@ import {
   UploadCloud,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
-import { ApiError, fetchCompetitions, fetchCompetitionFiles, createCompetition, updateCompetition, deleteCompetition, replaceCompetitionAssets, uploadAssetMakerImage, saveInstagramCaption, deleteFile, getFileSignedUrl } from "@/lib/esai/api";
+import { ApiError, fetchCompetitions, fetchCompetitionFiles, fetchFiles, createCompetition, updateCompetition, deleteCompetition, replaceCompetitionAssets, uploadAssetMakerImage, saveInstagramCaption, deleteFile, getFileSignedUrl } from "@/lib/esai/api";
+import { extractAgentChoiceFromMessage, isAgentChoice, type AgentChoice, type AgentChoiceOption } from "@/lib/esai/agent-choice";
+import { selectInitialCompetition } from "@/lib/esai/competition-selection";
+import { isCompetitionUploadComplete } from "@/lib/esai/competition-upload";
 import { STAGES } from "@/lib/esai/stages";
+import { getRunIdFromMessageContext, getThreadMessageActions } from "@/lib/esai/thread-actions";
 import { isModelSelectionReady } from "@/lib/esai/workflow";
 import { getBrowserSupabase } from "@/lib/supabase/browser";
 import type { CalendarCategory, Competition, CompetitionFile, StageId } from "@/types/esai";
 import { DevsAgentsWorkspace } from "./DevsAgentsWorkspace";
+import {
+  buildModelPickerValue,
+  getReasoningEffortsForModel,
+  getSelectedModelOption,
+  isSelectedModelReady,
+  parseModelPickerValue,
+  useModelOptions,
+  type ModelOption,
+} from "./useModelOptions";
 
 type Screen = "dashboard" | "calendar" | "workbench" | "validity" | "outputs" | "devs" | "profile";
+type ReasoningEffort = "low" | "medium" | "high" | "xhigh";
+type SearchMode = "fast" | "balanced" | "deep";
+
+const REASONING_LABELS: Record<ReasoningEffort, string> = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+  xhigh: "Extra high",
+};
+
+const SEARCH_MODE_META: Record<SearchMode, { label: string; description: string }> = {
+  fast: {
+    label: "Fast",
+    description: "Quick ideas with fewer searches and lower cost.",
+  },
+  balanced: {
+    label: "Balanced",
+    description: "Default. Solid evidence with controlled cost.",
+  },
+  deep: {
+    label: "Deep",
+    description: "Slower final-work mode with more source checks.",
+  },
+};
+
+function getActiveReasoningEffort(models: ModelOption[], selectedModel: string, current: ReasoningEffort): ReasoningEffort {
+  const efforts = getReasoningEffortsForModel(models, selectedModel) as ReasoningEffort[];
+  if (efforts.length === 0) return "medium";
+  if (efforts.includes(current)) return current;
+  const defaultEffort = getSelectedModelOption(models, selectedModel)?.defaultReasoningEffort as ReasoningEffort | undefined;
+  return defaultEffort && efforts.includes(defaultEffort) ? defaultEffort : efforts[0];
+}
+
+function formatChatTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+}
+
+function groupFilesByCompetition(files: CompetitionFile[], competitions: Competition[]): Record<string, CompetitionFile[]> {
+  const grouped: Record<string, CompetitionFile[]> = {};
+  for (const competition of competitions) grouped[competition.id] = [];
+  for (const file of files) {
+    if (!file.competitionId) continue;
+    grouped[file.competitionId] = [...(grouped[file.competitionId] ?? []), file];
+  }
+  return grouped;
+}
 
 const categories: Array<CalendarCategory | "All"> = ["All", "Deadline", "Stage", "Asset", "Review", "Personal"];
 const tags = ["All", "urgent", "guidebook", "writing", "asset", "team", "personal"];
@@ -69,6 +134,7 @@ export function EsaiPremiumApp() {
   const [dataLoading, setDataLoading] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
   const [overviewOpen, setOverviewOpen] = useState(false);
+  const [competitionFilesCache, setCompetitionFilesCache] = useState<Record<string, CompetitionFile[]>>({});
 
   useEffect(() => {
     document.documentElement.dataset.theme = darkMode ? "dark" : "light";
@@ -79,10 +145,11 @@ export function EsaiPremiumApp() {
     let cancelled = false;
     (async () => {
       try {
-        const list = await fetchCompetitions();
+        const [list, files] = await Promise.all([fetchCompetitions(), fetchFiles()]);
         if (cancelled) return;
         setCompetitions(list);
-        setSelectedCompetition(list[0] ?? null);
+        setCompetitionFilesCache(groupFilesByCompetition(files, list));
+        setSelectedCompetition(selectInitialCompetition(list, window.localStorage.getItem("esai-selected-competition-id")));
       } catch (error) {
         const err = error as ApiError | Error;
         const correlationId = (err as ApiError).correlationId ?? "";
@@ -99,9 +166,20 @@ export function EsaiPremiumApp() {
   const openScreen = (screen: Screen) => {
     setActiveScreen(screen);
     if (screen === "workbench" && !selectedCompetition) {
-      setSelectedCompetition(competitions[0] ?? null);
+      const competition = selectInitialCompetition(competitions, window.localStorage.getItem("esai-selected-competition-id"));
+      setSelectedCompetition(competition);
+      if (competition) window.localStorage.setItem("esai-selected-competition-id", competition.id);
     }
   };
+
+  const selectCompetition = (competition: Competition) => {
+    setSelectedCompetition(competition);
+    window.localStorage.setItem("esai-selected-competition-id", competition.id);
+  };
+
+  const rememberCompetitionFiles = useCallback((competitionId: string, list: CompetitionFile[]) => {
+    setCompetitionFilesCache((cache) => ({ ...cache, [competitionId]: list }));
+  }, []);
 
   return (
     <div className="esai-app">
@@ -124,15 +202,20 @@ export function EsaiPremiumApp() {
                 competitions={competitions}
                 onAdd={() => setShowWizard(true)}
                 onSelect={(competition) => {
-                  setSelectedCompetition(competition);
+                  selectCompetition(competition);
                   setActiveScreen("workbench");
                 }}
-                onDelete={async (id) => {
-                  await deleteCompetition(id);
-                  setCompetitions((items) => items.filter((c) => c.id !== id));
-                }}
+          onDelete={async (id) => {
+            await deleteCompetition(id);
+            setCompetitions((items) => items.filter((c) => c.id !== id));
+            setCompetitionFilesCache((cache) => {
+              const next = { ...cache };
+              delete next[id];
+              return next;
+            });
+          }}
                 onEdit={(competition) => {
-                  setSelectedCompetition(competition);
+                  selectCompetition(competition);
                   setOverviewOpen(true);
                 }}
               />
@@ -167,7 +250,10 @@ export function EsaiPremiumApp() {
           onCancel={() => setShowWizard(false)}
           onFinish={(competition) => {
             setCompetitions((items) => [competition, ...items]);
-            setSelectedCompetition(competition);
+            void fetchCompetitionFiles(competition.id)
+              .then((files) => rememberCompetitionFiles(competition.id, files))
+              .catch(() => rememberCompetitionFiles(competition.id, []));
+            selectCompetition(competition);
             setShowWizard(false);
             setActiveScreen("workbench");
           }}
@@ -176,20 +262,28 @@ export function EsaiPremiumApp() {
       {overviewOpen && selectedCompetition ? (
         <CompetitionOverviewModal
           competition={selectedCompetition}
+          cachedFiles={competitionFilesCache[selectedCompetition.id]}
           onAdd={() => setShowWizard(true)}
           onClose={() => setOverviewOpen(false)}
           onSelect={(competition) => {
-            setSelectedCompetition(competition);
+            selectCompetition(competition);
             setActiveScreen("workbench");
             setOverviewOpen(false);
           }}
           onUpdated={(updated) => {
             setCompetitions((items) => items.map((c) => (c.id === updated.id ? { ...c, ...updated } : c)));
-            setSelectedCompetition(updated);
+            selectCompetition(updated);
           }}
+          onFilesLoaded={rememberCompetitionFiles}
           onDeleted={(id) => {
             setCompetitions((items) => items.filter((c) => c.id !== id));
+            setCompetitionFilesCache((cache) => {
+              const next = { ...cache };
+              delete next[id];
+              return next;
+            });
             setSelectedCompetition(null);
+            window.localStorage.removeItem("esai-selected-competition-id");
             setOverviewOpen(false);
             setActiveScreen("dashboard");
           }}
@@ -472,17 +566,21 @@ function DeleteConfirmDialog({
 
 function CompetitionOverviewModal({
   competition,
+  cachedFiles,
   onAdd: _onAdd,
   onClose,
   onSelect,
   onUpdated,
+  onFilesLoaded,
   onDeleted,
 }: {
   competition: Competition;
+  cachedFiles?: CompetitionFile[];
   onAdd: () => void;
   onClose: () => void;
   onSelect: (competition: Competition) => void;
   onUpdated: (competition: Competition) => void;
+  onFilesLoaded: (competitionId: string, files: CompetitionFile[]) => void;
   onDeleted: (id: string) => void;
 }) {
   const [draft, setDraft] = useState({
@@ -497,20 +595,35 @@ function CompetitionOverviewModal({
   const [replacingAsset, setReplacingAsset] = useState<null | "poster" | "guidebook">(null);
   const [error, setError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState(false);
-  const [files, setFiles] = useState<CompetitionFile[]>([]);
-  const [filesLoading, setFilesLoading] = useState(true);
+  const [files, setFiles] = useState<CompetitionFile[]>(() => cachedFiles ?? []);
+  const [filesLoading, setFilesLoading] = useState(!cachedFiles);
   const [viewingFile, setViewingFile] = useState<CompetitionFile | null>(null);
   const [fileDeleting, setFileDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    if (cachedFiles) {
+      setFiles(cachedFiles);
+      setFilesLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
     setFilesLoading(true);
     fetchCompetitionFiles(competition.id)
       .then((list) => {
-        if (!cancelled) setFiles(list);
+        if (!cancelled) {
+          setFiles(list);
+          onFilesLoaded(competition.id, list);
+        }
       })
-      .catch(() => {
-        if (!cancelled) setFiles([]);
+      .catch((err) => {
+        if (!cancelled) {
+          setFiles([]);
+          const ae = err as ApiError;
+          setError(ae.message ?? "Failed to load competition files.");
+        }
       })
       .finally(() => {
         if (!cancelled) setFilesLoading(false);
@@ -518,7 +631,7 @@ function CompetitionOverviewModal({
     return () => {
       cancelled = true;
     };
-  }, [competition.id]);
+  }, [cachedFiles, competition.id, onFilesLoaded]);
 
   const save = async () => {
     setSaving(true);
@@ -552,6 +665,7 @@ function CompetitionOverviewModal({
       // refresh file list
       const list = await fetchCompetitionFiles(competition.id);
       setFiles(list);
+      onFilesLoaded(competition.id, list);
     } catch (err) {
       const ae = err as ApiError;
       setError(ae.message ?? "Replace failed.");
@@ -741,10 +855,13 @@ function CompetitionOverviewModal({
                           setFileDeleting(f.id);
                           try {
                             await deleteFile(f.id);
-                            setFiles((list) => list.filter((x) => x.id !== f.id));
+                            const next = files.filter((x) => x.id !== f.id);
+                            setFiles(next);
+                            onFilesLoaded(competition.id, next);
                             // Also refetch competition to clear FK references (poster etc.)
                             const refetched = await fetchCompetitionFiles(competition.id);
                             setFiles(refetched);
+                            onFilesLoaded(competition.id, refetched);
                           } catch (err) {
                             setError((err as ApiError).message ?? "Delete failed.");
                           } finally {
@@ -774,7 +891,9 @@ function CompetitionOverviewModal({
                           setFileDeleting(f.id);
                           try {
                             await deleteFile(f.id);
-                            setFiles((list) => list.filter((x) => x.id !== f.id));
+                            const next = files.filter((x) => x.id !== f.id);
+                            setFiles(next);
+                            onFilesLoaded(competition.id, next);
                           } catch (err) {
                             setError((err as ApiError).message ?? "Delete failed.");
                           } finally {
@@ -1215,15 +1334,21 @@ function AddCompetitionWizard({ onCancel, onFinish }: { onCancel: () => void; on
   const [poster, setPoster] = useState<File | null>(null);
   const [guidebook, setGuidebook] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [createdCompetition, setCreatedCompetition] = useState<Competition | null>(null);
+  const [uploadModal, setUploadModal] = useState<{ title: string; message: string } | null>(null);
   const [error, setError] = useState<{ message: string; correlationId?: string } | null>(null);
 
   const posterOk = poster && /^image\/(png|jpeg|webp)$/.test(poster.type) && poster.size <= 5 * 1024 * 1024;
   const guidebookOk = guidebook && /^(application\/pdf|application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document|text\/markdown|text\/plain)$/.test(guidebook.type) && guidebook.size <= 20 * 1024 * 1024;
   const canFinish = Boolean(fields.title.trim() && posterOk && guidebookOk);
 
-  const finish = async () => {
+  const createAndVerify = async () => {
     if (!canFinish || submitting) return;
     setSubmitting(true);
+    setUploadModal({
+      title: "Uploading competition files",
+      message: "Please wait while the poster and guidebook are saved. The workflow will open only after the guidebook row is confirmed.",
+    });
     setError(null);
     try {
       const formData = new FormData();
@@ -1236,13 +1361,26 @@ function AddCompetitionWizard({ onCancel, onFinish }: { onCancel: () => void; on
       formData.set("guidebook", guidebook!);
 
       const competition = await createCompetition(formData);
-      onFinish(competition);
+      if (!isCompetitionUploadComplete(competition)) {
+        throw new Error("Guidebook upload was not confirmed. Please try again before opening the workflow pipeline.");
+      }
+      setCreatedCompetition(competition);
+      setStep(3);
     } catch (err) {
       const ae = err as ApiError;
-      setError({ message: ae.message ?? "Failed to create competition.", correlationId: ae.correlationId });
+      setError({ message: ae.message ?? (err as Error).message ?? "Failed to create competition.", correlationId: ae.correlationId });
     } finally {
       setSubmitting(false);
+      setUploadModal(null);
     }
+  };
+
+  const finish = () => {
+    if (!createdCompetition || !isCompetitionUploadComplete(createdCompetition)) {
+      setError({ message: "Guidebook upload is not confirmed yet. Please upload the files before opening the workflow pipeline." });
+      return;
+    }
+    onFinish(createdCompetition);
   };
 
   return (
@@ -1250,7 +1388,7 @@ function AddCompetitionWizard({ onCancel, onFinish }: { onCancel: () => void; on
       <div className="wizard">
         <div className="modal-header">
           <h2>Setup Kompetisi Baru</h2>
-          <button className="ghost-icon" onClick={onCancel}>
+          <button className="ghost-icon" onClick={onCancel} disabled={submitting}>
             <X size={18} />
           </button>
         </div>
@@ -1300,6 +1438,7 @@ function AddCompetitionWizard({ onCancel, onFinish }: { onCancel: () => void; on
                 accept="image/png,image/jpeg,image/webp"
                 onChange={(e) => setPoster(e.target.files?.[0] ?? null)}
                 className="upload-zone-input"
+                disabled={submitting || Boolean(createdCompetition)}
               />
               <UploadCloud size={30} />
               <strong>Poster</strong>
@@ -1318,6 +1457,7 @@ function AddCompetitionWizard({ onCancel, onFinish }: { onCancel: () => void; on
                 accept=".pdf,.docx,.md,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/markdown,text/plain"
                 onChange={(e) => setGuidebook(e.target.files?.[0] ?? null)}
                 className="upload-zone-input"
+                disabled={submitting || Boolean(createdCompetition)}
               />
               <UploadCloud size={30} />
               <strong>Guidebook</strong>
@@ -1336,8 +1476,8 @@ function AddCompetitionWizard({ onCancel, onFinish }: { onCancel: () => void; on
         {step === 3 ? (
           <div className="success-pane">
             <Check size={34} />
-            <h3>Semua Siap</h3>
-            <p>AI akan memetakan pipeline pengerjaan berdasarkan guidebook dan metadata Anda.</p>
+            <h3>Upload Confirmed</h3>
+            <p>Guidebook is saved and verified. You can now open the workflow pipeline.</p>
             {error ? (
               <div className="wizard-error">
                 <strong>Gagal:</strong> {error.message}
@@ -1353,12 +1493,31 @@ function AddCompetitionWizard({ onCancel, onFinish }: { onCancel: () => void; on
           </button>
           <button
             className="btn-primary"
-            onClick={() => (step < 3 ? setStep(step + 1) : finish())}
-            disabled={(step === 2 && !(posterOk && guidebookOk)) || (step === 3 && !canFinish) || submitting}
+            onClick={() => {
+              if (step === 1) setStep(2);
+              else if (step === 2) void createAndVerify();
+              else finish();
+            }}
+            disabled={(step === 2 && (!(posterOk && guidebookOk) || submitting || Boolean(createdCompetition))) || (step === 3 && (!createdCompetition || submitting))}
           >
-            {step === 3 ? (submitting ? "Mengunggah…" : "Mulai Sekarang") : "Lanjut"}
+            {step === 2 ? (submitting ? "Uploading..." : "Upload and verify") : step === 3 ? "Open workflow pipeline" : "Lanjut"}
           </button>
         </div>
+      </div>
+      {uploadModal ? (
+        <BlockingLoadingModal title={uploadModal.title} message={uploadModal.message} />
+      ) : null}
+    </div>
+  );
+}
+
+function BlockingLoadingModal({ title, message }: { title: string; message: string }) {
+  return (
+    <div className="modal-backdrop upload-blocking-backdrop" role="alertdialog" aria-modal="true">
+      <div className="small-modal upload-blocking-modal">
+        <RefreshCw size={30} className="spin" />
+        <h2>{title}</h2>
+        <p>{message}</p>
       </div>
     </div>
   );
@@ -1389,30 +1548,31 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
   const [currentStageId, setCurrentStageId] = useState<StageId>(competition.currentStageId);
   const [outputOpen, setOutputOpen] = useState(false);
   const [stages, setStages] = useState<StageStateEntry[]>([]);
-  const [models, setModels] = useState<ModelOption[]>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      // Cache key bumped to v2 — old "gpt-5.4" entries dropped.
-      const cached = window.localStorage.getItem("esai-models-v2");
-      return cached ? JSON.parse(cached) : [];
-    } catch { return []; }
-  });
-  const [selectedModel, setSelectedModel] = useState<string>(() => {
-    if (typeof window === "undefined") return "";
-    return window.localStorage.getItem("esai-selected-model-v2") ?? "";
-  });
-  const [reasoningEffort, setReasoningEffort] = useState<"low" | "medium" | "high" | "xhigh">(() => {
+  const { models, selectedModel, setSelectedModel, modelsLoading } = useModelOptions({ refreshOnMount: true });
+  const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>(() => {
     if (typeof window === "undefined") return "medium";
-    return (window.localStorage.getItem("esai-reasoning") as "low" | "medium" | "high" | "xhigh") ?? "medium";
+    return (window.localStorage.getItem("esai-reasoning") as ReasoningEffort) ?? "medium";
   });
-  const [modelsLoading, setModelsLoading] = useState(models.length === 0);
   const [stagesLoading, setStagesLoading] = useState(true);
   const [thread, setThread] = useState<ThreadMessage[]>([]);
   const [streamingRun, setStreamingRun] = useState<ActiveRun | null>(null);
+  const [completedActivity, setCompletedActivity] = useState<Record<string, CompletedRunActivity>>({});
   const [composerValue, setComposerValue] = useState("");
+  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
+  const [imageGenerationEnabled, setImageGenerationEnabled] = useState(false);
+  const [searchMode, setSearchMode] = useState<SearchMode>("balanced");
+  const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
+  const toolsMenuRef = useRef<HTMLDivElement | null>(null);
+  const [messageMenuId, setMessageMenuId] = useState<string | null>(null);
+  const [messageSelectionMode, setMessageSelectionMode] = useState(false);
+  const [selectedMessageIds, setSelectedMessageIds] = useState<Set<string>>(() => new Set());
+  const [deleteChatRequest, setDeleteChatRequest] = useState<ChatDeleteRequest | null>(null);
   const [rerunTarget, setRerunTarget] = useState<StageStateEntry | null>(null);
+  const [approveRequest, setApproveRequest] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
   const [runSubmitting, setRunSubmitting] = useState(false);
+  const [runSubmittingStageId, setRunSubmittingStageId] = useState<StageId | null>(null);
+  const [runCancelling, setRunCancelling] = useState(false);
 
   const currentStage = STAGES.find((stage) => stage.id === currentStageId) ?? STAGES[0];
   const currentStageIndex = STAGES.findIndex((stage) => stage.id === currentStage.id);
@@ -1422,10 +1582,23 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
   const isApproved = outputFile?.status === "approved";
   const isStale = outputFile?.status === "stale";
   const stageUnlocked = currentStageEntry?.unlocked ?? (currentStage.id === "onboarding");
-  const isRunning = streamingRun !== null || runSubmitting;
-  const modelReady = selectedModel.length > 0;
+  const visibleStreamingRun = streamingRun?.stageId === currentStage.id ? streamingRun : null;
+  const currentStageSubmitting = runSubmitting && runSubmittingStageId === currentStage.id;
+  const runInFlight = Boolean(visibleStreamingRun && !isTerminalRunPhase(visibleStreamingRun.phase));
+  const isRunning = runInFlight || currentStageSubmitting;
+  const modelReady = isSelectedModelReady(models, selectedModel);
   const isMainAgentStage = currentStage.id === "onboarding";
-  const runButtonDisabled = isRunning || !stageUnlocked || !modelReady || !isMainAgentStage;
+  const stageRunnable = currentStage.id === "onboarding" || currentStage.id === "ideation";
+  const canTerminateRun = runInFlight && !runCancelling;
+  const runButtonDisabled = runInFlight ? !canTerminateRun : currentStageSubmitting || !stageUnlocked || !modelReady || !stageRunnable;
+  const reasoningEfforts = getReasoningEffortsForModel(models, selectedModel) as ReasoningEffort[];
+  const activeReasoningEffort = getActiveReasoningEffort(models, selectedModel, reasoningEffort);
+  const reasoningDisabled = reasoningEfforts.length === 0;
+  const activeToolCount = Number(webSearchEnabled) + Number(imageGenerationEnabled);
+  const visibleStreamingRunPersisted = Boolean(
+    visibleStreamingRun && thread.some((message) => getRunIdFromMessageContext(message.context) === visibleStreamingRun.runId),
+  );
+  const showStreamingBubble = Boolean(visibleStreamingRun && !visibleStreamingRunPersisted);
 
   const reloadStageState = useCallback(async () => {
     setStagesLoading(true);
@@ -1451,70 +1624,33 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
     }
   }, [competition.id, currentStage.id]);
 
-  // Load models once, cache in localStorage.
-  const refreshModels = useCallback(async () => {
-    setModelsLoading(true);
-    try {
-      const res = await fetch("/api/models?refresh=1", { cache: "no-store" });
-      const json = await res.json();
-      const list: ModelOption[] = (json?.data ?? []).map((m: { provider: string; id: string; label: string }) => ({
-        provider: m.provider,
-        id: m.id,
-        label: m.label,
-      }));
-      setModels(list);
-      window.localStorage.setItem("esai-models-v2", JSON.stringify(list));
-      // If current selection no longer in list, pick first.
-      if (selectedModel && !list.some((m) => `${m.provider}::${m.id}` === selectedModel) && list.length > 0) {
-        const first = `${list[0].provider}::${list[0].id}`;
-        setSelectedModel(first);
-        window.localStorage.setItem("esai-selected-model-v2", first);
-      }
-    } catch {
-      // keep cached
-    } finally {
-      setModelsLoading(false);
-    }
-  }, [selectedModel]);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setModelsLoading(true);
-      try {
-        const res = await fetch("/api/models", { cache: "no-store" });
-        const json = await res.json();
-        const list: ModelOption[] = (json?.data ?? []).map((m: { provider: string; id: string; label: string }) => ({
-          provider: m.provider,
-          id: m.id,
-          label: m.label,
-        }));
-        if (cancelled) return;
-        setModels(list);
-        window.localStorage.setItem("esai-models-v2", JSON.stringify(list));
-        // Only auto-select if user hasn't picked one yet.
-        if (!selectedModel && list.length > 0) {
-          const first = `${list[0].provider}::${list[0].id}`;
-          setSelectedModel(first);
-          window.localStorage.setItem("esai-selected-model-v2", first);
-        }
-      } catch {
-        // keep cached models if fetch fails
-      } finally {
-        if (!cancelled) setModelsLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Persist model selection.
-  useEffect(() => {
-    if (selectedModel) window.localStorage.setItem("esai-selected-model-v2", selectedModel);
-  }, [selectedModel]);
   useEffect(() => {
     window.localStorage.setItem("esai-reasoning", reasoningEffort);
   }, [reasoningEffort]);
+
+  useEffect(() => {
+    if (!toolsMenuOpen) return;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      const target = event.target;
+      if (target instanceof Node && toolsMenuRef.current?.contains(target)) return;
+      setToolsMenuOpen(false);
+    };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    return () => document.removeEventListener("mousedown", closeOnOutsideClick);
+  }, [toolsMenuOpen]);
+
+  useEffect(() => {
+    setCurrentStageId(competition.currentStageId);
+    setThread([]);
+    setStreamingRun(null);
+    setCompletedActivity({});
+    setRunError(null);
+    setMessageMenuId(null);
+    setMessageSelectionMode(false);
+    setSelectedMessageIds(new Set());
+    setDeleteChatRequest(null);
+    setRunCancelling(false);
+  }, [competition.id, competition.currentStageId]);
 
   // Reload stage state + thread when stage or competition changes.
   useEffect(() => {
@@ -1522,13 +1658,16 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
     reloadThread();
   }, [reloadStageState, reloadThread]);
 
-  const startRun = async () => {
+  const startRun = async (overrideMessage?: string) => {
     setRunError(null);
     if (!stageUnlocked) { setRunError("Upstream stage not approved yet."); return; }
     if (!modelReady) { setRunError("Pick a model first."); return; }
 
     setRunSubmitting(true);
-    const [provider, modelId] = selectedModel.split("::");
+    setRunSubmittingStageId(currentStage.id);
+    setRunCancelling(false);
+    const messageToSend = overrideMessage ?? (composerValue.trim() ? composerValue.trim() : undefined);
+    const { provider, modelId } = parseModelPickerValue(selectedModel);
     try {
       const res = await fetch("/api/agent-runs", {
         method: "POST",
@@ -1538,24 +1677,62 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
           stageId: currentStage.id,
           modelProvider: provider,
           modelId,
-          reasoningEffort,
-          userMessage: composerValue.trim() ? composerValue.trim() : undefined,
+          reasoningEffort: activeReasoningEffort,
+          userMessage: messageToSend,
+          webSearch: webSearchEnabled,
+          imageGeneration: imageGenerationEnabled,
+          searchMode,
         }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        setRunError(err?.error ?? `Run failed (${res.status}).`);
+        setRunError(err?.error?.message ?? err?.message ?? `Run failed (${res.status}).`);
+        setRunSubmitting(false);
+        setRunSubmittingStageId(null);
         return;
       }
       const json = await res.json();
       const runId: string = json?.data?.runId;
-      setStreamingRun({ runId, tokens: "", toolWrites: [], phase: "queued", phaseDetail: "Run queued. Worker polls every 2s.", startedAt: Date.now() });
+      setCompletedActivity((items) => {
+        const next = { ...items };
+        delete next[currentStage.id];
+        return next;
+      });
+      setStreamingRun({ runId, stageId: currentStage.id, tokens: "", activities: [], progressLines: [], toolWrites: [], phase: "queued", phaseDetail: "Run queued. Worker polls every 2s.", startedAt: Date.now() });
       setComposerValue("");
       // Keep runSubmitting true — it will be cleared when first token arrives or on error.
       await reloadThread();
     } catch (error) {
       setRunError((error as Error).message ?? "Run failed.");
       setRunSubmitting(false);
+      setRunSubmittingStageId(null);
+    }
+  };
+
+  const terminateRun = async () => {
+    const activeRun = streamingRun?.stageId === currentStage.id ? streamingRun : null;
+    if (!activeRun || runCancelling) return;
+    setRunCancelling(true);
+    setRunError(null);
+    setStreamingRun((prev) => prev ? {
+      ...prev,
+      phase: "cancelling",
+      phaseDetail: "Termination requested. Stopping the CLI process...",
+    } : prev);
+    try {
+      const res = await fetch(`/api/agent-runs/${activeRun.runId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "cancel" }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setRunError(err?.error?.message ?? err?.message ?? "Failed to terminate run.");
+        setRunCancelling(false);
+      }
+    } catch (error) {
+      setRunError((error as Error).message ?? "Failed to terminate run.");
+      setRunCancelling(false);
     }
   };
 
@@ -1621,7 +1798,23 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
         const queuedAt = json?.data?.run?.queuedAt ? new Date(json.data.run.queuedAt).getTime() : 0;
         const queuedSec = queuedAt ? (Date.now() - queuedAt) / 1000 : 0;
 
-        if (dbStatus === "failed" && !stopped) {
+        if ((dbStatus === "cancelled" || dbStatus === "cancelling") && !stopped) {
+          setStreamingRun((prev) => prev ? {
+            ...prev,
+            phase: dbStatus,
+            phaseDetail: dbStatus === "cancelled" ? "Run cancelled by user." : "Termination requested. Waiting for worker to stop the process...",
+          } : prev);
+          setRunSubmitting(false);
+          setRunSubmittingStageId(null);
+          setRunCancelling(dbStatus === "cancelling");
+          if (dbStatus === "cancelled") {
+            queueMicrotask(() => {
+              reloadThread();
+              setStreamingRun(null);
+              setRunCancelling(false);
+            });
+          }
+        } else if (dbStatus === "failed" && !stopped) {
           setStreamingRun((prev) => prev ? {
             ...prev,
             phase: "failed",
@@ -1629,11 +1822,26 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
           } : prev);
           setRunError(dbError || "Run failed.");
           setRunSubmitting(false);
+          setRunSubmittingStageId(null);
+          setRunCancelling(false);
+        } else if (dbStatus === "needs_choice" && !stopped) {
+          const choice = json?.data?.run?.needsUserChoice;
+          setStreamingRun((prev) => prev ? {
+            ...prev,
+            phase: "needs_choice",
+            phaseDetail: "Agent needs a user decision before continuing.",
+            needsUserChoice: isNeedsUserChoice(choice) ? choice : prev.needsUserChoice,
+          } : prev);
+          setRunSubmitting(false);
+          setRunSubmittingStageId(null);
+          setRunCancelling(false);
         } else if (dbStatus === "completed" && !stopped) {
           reloadStageState();
           reloadThread();
           setStreamingRun(null);
           setRunSubmitting(false);
+          setRunSubmittingStageId(null);
+          setRunCancelling(false);
         } else if (dbStatus === "queued" && queuedSec > 30 && !stopped) {
           // Worker likely not running.
           setStreamingRun((prev) => prev && prev.phase === "queued" ? {
@@ -1646,13 +1854,9 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
       }
     };
 
-    // Poll every 3s while not in active streaming.
+    // Poll every 3s so choice/completion state is recovered even if realtime misses an event.
     const id = setInterval(() => {
-      // Skip polling if we're already actively receiving tokens.
-      setStreamingRun((prev) => {
-        if (prev && prev.phase !== "streaming") void check();
-        return prev;
-      });
+      void check();
     }, 3000);
 
     return () => { stopped = true; clearInterval(id); };
@@ -1671,31 +1875,100 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
           const length = Number(payload.length ?? 0);
           return { ...prev, phase: "prompt_built", phaseDetail: `Prompt built (${length.toLocaleString()} chars). Calling model…` };
         }
-        if (phase === "cli_stderr") {
+        if (phase === "cli_stderr" || phase === "cli_progress") {
           const text = String(payload.text ?? "").trim();
           if (!text) return prev;
           return { ...prev, phaseDetail: `CLI: ${text.slice(0, 200)}` };
         }
         if (phase === "completed") {
+          const completed = {
+            activities: appendRunActivity(prev.activities, { kind: "writing", label: "Run complete" }),
+            progressLines: prev.progressLines,
+            phaseDetail: "Run complete.",
+          };
           queueMicrotask(() => {
+            setCompletedActivity((items) => ({ ...items, [prev.stageId]: completed }));
             reloadStageState();
             reloadThread();
             setStreamingRun(null);
             setRunSubmitting(false);
+            setRunSubmittingStageId(null);
+            setRunCancelling(false);
           });
           return { ...prev, phase: "completed", phaseDetail: "Run complete." };
+        }
+        if (phase === "needs_choice") {
+          setRunSubmitting(false);
+          setRunSubmittingStageId(null);
+          setRunCancelling(false);
+          return { ...prev, phase: "needs_choice", phaseDetail: "Agent needs a user decision before continuing." };
+        }
+        if (phase === "cancelling" || phase === "cancelled") {
+          setRunSubmitting(false);
+          setRunSubmittingStageId(null);
+          setRunCancelling(phase === "cancelling");
+          if (phase === "cancelled") {
+            const completed = {
+              activities: appendRunActivity(prev.activities, { kind: "tool", label: "Run cancelled" }),
+              progressLines: prev.progressLines,
+              phaseDetail: "Run cancelled by user.",
+            };
+            queueMicrotask(() => {
+              setCompletedActivity((items) => ({ ...items, [prev.stageId]: completed }));
+              reloadThread();
+              setStreamingRun(null);
+              setRunCancelling(false);
+            });
+          }
+          return { ...prev, phase, phaseDetail: String(payload.text ?? "Run cancelled by user.") };
         }
         return prev;
       }
       if (eventType === "token") {
         const text = typeof payload.text === "string" ? payload.text : "";
-        if (text) setRunSubmitting(false);
+        if (text) {
+          setRunSubmitting(false);
+          setRunSubmittingStageId(null);
+        }
         const nextTokens = prev.tokens + text;
         return {
           ...prev,
           phase: "streaming",
           phaseDetail: `Streaming response… ${nextTokens.length.toLocaleString()} chars received`,
           tokens: nextTokens,
+        };
+      }
+      if (eventType === "progress") {
+        const lines = Array.isArray(payload.lines)
+          ? payload.lines.filter((line): line is string => typeof line === "string" && line.trim().length > 0)
+          : [];
+        if (lines.length === 0) return prev;
+        return {
+          ...prev,
+          phase: prev.phase === "queued" ? "started" : prev.phase,
+          phaseDetail: lines.at(-1)?.slice(0, 200) ?? prev.phaseDetail,
+          progressLines: [...prev.progressLines, ...lines].slice(-24),
+        };
+      }
+      if (eventType === "activity") {
+        const activity = normalizeRunActivity(payload);
+        if (!activity) return prev;
+        return {
+          ...prev,
+          activities: appendRunActivity(prev.activities, activity),
+          phaseDetail: activity.label || prev.phaseDetail,
+        };
+      }
+      if (eventType === "choice") {
+        if (!isNeedsUserChoice(payload)) return prev;
+        setRunSubmitting(false);
+        setRunSubmittingStageId(null);
+        setRunCancelling(false);
+        return {
+          ...prev,
+          phase: "needs_choice",
+          phaseDetail: "Agent needs a user decision before continuing.",
+          needsUserChoice: payload,
         };
       }
       if (eventType === "tool_call") {
@@ -1716,6 +1989,7 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
       if (eventType === "error") {
         setRunError(String(payload.message ?? payload.reason ?? "Run error."));
         setRunSubmitting(false);
+        setRunSubmittingStageId(null);
         return { ...prev, phase: "failed", phaseDetail: String(payload.message ?? payload.reason ?? "Run error.") };
       }
       return prev;
@@ -1724,6 +1998,7 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
 
   const approve = async () => {
     if (!outputFile) return;
+    setApproveRequest(false);
     setRunError(null);
     const res = await fetch(`/api/competition-files/${outputFile.id}/approve`, { method: "POST" });
     if (!res.ok) {
@@ -1731,7 +2006,14 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
       setRunError(err?.error ?? "Approve failed.");
       return;
     }
+    const json = await res.json().catch(() => ({}));
     await reloadStageState();
+    const nextStageId = json?.data?.nextStageId;
+    if (typeof nextStageId === "string" && STAGES.some((stage) => stage.id === nextStageId)) {
+      setCurrentStageId(nextStageId as StageId);
+      setStreamingRun(null);
+      setComposerValue("");
+    }
   };
 
   const requestRerun = () => {
@@ -1761,8 +2043,144 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
     void startRun();
   };
 
+  const answerAgentChoice = (choice: AgentRuntimeChoiceOption) => {
+    const detail = choice.description ?? choice.detail ?? choice.result ?? "";
+    const text = [
+      `Selected choice: ${choice.label}`,
+      `Choice id: ${choice.id ?? choice.key ?? choice.label}`,
+      detail ? `Reason/context: ${detail}` : null,
+    ].filter(Boolean).join("\n");
+    setStreamingRun(null);
+    void startRun(text);
+  };
+
+  const deleteThreadMessage = async (message: ThreadMessage, cascadeRun = false) => {
+    if (isRunning) {
+      setRunError("Wait for the current run to finish before editing or deleting chat.");
+      return false;
+    }
+    setMessageMenuId(null);
+    setRunError(null);
+    const res = await fetch(`/api/agent-messages/${message.id}${cascadeRun ? "?cascadeRun=1" : ""}`, { method: "DELETE" });
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      setRunError(json?.error?.message ?? json?.message ?? "Failed to delete message.");
+      return false;
+    }
+    await reloadThread();
+    await reloadStageState();
+    return true;
+  };
+
+  const deleteThreadMessages = async (messages: ThreadMessage[], cascadeUserRuns = true) => {
+    if (isRunning) {
+      setRunError("Wait for the current run to finish before deleting chat.");
+      return false;
+    }
+    if (messages.length === 0) return false;
+    setMessageMenuId(null);
+    setRunError(null);
+    const res = await fetch("/api/agent-messages", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messageIds: messages.map((message) => message.id), cascadeUserRuns }),
+    });
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      setRunError(json?.error?.message ?? json?.message ?? "Failed to delete messages.");
+      return false;
+    }
+    setSelectedMessageIds(new Set());
+    setMessageSelectionMode(false);
+    await reloadThread();
+    await reloadStageState();
+    return true;
+  };
+
+  const requestDeleteMessage = (message: ThreadMessage) => {
+    const runId = getRunIdFromMessageContext(message.context);
+    setMessageMenuId(null);
+    setDeleteChatRequest({
+      mode: "single",
+      messages: [message],
+      cascadeUserRuns: message.role === "user" && Boolean(runId),
+    });
+  };
+
+  const requestDeleteSelectedMessages = () => {
+    const messages = thread.filter((message) => selectedMessageIds.has(message.id));
+    if (messages.length === 0) return;
+    setDeleteChatRequest({ mode: "bulk", messages, cascadeUserRuns: true });
+  };
+
+  const editThreadMessage = async (message: ThreadMessage) => {
+    if (message.role !== "user") return;
+    const next = window.prompt("Edit this prompt and rerun it:", message.content);
+    if (next === null) return;
+    const trimmed = next.trim();
+    if (!trimmed) {
+      setRunError("Edited prompt cannot be empty.");
+      return;
+    }
+    const hasLinkedRun = Boolean(getRunIdFromMessageContext(message.context));
+    const deleted = await deleteThreadMessage(message, true);
+    if (!deleted) return;
+    if (!hasLinkedRun && outputFile?.id) {
+      try {
+        await deleteFile(outputFile.id);
+        await reloadStageState();
+      } catch {
+        setRunError("Prompt was edited, but the old output file could not be deleted.");
+        return;
+      }
+    }
+    void startRun(trimmed);
+  };
+
+  const clearThread = async () => {
+    if (isRunning) {
+      setRunError("Wait for the current run to finish before clearing chat.");
+      return;
+    }
+    setDeleteChatRequest({ mode: "clear", messages: thread, cascadeUserRuns: false });
+  };
+
+  const confirmDeleteChat = async () => {
+    if (!deleteChatRequest) return;
+    setRunError(null);
+    if (deleteChatRequest.mode === "clear") {
+      const res = await fetch(`/api/competitions/${competition.id}/agent-thread?stageId=${currentStage.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        setRunError(json?.error?.message ?? json?.message ?? "Failed to clear chat.");
+        return;
+      }
+      setThread([]);
+      setMessageMenuId(null);
+      setSelectedMessageIds(new Set());
+      setMessageSelectionMode(false);
+    } else if (deleteChatRequest.messages.length === 1) {
+      const deleted = await deleteThreadMessage(deleteChatRequest.messages[0], deleteChatRequest.cascadeUserRuns);
+      if (!deleted) return;
+    } else {
+      const deleted = await deleteThreadMessages(deleteChatRequest.messages, deleteChatRequest.cascadeUserRuns);
+      if (!deleted) return;
+    }
+    setDeleteChatRequest(null);
+  };
+
+  const selectedMessageCount = selectedMessageIds.size;
+  const toggleMessageSelected = (messageId: string) => {
+    setSelectedMessageIds((current) => {
+      const next = new Set(current);
+      if (next.has(messageId)) next.delete(messageId);
+      else next.add(messageId);
+      return next;
+    });
+  };
+
   return (
-    <section className="reference-workbench">
+    <section className={`reference-workbench ${railCollapsed ? "rail-collapsed" : ""}`}>
       <aside className={`reference-workflow-rail ${railCollapsed ? "collapsed" : ""}`}>
         <button className="rail-handle inside" onClick={() => setRailCollapsed((value) => !value)}>
           {railCollapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
@@ -1798,7 +2216,10 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
                 key={stage.id}
                 disabled={!unlocked}
                 className={`reference-stage-row ${statusClass} ${active ? "selected" : ""}`}
-                onClick={() => setCurrentStageId(stage.id)}
+                onClick={() => {
+                  setCurrentStageId(stage.id);
+                  setRunError(null);
+                }}
                 title={stage.label}
               >
                 <span className="reference-stage-dot">
@@ -1834,60 +2255,141 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
           </p>
         </div>
 
-        {!isMainAgentStage ? (
+        {!stageRunnable ? (
           <section className="reference-agent-question">
             <div className="reference-choice-header">
               <span>Stage status</span>
-              <small>ship-one</small>
+              <small>not wired</small>
             </div>
             <div className="reference-choice-body">
               <h2>This agent isn&apos;t wired yet.</h2>
-              <p>Main Agent ships first. The remaining stages will run once their skills are wired.</p>
+              <p>Main Agent and Ideation are wired first. The remaining stages will run once their skills are connected.</p>
             </div>
           </section>
         ) : null}
 
-        {outputFile ? (
-          <section className="reference-handoff">
-            <div>
-              <small>Stage Handoff</small>
-              <h2>
-                {isApproved
-                  ? "Approved. Next stage unlocked."
-                  : isStale
-                    ? "Upstream changed. Re-run this stage to refresh the output."
-                    : "Approve this stage output to unlock connected downstream inputs."}
-              </h2>
-            </div>
-            <div className="reference-handoff-actions">
-              {!isApproved ? (
-                <button className="btn-primary reference-small-button" onClick={approve} disabled={isStale}>
-                  <Check size={14} /> Approve &amp; unlock next stage
+        <div className="reference-thread-toolbar">
+          <span>
+            {messageSelectionMode && selectedMessageCount > 0
+              ? `${selectedMessageCount} selected`
+              : `${thread.length} chat message${thread.length === 1 ? "" : "s"}`}
+          </span>
+          <div className="reference-thread-actions">
+            {messageSelectionMode ? (
+              <>
+                <button
+                  className="btn-ghost reference-small-button"
+                  type="button"
+                  onClick={() => {
+                    setMessageSelectionMode(false);
+                    setSelectedMessageIds(new Set());
+                  }}
+                  disabled={isRunning}
+                >
+                  Cancel
                 </button>
-              ) : (
-                <span className="comp-status-pill">Approved</span>
-              )}
-            </div>
-          </section>
-        ) : null}
+                <button
+                  className="btn-ghost danger reference-small-button"
+                  type="button"
+                  onClick={requestDeleteSelectedMessages}
+                  disabled={selectedMessageCount === 0 || isRunning}
+                >
+                  <Trash2 size={13} /> Delete selected
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  className="btn-ghost reference-small-button"
+                  type="button"
+                  onClick={() => setMessageSelectionMode(true)}
+                  disabled={thread.length === 0 || isRunning}
+                >
+                  Select
+                </button>
+                <button className="ghost-icon" type="button" onClick={clearThread} disabled={thread.length === 0 || isRunning} title="Clear stage chat">
+                  <Trash2 size={14} />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
 
         <div className="reference-agent-thread">
-          {thread.length === 0 && !streamingRun ? (
-            <p className="reference-thread-empty">No messages yet. Click Run below to start the Main Agent.</p>
+          {thread.length === 0 && !visibleStreamingRun ? (
+            <p className="reference-thread-empty">No messages yet. Click {getRunButtonText(currentStage.id, false, false, false, false)} below to start this stage.</p>
           ) : null}
-          {thread.map((message) => (
-            <div key={message.id} className={`reference-chat-bubble ${message.role}`}>
-              <span className="reference-chat-role">{message.role === "user" ? "You" : "Agent"}</span>
-              <p>{message.content}</p>
-            </div>
-          ))}
-          {streamingRun ? (
+          {thread.map((message) => {
+            const actions = getThreadMessageActions(message.role);
+            const extracted = extractAgentChoiceFromMessage(message.content, message.context);
+            const chatTime = message.role === "user" ? formatChatTime(message.createdAt) : "";
+            return (
+              <div key={message.id} className={`reference-chat-bubble ${message.role} ${selectedMessageIds.has(message.id) ? "selected" : ""}`}>
+                <div className="reference-message-head">
+                  <div className="reference-message-title">
+                    {messageSelectionMode ? (
+                      <label className="reference-message-check" title="Select message">
+                        <input
+                          type="checkbox"
+                          checked={selectedMessageIds.has(message.id)}
+                          onChange={() => toggleMessageSelected(message.id)}
+                          disabled={isRunning}
+                        />
+                      </label>
+                    ) : null}
+                    <span className="reference-chat-role">{message.role === "user" ? "You" : "Agent"}</span>
+                  </div>
+                  <div className="reference-message-menu-wrap">
+                    <button
+                      className="ghost-icon reference-message-menu-button"
+                      type="button"
+                      onClick={() => setMessageMenuId((current) => current === message.id ? null : message.id)}
+                      disabled={isRunning}
+                      title="Message actions"
+                    >
+                      <MoreHorizontal size={14} />
+                    </button>
+                    {messageMenuId === message.id ? (
+                      <div className="reference-message-menu">
+                        {actions.includes("edit") ? (
+                          <button type="button" onClick={() => void editThreadMessage(message)}>
+                            <Pencil size={13} /> Edit and rerun
+                          </button>
+                        ) : null}
+                        {actions.includes("delete") ? (
+                          <button type="button" onClick={() => requestDeleteMessage(message)}>
+                            <Trash2 size={13} /> Delete
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+                {extracted.displayText ? <MarkdownText text={extracted.displayText} /> : null}
+                {chatTime ? <span className="reference-chat-time">{chatTime}</span> : null}
+                {extracted.choice ? (
+                  <AgentChoiceCard choice={extracted.choice} onSelect={answerAgentChoice} />
+                ) : null}
+              </div>
+            );
+          })}
+          {showStreamingBubble && visibleStreamingRun ? (
             <div className="reference-chat-bubble assistant streaming">
               <span className="reference-chat-role">Agent · streaming</span>
-              <p>{streamingRun.tokens || "…"}</p>
-              {streamingRun.toolWrites.length > 0 ? (
+              <MarkdownText text={visibleStreamingRun.tokens || "…"} />
+              {visibleStreamingRun.needsUserChoice ? (
+                <AgentChoiceCard choice={visibleStreamingRun.needsUserChoice} onSelect={answerAgentChoice} />
+              ) : null}
+              {visibleStreamingRun.progressLines.length > 0 ? (
+                <div className="reference-progress-log">
+                  {visibleStreamingRun.progressLines.slice(-8).map((line, index) => (
+                    <span key={`${index}-${line}`}>{line}</span>
+                  ))}
+                </div>
+              ) : null}
+              {visibleStreamingRun.toolWrites.length > 0 ? (
                 <div className="reference-tool-writes">
-                  {streamingRun.toolWrites.map((w) => (
+                  {visibleStreamingRun.toolWrites.map((w) => (
                     <span key={w.fileId} className="reference-tool-chip">
                       <FileText size={12} /> {w.fileName}
                     </span>
@@ -1896,15 +2398,51 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
               ) : null}
             </div>
           ) : null}
-          {runError ? <p className="reference-run-error">{runError}</p> : null}
-          {streamingRun || runSubmitting ? (
-            <RunStatusBar
-              phase={streamingRun?.phase ?? (runSubmitting ? "submitting" : "")}
-              detail={streamingRun?.phaseDetail ?? "Submitting run to backend…"}
-              startedAt={streamingRun?.startedAt}
-              tokens={streamingRun?.tokens.length ?? 0}
-              toolWrites={streamingRun?.toolWrites.length ?? 0}
+          {showStreamingBubble && visibleStreamingRun && visibleStreamingRun.activities.length > 0 ? (
+            <RunActivityFeed
+              activities={visibleStreamingRun.activities}
+              collapsed={isTerminalRunPhase(visibleStreamingRun.phase)}
             />
+          ) : null}
+          {!visibleStreamingRun && completedActivity[currentStage.id]?.activities.length > 0 ? (
+            <RunActivityFeed
+              activities={completedActivity[currentStage.id].activities}
+              collapsed
+            />
+          ) : null}
+          {runError ? <p className="reference-run-error">{runError}</p> : null}
+          {visibleStreamingRun || currentStageSubmitting ? (
+            <RunStatusBar
+              phase={visibleStreamingRun?.phase ?? (currentStageSubmitting ? "submitting" : "")}
+              detail={visibleStreamingRun?.phaseDetail ?? "Submitting run to backend…"}
+              startedAt={visibleStreamingRun?.startedAt}
+              tokens={visibleStreamingRun?.tokens.length ?? 0}
+              toolWrites={visibleStreamingRun?.toolWrites.length ?? 0}
+              progressLines={visibleStreamingRun?.progressLines ?? []}
+            />
+          ) : null}
+          {outputFile ? (
+            <section className="reference-handoff chat-handoff">
+              <div>
+                <small>Stage Handoff</small>
+                <h2>
+                  {isApproved
+                    ? "Approved. Next stage unlocked."
+                    : isStale
+                      ? "Upstream changed. Re-run this stage to refresh the output."
+                      : "Approve this stage output to unlock connected downstream inputs."}
+                </h2>
+              </div>
+              <div className="reference-handoff-actions">
+                {!isApproved ? (
+                  <button className="btn-primary reference-small-button" onClick={() => setApproveRequest(true)} disabled={isStale}>
+                    <Check size={14} /> Approve &amp; unlock next stage
+                  </button>
+                ) : (
+                  <span className="comp-status-pill">Approved</span>
+                )}
+              </div>
+            </section>
           ) : null}
         </div>
 
@@ -1924,37 +2462,85 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
               {modelsLoading && models.length === 0 ? <option value="">Loading models…</option> : null}
               {!modelsLoading && models.length === 0 ? <option value="">No models configured</option> : null}
               {models.map((m) => (
-                <option key={`${m.provider}::${m.id}`} value={`${m.provider}::${m.id}`}>
+                <option key={buildModelPickerValue(m)} value={buildModelPickerValue(m)}>
                   {m.label} ({m.provider})
                 </option>
               ))}
             </select>
-            <button
-              className="ghost-icon"
-              type="button"
-              onClick={refreshModels}
-              disabled={modelsLoading}
-              title="Refresh model list (re-scans installed CLIs)"
-            >
-              <RefreshCw size={14} className={modelsLoading ? "spin" : ""} />
-            </button>
+            <div className="composer-tools" ref={toolsMenuRef}>
+              <button
+                className={`composer-tools-button ${activeToolCount > 0 ? "active" : ""}`}
+                type="button"
+                onClick={() => setToolsMenuOpen((open) => !open)}
+                disabled={isRunning}
+                title="Run tools"
+              >
+                <SlidersHorizontal size={15} />
+                <span>Tools</span>
+              </button>
+              {toolsMenuOpen ? (
+                <div className="composer-tools-menu">
+                  <button
+                    type="button"
+                    className={webSearchEnabled ? "active" : ""}
+                    onClick={() => {
+                      setWebSearchEnabled((value) => !value);
+                    }}
+                  >
+                    <Globe size={16} />
+                    <span>Search the web</span>
+                    {webSearchEnabled ? <Check size={14} /> : null}
+                  </button>
+                  <button
+                    type="button"
+                    className={imageGenerationEnabled ? "active" : ""}
+                    onClick={() => {
+                      setImageGenerationEnabled((value) => !value);
+                    }}
+                  >
+                    <Palette size={16} />
+                    <span>Create an image</span>
+                    {imageGenerationEnabled ? <Check size={14} /> : null}
+                  </button>
+                  {webSearchEnabled ? (
+                    <div className="composer-search-mode">
+                      <small>Search depth</small>
+                      <div>
+                        {(["fast", "balanced", "deep"] as SearchMode[]).map((mode) => (
+                          <button
+                            key={mode}
+                            type="button"
+                            className={searchMode === mode ? "active" : ""}
+                            onClick={() => setSearchMode(mode)}
+                            title={SEARCH_MODE_META[mode].description}
+                          >
+                            {SEARCH_MODE_META[mode].label}
+                          </button>
+                        ))}
+                      </div>
+                      <p>{SEARCH_MODE_META[searchMode].description}</p>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
             <select
-              value={reasoningEffort}
-              onChange={(event) => setReasoningEffort(event.target.value as "low" | "medium" | "high" | "xhigh")}
-              disabled={isRunning}
+              value={reasoningDisabled ? "" : activeReasoningEffort}
+              onChange={(event) => setReasoningEffort(event.target.value as ReasoningEffort)}
+              disabled={isRunning || reasoningDisabled}
             >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="xhigh">Extra high</option>
+              {reasoningDisabled ? <option value="">No thinking effort</option> : null}
+              {reasoningEfforts.map((effort) => (
+                <option key={effort} value={effort}>{REASONING_LABELS[effort]}</option>
+              ))}
             </select>
             <button
-              className="btn-primary reference-small-button"
-              onClick={requestRerun}
+              className="btn-primary reference-run-button"
+              onClick={runInFlight ? terminateRun : requestRerun}
               disabled={runButtonDisabled}
-              title={runButtonDisabled && !modelReady ? "Pick a model first" : runButtonDisabled && !stageUnlocked ? "Upstream not approved" : undefined}
+              title={runButtonDisabled && !modelReady ? "Pick a model first" : runButtonDisabled && !stageUnlocked ? "Upstream not approved" : runButtonDisabled && !stageRunnable ? "This stage is not wired yet" : undefined}
             >
-              {runSubmitting ? "Submitting…" : isRunning ? "Running…" : isApproved ? "Re-run" : "Run"} <Send size={14} />
+              {getRunButtonText(currentStage.id, runInFlight, runCancelling, runSubmitting, Boolean(isApproved))} {runInFlight ? <X size={14} /> : <Send size={14} />}
             </button>
           </div>
         </div>
@@ -1973,7 +2559,15 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
             <small>Unlocks Next</small>
             <p>{nextStage ? `${nextStage.label} can run after this file is approved.` : "All required stage outputs are ready for final review."}</p>
           </div>
-          {outputFile ? (
+          {visibleStreamingRun || currentStageSubmitting ? (
+            <div className="reference-live-output">
+              <small>Live agent output</small>
+              <LiveWritingPreview
+                text={visibleStreamingRun?.tokens ?? ""}
+                fallback={visibleStreamingRun?.phaseDetail ?? "Submitting run to backend..."}
+              />
+            </div>
+          ) : outputFile ? (
             <button className="reference-fullscreen-button" onClick={() => setOutputOpen(true)}>
               <Maximize2 size={15} /> Full screen
             </button>
@@ -1993,6 +2587,21 @@ function Workbench({ competition, assistantOpen, darkMode, onBack, onToggleAssis
           stage={rerunTarget}
           onCancel={() => setRerunTarget(null)}
           onConfirm={confirmRerun}
+        />
+      ) : null}
+      {deleteChatRequest ? (
+        <DeleteChatConfirmDialog
+          request={deleteChatRequest}
+          onCancel={() => setDeleteChatRequest(null)}
+          onConfirm={confirmDeleteChat}
+        />
+      ) : null}
+      {approveRequest && outputFile ? (
+        <ApproveConfirmDialog
+          stageLabel={currentStage.label}
+          fileName={outputFile.fileName}
+          onCancel={() => setApproveRequest(false)}
+          onConfirm={approve}
         />
       ) : null}
       {outputOpen && outputFile ? (
@@ -2016,8 +2625,6 @@ type StageStateEntry = {
   downstreamStageKeys: string[];
 };
 
-type ModelOption = { provider: string; id: string; label: string };
-
 type ThreadMessage = {
   id: string;
   role: string;
@@ -2029,14 +2636,361 @@ type ThreadMessage = {
   createdAt: string;
 };
 
+type ChatDeleteRequest = {
+  mode: "single" | "bulk" | "clear";
+  messages: ThreadMessage[];
+  cascadeUserRuns: boolean;
+};
+
 type ActiveRun = {
   runId: string;
+  stageId: StageId;
   tokens: string;
+  activities: RunActivityItem[];
+  progressLines: string[];
   toolWrites: Array<{ fileName: string; fileId: string }>;
+  needsUserChoice?: AgentRuntimeChoice;
   phase: string; // 'queued' | 'started' | 'prompt_built' | 'streaming' | 'tool_writing' | 'completed' | 'failed'
   phaseDetail: string;
   startedAt: number;
 };
+
+type CompletedRunActivity = {
+  activities: RunActivityItem[];
+  progressLines: string[];
+  phaseDetail: string;
+};
+
+type RunActivityItem = {
+  kind: "thinking" | "searching" | "reading" | "tool" | "writing" | "session";
+  label: string;
+  url?: string;
+  domain?: string;
+  fileName?: string;
+  tool?: string;
+};
+
+type AgentRuntimeChoiceOption = AgentChoiceOption;
+type AgentRuntimeChoice = AgentChoice;
+
+function isNeedsUserChoice(value: unknown): value is AgentRuntimeChoice {
+  return isAgentChoice(value);
+}
+
+function isTerminalRunPhase(phase: string | undefined): boolean {
+  return phase === "completed" || phase === "failed" || phase === "cancelled" || phase === "needs_choice";
+}
+
+function getRunButtonText(stageId: string, streaming: boolean, cancelling: boolean, submitting: boolean, approved: boolean): string {
+  if (streaming) return cancelling ? "Terminating..." : "Terminate";
+  if (submitting) return "Submitting...";
+  if (approved) return "Re-run";
+  if (stageId === "onboarding") return "Run Main Agent";
+  if (stageId === "ideation") return "Run Ideation Agent";
+  return "Run";
+}
+
+function normalizeRunActivity(payload: Record<string, unknown>): RunActivityItem | null {
+  const kind = String(payload.kind ?? "");
+  if (!["thinking", "searching", "reading", "tool", "writing", "session"].includes(kind)) return null;
+  const label = typeof payload.label === "string" && payload.label.trim()
+    ? payload.label
+    : kind === "session"
+      ? "Provider session attached"
+      : kind;
+  return {
+    kind: kind as RunActivityItem["kind"],
+    label,
+    url: typeof payload.url === "string" ? payload.url : undefined,
+    domain: typeof payload.domain === "string" ? payload.domain : undefined,
+    fileName: typeof payload.fileName === "string" ? payload.fileName : undefined,
+    tool: typeof payload.tool === "string" ? payload.tool : undefined,
+  };
+}
+
+function appendRunActivity(current: RunActivityItem[], next: RunActivityItem): RunActivityItem[] {
+  const last = current.at(-1);
+  if (last && last.kind === next.kind && last.label === next.label && last.url === next.url) return current;
+  return [...current, next].slice(-24);
+}
+
+function RunActivityFeed({
+  activities,
+  collapsed,
+}: {
+  activities: RunActivityItem[];
+  collapsed: boolean;
+}) {
+  const items = activities;
+  const visible = collapsed ? items.slice(-1) : items.slice(-8);
+  if (visible.length === 0) return null;
+  return (
+    <div className={`reference-activity-feed ${collapsed ? "collapsed" : ""}`}>
+      {visible.map((item, index) => (
+        <div className={`reference-activity-row ${item.kind}`} key={`${item.kind}-${item.label}-${index}`}>
+          <span className="reference-activity-dot" />
+          <div>
+            <strong>{activityLabel(item.kind)}</strong>
+            {item.url ? (
+              <a href={item.url} target="_blank" rel="noreferrer">{item.domain ?? item.url}</a>
+            ) : (
+              <small>{item.label}</small>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function activityLabel(kind: RunActivityItem["kind"]): string {
+  if (kind === "searching") return "Searching";
+  if (kind === "reading") return "Reading";
+  if (kind === "tool") return "Using tool";
+  if (kind === "session") return "Session";
+  if (kind === "writing") return "Writing";
+  return "Thinking";
+}
+
+function LiveWritingPreview({ text, fallback }: { text: string; fallback: string }) {
+  const [visibleLineCount, setVisibleLineCount] = useState(1);
+  const lines = (text.trim() ? text : fallback).split(/\r?\n/);
+  useEffect(() => {
+    setVisibleLineCount(Math.min(1, Math.max(lines.length, 1)));
+    if (!text.trim()) return;
+    const id = setInterval(() => {
+      setVisibleLineCount((count) => {
+        if (count >= lines.length) {
+          clearInterval(id);
+          return count;
+        }
+        return count + 1;
+      });
+    }, 120);
+    return () => clearInterval(id);
+  }, [text, lines.length]);
+  return (
+    <div className="reference-live-stream writing-only">
+      {(text.trim() ? lines.slice(0, visibleLineCount) : lines).join("\n")}
+    </div>
+  );
+}
+
+function MarkdownText({ text }: { text: string }) {
+  const blocks = text.split(/\n{2,}/).filter((part) => part.length > 0);
+  return (
+    <div className="markdown-text">
+      {blocks.map((block, blockIndex) => {
+        const lines = block.split(/\n/);
+        return lines.map((line, lineIndex) => renderMarkdownLine(line, `${blockIndex}-${lineIndex}`));
+      })}
+    </div>
+  );
+}
+
+function renderMarkdownLine(line: string, key: string): ReactNode {
+  const heading = line.match(/^(#{1,4})\s+(.+)$/);
+  if (heading) {
+    const level = Math.min(heading[1].length, 4);
+    if (level === 1) return <h3 key={key}>{renderInlineMarkdown(heading[2])}</h3>;
+    if (level === 2) return <h4 key={key}>{renderInlineMarkdown(heading[2])}</h4>;
+    if (level === 3) return <h5 key={key}>{renderInlineMarkdown(heading[2])}</h5>;
+    return <h6 key={key}>{renderInlineMarkdown(heading[2])}</h6>;
+  }
+
+  const unordered = line.match(/^\s*[-*]\s+(.+)$/);
+  if (unordered) {
+    return (
+      <p key={key} className="markdown-list-line">
+        <span className="markdown-list-marker">-</span>
+        <span>{renderInlineMarkdown(unordered[1])}</span>
+      </p>
+    );
+  }
+
+  const ordered = line.match(/^\s*(\d+)[.)]\s+(.+)$/);
+  if (ordered) {
+    return (
+      <p key={key} className="markdown-list-line">
+        <span className="markdown-list-marker">{ordered[1]}.</span>
+        <span>{renderInlineMarkdown(ordered[2])}</span>
+      </p>
+    );
+  }
+
+  return <p key={key}>{renderInlineMarkdown(line)}</p>;
+}
+
+function renderInlineMarkdown(line: string): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  const pattern = /(\*\*[^*]+\*\*|`[^`]+`)/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(line)) !== null) {
+    if (match.index > lastIndex) nodes.push(line.slice(lastIndex, match.index));
+    const token = match[0];
+    const key = `${match.index}-${token}`;
+    if (token.startsWith("**")) {
+      nodes.push(<strong key={key}>{token.slice(2, -2)}</strong>);
+    } else {
+      nodes.push(<code key={key}>{token.slice(1, -1)}</code>);
+    }
+    lastIndex = match.index + token.length;
+  }
+  if (lastIndex < line.length) nodes.push(line.slice(lastIndex));
+  return nodes;
+}
+
+function AgentChoiceCard({ choice, onSelect }: { choice: AgentRuntimeChoice; onSelect: (choice: AgentRuntimeChoiceOption) => void }) {
+  if (isContextlessChoice(choice.question)) return null;
+  return (
+    <div className="reference-agent-question inline-choice">
+      <div className="reference-choice-header">
+        <span>Decision needed</span>
+        <small>agent checkpoint</small>
+      </div>
+      <div className="reference-choice-body">
+        <h2>{choice.question}</h2>
+        <div className="reference-choice-row">
+          {choice.options.map((option) => (
+            <button
+              key={option.id ?? option.key ?? option.label}
+              type="button"
+              className="reference-choice-pill"
+              onClick={() => onSelect(option)}
+            >
+              <span>{option.key ?? option.id?.slice(0, 1).toUpperCase() ?? ">"}</span>
+              <strong>{option.label}</strong>
+              <small>{option.description ?? option.detail ?? option.result}</small>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function isContextlessChoice(question: string): boolean {
+  const words = question.trim().split(/\s+/).filter(Boolean).length;
+  return words < 8;
+}
+
+function ApproveConfirmDialog({
+  stageLabel,
+  fileName,
+  onCancel,
+  onConfirm,
+}: {
+  stageLabel: string;
+  fileName: string;
+  onCancel: () => void;
+  onConfirm: () => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  return (
+    <div className="modal-backdrop">
+      <div className="small-modal approve-modal">
+        <div className="modal-header">
+          <h2>Approve {stageLabel} output?</h2>
+          <button className="ghost-icon" onClick={onCancel} disabled={busy}>
+            <X size={18} />
+          </button>
+        </div>
+        <p>
+          This freezes <strong>{fileName}</strong> and unlocks the next stage. If you later edit or re-run this stage,
+          the app will treat it as a fresh run and downstream outputs may need to be regenerated or approved again.
+        </p>
+        {err ? <p className="modal-error">{err}</p> : null}
+        <div className="modal-actions">
+          <button className="btn-ghost" onClick={onCancel} disabled={busy}>Cancel</button>
+          <button
+            className="btn-primary"
+            disabled={busy}
+            onClick={async () => {
+              try {
+                setBusy(true);
+                setErr(null);
+                await onConfirm();
+              } catch (error) {
+                setErr(error instanceof Error ? error.message : "Approve failed.");
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {busy ? "Approving..." : "Approve and unlock"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DeleteChatConfirmDialog({
+  request,
+  onCancel,
+  onConfirm,
+}: {
+  request: ChatDeleteRequest;
+  onCancel: () => void;
+  onConfirm: () => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const count = request.mode === "clear" ? request.messages.length : request.messages.length;
+  const title = request.mode === "clear"
+    ? "Clear chat"
+    : request.mode === "bulk"
+      ? "Delete selected chat"
+      : "Delete chat";
+  const body = request.mode === "clear"
+    ? "This removes all visible chat messages for this stage from the database. Output files are kept."
+    : request.cascadeUserRuns
+      ? "Deleting user prompts also deletes the linked run messages and generated output files from the database."
+      : "This removes the selected chat message from the database.";
+
+  return (
+    <div className="modal-backdrop">
+      <div className="small-modal chat-delete-modal">
+        <div className="modal-header">
+          <h2>{title}</h2>
+          <button className="ghost-icon" onClick={onCancel} disabled={busy}>
+            <X size={18} />
+          </button>
+        </div>
+        <p>{body}</p>
+        <div className="chat-delete-summary">
+          <strong>{count}</strong>
+          <span>{count === 1 ? "message will be deleted" : "messages will be deleted"}</span>
+        </div>
+        {err ? <p className="modal-error">{err}</p> : null}
+        <div className="modal-actions">
+          <button className="btn-ghost" onClick={onCancel} disabled={busy}>
+            Cancel
+          </button>
+          <button
+            className="btn-primary"
+            disabled={busy || count === 0}
+            onClick={async () => {
+              try {
+                setBusy(true);
+                setErr(null);
+                await onConfirm();
+              } catch (error) {
+                setErr(error instanceof Error ? error.message : "Delete failed.");
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {busy ? "Deleting..." : "Delete"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function RunStatusBar({
   phase,
@@ -2044,12 +2998,14 @@ function RunStatusBar({
   startedAt,
   tokens,
   toolWrites,
+  progressLines,
 }: {
   phase: string;
   detail: string;
   startedAt?: number;
   tokens: number;
   toolWrites: number;
+  progressLines: string[];
 }) {
   const [, force] = useState(0);
   // Tick once a second for elapsed time display.
@@ -2089,6 +3045,13 @@ function RunStatusBar({
         </div>
       </div>
       <p style={{ margin: "6px 0 0 22px", fontSize: 12, color: "var(--muted)" }}>{detail}</p>
+      {progressLines.length > 0 ? (
+        <div className="reference-progress-log compact">
+          {progressLines.slice(-6).map((line, index) => (
+            <span key={`${index}-${line}`}>{line}</span>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -2291,7 +3254,7 @@ function ByokSettings() {
                 <div className="byok-api-section">
                   <div className="form-grid">
                     <label>API Key<input type="password" placeholder="Stored in browser only" /></label>
-                    <label>Default Model<input placeholder={executionMode === "anthropic" ? "claude-opus-4" : executionMode === "openrouter" ? "openrouter/auto" : "gpt-4.1"} /></label>
+                    <label>Default Model<input placeholder="Read from configured provider models" /></label>
                     <label>Reasoning<select><option>Medium</option><option>High</option><option>Extra High</option></select></label>
                   </div>
                   {apiProviders.find((p) => p.id === (executionMode === "anthropic" ? "anthropic-api" : executionMode === "openai" ? "openai-api" : "openrouter"))?.configured ? (
@@ -2352,20 +3315,10 @@ function StyleBuilderWorkspace() {
   const [loading, setLoading] = useState(true);
   const [initialLoaded, setInitialLoaded] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [models, setModels] = useState<Array<{ provider: string; id: string; label: string }>>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const cached = window.localStorage.getItem("esai-models-v2");
-      return cached ? JSON.parse(cached) : [];
-    } catch { return []; }
-  });
-  const [selectedModel, setSelectedModel] = useState(() => {
-    if (typeof window === "undefined") return "";
-    return window.localStorage.getItem("esai-selected-model-v2") ?? "";
-  });
-  const [reasoningEffort, setReasoningEffort] = useState<"low" | "medium" | "high" | "xhigh">(() => {
+  const { models, selectedModel, setSelectedModel } = useModelOptions();
+  const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>(() => {
     if (typeof window === "undefined") return "medium";
-    return (window.localStorage.getItem("esai-reasoning") as "low" | "medium" | "high" | "xhigh") ?? "medium";
+    return (window.localStorage.getItem("esai-reasoning") as ReasoningEffort) ?? "medium";
   });
   const [activeRun, setActiveRun] = useState<{ runId: string; tokens: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -2389,28 +3342,6 @@ function StyleBuilderWorkspace() {
   }, []);
 
   useEffect(() => { void reload(); }, [reload]);
-
-  useEffect(() => {
-    // Only fetch if localStorage cache was empty.
-    if (models.length > 0) return;
-    (async () => {
-      try {
-        const res = await fetch("/api/models", { cache: "no-store" });
-        const json = await res.json();
-        const list = (json?.data ?? []) as Array<{ provider: string; id: string; label: string }>;
-        setModels(list);
-        window.localStorage.setItem("esai-models-v2", JSON.stringify(list));
-        if (!selectedModel && list.length > 0) {
-          const first = `${list[0].provider}::${list[0].id}`;
-          setSelectedModel(first);
-          window.localStorage.setItem("esai-selected-model-v2", first);
-        }
-      } catch {
-        // keep cached
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? []);
@@ -2479,13 +3410,13 @@ function StyleBuilderWorkspace() {
     setError(null);
     if (sources.length === 0) { setError("Upload at least one essay PDF first."); return; }
     if (!selectedModel) { setError("Pick a model first."); return; }
-    const [provider, modelId] = selectedModel.split("::");
+    const { provider, modelId } = parseModelPickerValue(selectedModel);
 
     try {
       const res = await fetch("/api/style-profile/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ modelProvider: provider, modelId, reasoningEffort }),
+        body: JSON.stringify({ modelProvider: provider, modelId, reasoningEffort: activeReasoningEffort }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -2558,6 +3489,9 @@ function StyleBuilderWorkspace() {
       return prev;
     });
   };
+  const reasoningEfforts = getReasoningEffortsForModel(models, selectedModel) as ReasoningEffort[];
+  const activeReasoningEffort = getActiveReasoningEffort(models, selectedModel, reasoningEffort);
+  const reasoningDisabled = reasoningEfforts.length === 0;
 
   return (
     <section className="panel">
@@ -2648,20 +3582,20 @@ function StyleBuilderWorkspace() {
             >
               {models.length === 0 ? <option value="">Loading models…</option> : null}
               {models.map((m) => (
-                <option key={`${m.provider}::${m.id}`} value={`${m.provider}::${m.id}`}>
+                <option key={buildModelPickerValue(m)} value={buildModelPickerValue(m)}>
                   {m.label} ({m.provider})
                 </option>
               ))}
             </select>
             <select
-              value={reasoningEffort}
-              onChange={(e) => setReasoningEffort(e.target.value as "low" | "medium" | "high" | "xhigh")}
-              disabled={activeRun !== null}
+              value={reasoningDisabled ? "" : activeReasoningEffort}
+              onChange={(e) => setReasoningEffort(e.target.value as ReasoningEffort)}
+              disabled={activeRun !== null || reasoningDisabled}
             >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="xhigh">Extra high</option>
+              {reasoningDisabled ? <option value="">No thinking effort</option> : null}
+              {reasoningEfforts.map((effort) => (
+                <option key={effort} value={effort}>{REASONING_LABELS[effort]}</option>
+              ))}
             </select>
             <button
               className="btn-primary"
@@ -3019,8 +3953,11 @@ function AnalyticalDashboard({ onBack }: { onBack: () => void }) {
 }
 
 function AssistantPanel({ context, onClose }: { context: string; onClose: () => void }) {
-  const [model, setModel] = useState("GPT-5.4");
-  const [effort, setEffort] = useState("medium");
+  const { models, selectedModel: model, setSelectedModel: setModel, modelsLoading } = useModelOptions();
+  const [effort, setEffort] = useState<ReasoningEffort>("medium");
   const readiness = isModelSelectionReady(model);
-  return <div className="assistant-panel"><div className="assistant-header"><div><strong>Context AI Assistant</strong><small>{context}</small></div><button className="ghost-icon" onClick={onClose}><X size={16} /></button></div><div className="assistant-body"><div className="assistant-bubble"><Bot size={18} />Saya membaca lokasi kerja aktif dan file yang dipilih. Pilih model sebelum generate.</div></div><div className="assistant-composer"><div className="composer-controls"><select value={model} onChange={(event) => setModel(event.target.value)}><option value="">Select model</option><option>GPT-5.4</option><option>gpt-5.5</option><option>openrouter/auto</option></select><select value={effort} onChange={(event) => setEffort(event.target.value)}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="xhigh">Extra High</option></select><button>Tools</button></div>{!readiness.ready ? <p className="notice">{readiness.message}</p> : null}<div className="composer-row"><textarea placeholder="Ask for edits, citations, next steps..." /><button className="send-button" disabled={!readiness.ready} title={`Send with ${effort}`}><Send size={16} /></button></div></div></div>;
+  const reasoningEfforts = getReasoningEffortsForModel(models, model) as ReasoningEffort[];
+  const activeEffort = getActiveReasoningEffort(models, model, effort);
+  const reasoningDisabled = reasoningEfforts.length === 0;
+  return <div className="assistant-panel"><div className="assistant-header"><div><strong>Context AI Assistant</strong><small>{context}</small></div><button className="ghost-icon" onClick={onClose}><X size={16} /></button></div><div className="assistant-body"><div className="assistant-bubble"><Bot size={18} />Saya membaca lokasi kerja aktif dan file yang dipilih. Pilih model sebelum generate.</div></div><div className="assistant-composer"><div className="composer-controls"><select value={model} onChange={(event) => setModel(event.target.value)} disabled={models.length === 0}><option value="">{modelsLoading ? "Loading models..." : "Select model"}</option>{models.map((item) => <option key={buildModelPickerValue(item)} value={buildModelPickerValue(item)}>{item.label} ({item.provider})</option>)}</select><select value={reasoningDisabled ? "" : activeEffort} onChange={(event) => setEffort(event.target.value as ReasoningEffort)} disabled={reasoningDisabled}>{reasoningDisabled ? <option value="">No thinking effort</option> : null}{reasoningEfforts.map((item) => <option key={item} value={item}>{REASONING_LABELS[item]}</option>)}</select><button>Tools</button></div>{!readiness.ready ? <p className="notice">{readiness.message}</p> : null}<div className="composer-row"><textarea placeholder="Ask for edits, citations, next steps..." /><button className="send-button" disabled={!readiness.ready} title={`Send with ${activeEffort}`}><Send size={16} /></button></div></div></div>;
 }

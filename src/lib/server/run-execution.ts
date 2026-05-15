@@ -1,12 +1,24 @@
 import "server-only";
 
-import { spawn } from "node:child_process";
+import { spawn, type SpawnOptions } from "node:child_process";
 import { randomUUID } from "node:crypto";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { RunEventEmitter } from "@/lib/server/run-events";
+import { collectRunSearchSources, formatSearchContext, type SearchSource } from "@/lib/server/run-search";
 import { parseToolCalls, type WriteFileToolCall } from "@/lib/server/tool-calls";
+
+export class RunCancelledError extends Error {
+  constructor(message = "Run cancelled by user.") {
+    super(message);
+    this.name = "RunCancelledError";
+  }
+}
+
+export function isRunCancelledError(error: unknown): error is RunCancelledError {
+  return error instanceof RunCancelledError || (error instanceof Error && error.name === "RunCancelledError");
+}
 
 export type RunExecutionInput = {
   runId: string;
@@ -19,18 +31,31 @@ export type RunExecutionInput = {
   modelProvider: string;
   modelId: string;
   reasoningEffort: string;
+  webSearch?: boolean;
+  imageGeneration?: boolean;
+  searchMode?: "fast" | "balanced" | "deep";
+  providerSessionId?: string | null;
+  stageSessionSummary?: string | null;
   inputFiles: Array<{
     fileId: string;
     fileName: string;
     fileRole: string;
     contentText: string | null;
+    mimeType?: string | null;
+    storageBucket?: string | null;
+    storagePath?: string | null;
+    signedUrl?: string | null;
   }>;
+  isCancelled?: () => Promise<boolean>;
 };
 
 export type RunExecutionResult = {
-  status: "completed" | "failed";
+  status: "completed" | "failed" | "needs_choice" | "cancelled";
   assistantText: string;
   toolCalls: WriteFileToolCall[];
+  needsUserChoice?: Record<string, unknown>;
+  providerSessionId?: string | null;
+  summaryText?: string | null;
   errorMessage?: string;
 };
 
@@ -49,17 +74,68 @@ export async function executeRun(
   emitter: RunEventEmitter,
   input: RunExecutionInput,
 ): Promise<RunExecutionResult> {
-  const prompt = buildPrompt(input);
+  const searchSources = input.webSearch
+    ? await collectRunSearchSources(supabase, emitter, {
+      runId: input.runId,
+      userId: input.userId,
+      competitionId: input.competitionId,
+      stageId: input.stageId,
+      userMessage: input.userMessage,
+      inputFiles: input.inputFiles,
+      searchMode: input.searchMode,
+    })
+    : [];
+  const prompt = buildPrompt(input, searchSources);
 
   await emitter.emit("status", { phase: "prompt_built", length: prompt.length });
 
   let assistantText = "";
+  const abortController = new AbortController();
+  const cancelCheck = input.isCancelled
+    ? setInterval(() => {
+        input.isCancelled?.()
+          .then((cancelled) => {
+            if (cancelled && !abortController.signal.aborted) {
+              abortController.abort(new RunCancelledError());
+            }
+          })
+          .catch(() => undefined);
+      }, 1000)
+    : null;
+
+  let providerSessionId = input.providerSessionId ?? null;
   try {
+    if (await input.isCancelled?.()) throw new RunCancelledError();
+    if (!input.providerSessionId) {
+      for (const file of input.inputFiles) {
+        await emitter.emit("activity", {
+          kind: "reading",
+          label: `Reading ${file.fileName}`,
+          fileName: file.fileName,
+        });
+      }
+    }
     assistantText = await callModel({
       provider: input.modelProvider,
       modelId: input.modelId,
       reasoningEffort: input.reasoningEffort,
       prompt,
+      webSearch: input.webSearch,
+      providerSessionId: input.providerSessionId,
+      signal: abortController.signal,
+      onActivity: async (activity) => {
+        if (activity.kind === "session") {
+          providerSessionId = activity.providerSessionId;
+          await emitter.emit("activity", { kind: "session", providerSessionId: activity.providerSessionId });
+        } else if (activity.kind === "activity") {
+          await emitter.emit("activity", activity.activity);
+          if (activity.activity.kind === "searching" && activity.activity.url) {
+            await recordRunSource(supabase, input, activity.activity).catch((error) => {
+              console.error(`[run ${input.runId.slice(0, 8)}] source record failed:`, (error as Error).message);
+            });
+          }
+        }
+      },
       onToken: async (chunk) => {
         if (chunk) await emitter.emit("token", { text: chunk });
       },
@@ -68,15 +144,25 @@ export async function executeRun(
           const text = chunk.trim();
           if (text) {
             console.error(`[run ${input.runId.slice(0, 8)}] CLI stderr: ${text}`);
-            await emitter.emit("status", { phase: "cli_stderr", text: text.slice(0, 500) });
+            const progressLines = formatCliProgressLines(text);
+            if (progressLines.length > 0) {
+              await emitter.emit("progress", { source: input.modelProvider, lines: progressLines });
+              await emitter.emit("status", { phase: "cli_progress", text: progressLines.at(-1)?.slice(0, 500) ?? "" });
+            }
           }
         }
       },
     });
   } catch (err) {
+    if (isRunCancelledError(err) || abortController.signal.aborted) {
+      await emitter.emit("status", { phase: "cancelled", text: "Run cancelled by user." });
+      return { status: "cancelled", assistantText, toolCalls: [], providerSessionId, errorMessage: "Run cancelled by user." };
+    }
     const message = (err as Error).message ?? String(err);
     await emitter.emit("error", { reason: "model_call_failed", message });
-    return { status: "failed", assistantText: "", toolCalls: [], errorMessage: message };
+    return { status: "failed", assistantText: "", toolCalls: [], providerSessionId, errorMessage: message };
+  } finally {
+    if (cancelCheck) clearInterval(cancelCheck);
   }
 
   const parsed = parseToolCalls(assistantText);
@@ -108,7 +194,7 @@ export async function executeRun(
     }
   }
 
-  const finalChat = parsed.chatText || (appliedToolCalls.length > 0 ? "Saved stage output." : assistantText);
+  const finalChat = parsed.chatText || (parsed.needsUserChoice ? parsed.needsUserChoice.question : appliedToolCalls.length > 0 ? "Saved stage output." : assistantText);
   const { data: messageRow, error: msgErr } = await supabase
     .from("agent_messages")
     .insert({
@@ -118,7 +204,11 @@ export async function executeRun(
       thread_type: "stage",
       role: "assistant",
       content: finalChat,
-      context: { runId: input.runId, toolCalls: appliedToolCalls.map((t) => t.params.artifact_key) },
+      context: {
+        runId: input.runId,
+        toolCalls: appliedToolCalls.map((t) => t.params.artifact_key),
+        needsUserChoice: parsed.needsUserChoice,
+      },
     })
     .select("id")
     .single();
@@ -128,20 +218,45 @@ export async function executeRun(
     await emitter.emit("message", { id: String(messageRow.id), content: finalChat });
   }
 
+  if (parsed.needsUserChoice) {
+    await supabase
+      .from("agent_runs")
+      .update({ needs_user_choice: parsed.needsUserChoice })
+      .eq("id", input.runId)
+      .eq("user_id", input.userId);
+    await emitter.emit("choice", parsed.needsUserChoice);
+    await emitter.emit("status", { phase: "needs_choice" });
+    return { status: "needs_choice", assistantText, toolCalls: appliedToolCalls, needsUserChoice: parsed.needsUserChoice, providerSessionId, summaryText: buildRunSummary(input, finalChat, appliedToolCalls.length) };
+  }
+
   await emitter.emit("status", { phase: "completed", toolCalls: appliedToolCalls.length });
-  return { status: "completed", assistantText, toolCalls: appliedToolCalls };
+  return { status: "completed", assistantText, toolCalls: appliedToolCalls, providerSessionId, summaryText: buildRunSummary(input, finalChat, appliedToolCalls.length) };
 }
 
 // --- Prompt builder ------------------------------------------------------------------
 
-function buildPrompt(input: RunExecutionInput): string {
+function buildPrompt(input: RunExecutionInput, searchSources: SearchSource[] = []): string {
+  if (input.providerSessionId) {
+    return buildFollowUpPrompt({
+      stageId: input.stageId,
+      userMessage: input.userMessage,
+      summaryText: input.stageSessionSummary,
+      searchContext: input.webSearch ? formatSearchContext(searchSources) : null,
+    });
+  }
+
   const inputSections = input.inputFiles
     .map((f) => {
       const header = `### Input: ${f.fileName} (role: ${f.fileRole})`;
+      const metadata = [
+        f.mimeType ? `MIME: ${f.mimeType}` : null,
+        f.storageBucket && f.storagePath ? `Storage: ${f.storageBucket}/${f.storagePath}` : null,
+        f.signedUrl ? `Signed URL: ${f.signedUrl}` : null,
+      ].filter(Boolean).join("\n");
       const body = f.contentText && f.contentText.trim().length > 0
         ? f.contentText.slice(0, 120_000)
         : "(binary or empty — no text extracted)";
-      return `${header}\n${body}`;
+      return `${header}${metadata ? `\n${metadata}` : ""}\n${body}`;
     })
     .join("\n\n");
 
@@ -153,6 +268,15 @@ function buildPrompt(input: RunExecutionInput): string {
     "## Run context",
     `- Stage: ${input.stageId}`,
     `- Model: ${input.modelProvider}:${input.modelId} (reasoning: ${input.reasoningEffort})`,
+    `- Web search: ${input.webSearch ? "enabled" : "disabled"}`,
+    `- Image generation mode: ${input.imageGeneration ? "enabled" : "disabled"}`,
+    input.webSearch
+      ? "- When the stage requires current evidence, trends, websites, or URLs, use live web search and cite the sources in the saved output."
+      : "- Do not browse the web unless the model/provider exposes a required built-in tool for this run.",
+    input.imageGeneration
+      ? "- If the user asks for image generation, produce a production-ready image prompt/spec in the stage output. The web app records the intent; raster generation requires an image-capable backend endpoint."
+      : "- Do not create image prompts unless the user explicitly asks for visual assets.",
+    input.webSearch ? formatSearchContext(searchSources) : "",
     "",
     "## Inputs",
     inputSections || "(no input files)",
@@ -162,22 +286,64 @@ function buildPrompt(input: RunExecutionInput): string {
   ].join("\n");
 }
 
+function buildFollowUpPrompt(input: { stageId: string; userMessage: string; summaryText?: string | null; searchContext?: string | null }): string {
+  return [
+    "## Stage follow-up",
+    `- Stage: ${input.stageId}`,
+    "- Continue the existing stage conversation.",
+    "- Use the already-loaded skill, guidebook, and upstream context from this provider session.",
+    input.summaryText ? `- Current stage memory: ${input.summaryText.slice(0, 4000)}` : null,
+    input.searchContext ?? null,
+    "",
+    "## User message",
+    input.userMessage.trim() || "Continue.",
+  ].filter((line): line is string => typeof line === "string").join("\n");
+}
+
+function buildRunSummary(input: RunExecutionInput, finalChat: string, toolCallCount: number): string {
+  const prior = input.stageSessionSummary?.trim();
+  const next = [
+    prior ? `Previous: ${prior.slice(0, 3000)}` : null,
+    `Last stage: ${input.stageId}.`,
+    `Last user message: ${input.userMessage.trim().slice(0, 1000) || "Run this stage now."}`,
+    `Last assistant result: ${finalChat.slice(0, 2000)}`,
+    `Files written: ${toolCallCount}.`,
+  ].filter(Boolean).join("\n");
+  return next.slice(0, 6000);
+}
+
 // --- Model dispatch ------------------------------------------------------------------
 
 type CallModelArgs = {
   provider: string;
   modelId: string;
   reasoningEffort: string;
+  webSearch?: boolean;
   prompt: string;
   onToken: (chunk: string) => Promise<void> | void;
   onStderr?: (chunk: string) => Promise<void> | void;
   signal?: AbortSignal;
+  providerSessionId?: string | null;
+  onActivity?: (activity: CodexParsedEvent) => Promise<void> | void;
 };
+
+export type RunActivity =
+  | { kind: "thinking"; label: string }
+  | { kind: "searching"; label: string; url?: string; domain?: string }
+  | { kind: "reading"; label: string; fileName?: string }
+  | { kind: "tool"; label: string; tool?: string }
+  | { kind: "writing"; label: string };
+
+export type CodexParsedEvent =
+  | { kind: "session"; providerSessionId: string }
+  | { kind: "activity"; activity: RunActivity }
+  | { kind: "token"; text: string };
 
 async function callModel(args: CallModelArgs): Promise<string> {
   if (args.provider === "claude-code") return callClaudeCli(args);
   if (args.provider === "codex-cli") return callCodexCli(args);
   if (args.provider === "gemini-cli") return callGeminiCli(args);
+  if (args.provider === "openclaw") return callOpenClawCli(args);
   if (args.provider === "mock-cli") return callMockCli(args);
   if (args.provider === "openai-api") return callOpenAiApi(args);
   if (args.provider === "anthropic-api") return callAnthropicApi(args);
@@ -186,15 +352,57 @@ async function callModel(args: CallModelArgs): Promise<string> {
 }
 
 async function callClaudeCli(args: CallModelArgs): Promise<string> {
-  return streamSpawnWithStdin("claude", ["--model", args.modelId, "-p", "--permission-mode", "bypassPermissions"], args.prompt, args.onToken, args.onStderr);
+  return streamSpawnWithStdin("claude", ["--model", args.modelId, "-p", "--permission-mode", "bypassPermissions"], args.prompt, args.onToken, args.onStderr, args.signal);
 }
 
 async function callCodexCli(args: CallModelArgs): Promise<string> {
-  return streamSpawnWithStdin("codex", ["exec", "--model", args.modelId, "--skip-git-repo-check", "-"], args.prompt, args.onToken, args.onStderr);
+  return streamSpawnWithStdin(
+    "codex",
+    args.providerSessionId
+      ? buildCodexResumeCliArgs(args.providerSessionId, args.modelId, args.webSearch, args.reasoningEffort)
+      : buildCodexCliArgs(args.modelId, args.reasoningEffort, args.webSearch),
+    args.prompt,
+    args.onToken,
+    args.onStderr,
+    args.signal,
+    parseCodexJsonEvent,
+    args.onActivity,
+  );
 }
 
 async function callGeminiCli(args: CallModelArgs): Promise<string> {
-  return streamSpawnWithStdin("gemini", ["--model", args.modelId, "-p", "-"], args.prompt, args.onToken, args.onStderr);
+  return streamSpawnWithStdin("gemini", ["--model", args.modelId, "-p", "-"], args.prompt, args.onToken, args.onStderr, args.signal);
+}
+
+async function callOpenClawCli(args: CallModelArgs): Promise<string> {
+  const raw = await streamSpawn(
+    "openclaw",
+    ["infer", "model", "run", "--local", "--json", "--model", args.modelId, "--prompt", args.prompt],
+    () => undefined,
+    args.signal,
+  );
+  const text = extractOpenClawText(raw);
+  await args.onToken(text);
+  return text;
+}
+
+function extractOpenClawText(raw: string): string {
+  try {
+    const json = JSON.parse(raw) as Record<string, unknown>;
+    for (const key of ["text", "output", "content", "message", "response"]) {
+      if (typeof json[key] === "string") return json[key];
+    }
+    const nested = json.result;
+    if (nested && typeof nested === "object") {
+      for (const key of ["text", "output", "content", "message", "response"]) {
+        const value = (nested as Record<string, unknown>)[key];
+        if (typeof value === "string") return value;
+      }
+    }
+  } catch {
+    // OpenClaw can return plain text on older versions.
+  }
+  return raw;
 }
 
 async function callMockCli(args: CallModelArgs): Promise<string> {
@@ -229,9 +437,20 @@ function streamSpawn(
   command: string,
   cliArgs: string[],
   onToken: (s: string) => Promise<void> | void,
+  signal?: AbortSignal,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, cliArgs, { shell: false });
+    const spawnCommand = resolveSpawnCommandForPlatform(command);
+    const child = spawn(spawnCommand.command, cliArgs, { shell: spawnCommand.shell });
+    const abort = () => {
+      killChildProcessTree(child.pid);
+      reject(new RunCancelledError());
+    };
+    if (signal?.aborted) {
+      abort();
+      return;
+    }
+    signal?.addEventListener("abort", abort, { once: true });
     let out = "";
     let err = "";
     child.stdout.setEncoding("utf8");
@@ -245,6 +464,7 @@ function streamSpawn(
     });
     child.on("error", (error) => reject(error));
     child.on("close", (code) => {
+      signal?.removeEventListener("abort", abort);
       if (code === 0) resolve(out);
       else reject(new Error(`${command} exited with code ${code}: ${err.slice(0, 500)}`));
     });
@@ -257,35 +477,243 @@ function streamSpawnWithStdin(
   stdinData: string,
   onToken: (s: string) => Promise<void> | void,
   onStderr?: (s: string) => Promise<void> | void,
+  signal?: AbortSignal,
+  parseStdoutLine?: (line: string) => CodexParsedEvent | null,
+  onActivity?: (activity: CodexParsedEvent) => Promise<void> | void,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     console.log(`[run-exec] spawning: ${command} ${cliArgs.join(" ")} (stdin: ${stdinData.length} chars)`);
-    const child = spawn(command, cliArgs, { shell: false });
+    const spawnCommand = resolveSpawnCommandForPlatform(command);
+    const child = spawn(spawnCommand.command, cliArgs, { shell: spawnCommand.shell });
+    let settled = false;
+    const finishReject = (error: Error) => {
+      if (settled) return;
+      settled = true;
+      reject(error);
+    };
+    const abort = () => {
+      killChildProcessTree(child.pid);
+      finishReject(new RunCancelledError());
+    };
+    if (signal?.aborted) {
+      abort();
+      return;
+    }
+    signal?.addEventListener("abort", abort, { once: true });
     let out = "";
     let err = "";
+    let stdoutBuffer = "";
     child.stdout.setEncoding("utf8");
     child.stderr.setEncoding("utf8");
     child.stdout.on("data", (chunk: string) => {
-      out += chunk;
-      void onToken(chunk);
+      if (!parseStdoutLine) {
+        out += chunk;
+        void onToken(chunk);
+        return;
+      }
+      stdoutBuffer += chunk;
+      const lines = stdoutBuffer.split(/\r?\n/);
+      stdoutBuffer = lines.pop() ?? "";
+      for (const line of lines) {
+        const event = parseStdoutLine(line);
+        if (!event) continue;
+        if (event.kind === "token") {
+          out += event.text;
+          void onToken(event.text);
+        } else if (onActivity) {
+          void onActivity(event);
+        }
+      }
     });
     child.stderr.on("data", (chunk: string) => {
       err += chunk;
       if (onStderr) void onStderr(chunk);
     });
-    child.on("error", (error) => reject(error));
+    child.on("error", (error) => finishReject(error));
     child.on("close", (code) => {
+      signal?.removeEventListener("abort", abort);
+      if (settled) return;
+      settled = true;
+      if (parseStdoutLine && stdoutBuffer.trim()) {
+        const event = parseStdoutLine(stdoutBuffer);
+        if (event?.kind === "token") out += event.text;
+      }
       if (code === 0) resolve(out);
       else reject(new Error(`${command} ${cliArgs.slice(0, 3).join(" ")} exited with code ${code}.${err ? " stderr: " + err.slice(0, 800) : ""}`));
     });
 
     // Pipe prompt via stdin
     child.stdin.on("error", (error) => {
-      reject(error);
+      finishReject(error);
     });
     child.stdin.write(stdinData, "utf8");
     child.stdin.end();
   });
+}
+
+function killChildProcessTree(pid: number | undefined): void {
+  if (!pid) return;
+  if (process.platform === "win32") {
+    spawn("taskkill", ["/pid", String(pid), "/t", "/f"], { shell: false, stdio: "ignore" });
+    return;
+  }
+  try {
+    process.kill(-pid, "SIGTERM");
+  } catch {
+    try {
+      process.kill(pid, "SIGTERM");
+    } catch {
+      // Process already exited.
+    }
+  }
+}
+
+export function resolveSpawnCommandForPlatform(command: string, platform: NodeJS.Platform = process.platform): Pick<SpawnOptions, "shell"> & { command: string } {
+  return {
+    command,
+    shell: platform === "win32",
+  };
+}
+
+export function buildCodexCliArgs(modelId: string, reasoningEffort: string, webSearch = false): string[] {
+  const args = [
+    "exec",
+    "--json",
+    "--ignore-user-config",
+    "--ignore-rules",
+    "--disable",
+    "plugins",
+    "--model",
+    modelId,
+    "--skip-git-repo-check",
+    "--dangerously-bypass-approvals-and-sandbox",
+    "-c",
+    `model_reasoning_effort="${reasoningEffort}"`,
+    "-c",
+    "mcp.remote_mcp_client_enabled=false",
+    "-",
+  ];
+  return webSearch ? ["--search", ...args] : args;
+}
+
+export function buildCodexResumeCliArgs(providerSessionId: string, modelId: string, webSearch = false, reasoningEffort = "medium"): string[] {
+  const args = [
+    "exec",
+    "resume",
+    "--json",
+    "--ignore-user-config",
+    "--ignore-rules",
+    "--disable",
+    "plugins",
+    "--model",
+    modelId,
+    "--skip-git-repo-check",
+    "--dangerously-bypass-approvals-and-sandbox",
+    "-c",
+    `model_reasoning_effort="${reasoningEffort}"`,
+    "-c",
+    "mcp.remote_mcp_client_enabled=false",
+    providerSessionId,
+    "-",
+  ];
+  return webSearch ? ["--search", ...args] : args;
+}
+
+export function parseCodexJsonEvent(line: string): CodexParsedEvent | null {
+  if (!line.trim().startsWith("{")) return null;
+  try {
+    const event = JSON.parse(line) as Record<string, unknown>;
+    const type = String(event.type ?? "");
+    if (type === "thread.started" && typeof event.thread_id === "string") {
+      return { kind: "session", providerSessionId: event.thread_id };
+    }
+    if (type === "turn.started") {
+      return { kind: "activity", activity: { kind: "thinking", label: "Thinking..." } };
+    }
+    if (type === "item.completed") {
+      const item = event.item as Record<string, unknown> | undefined;
+      if (item?.type === "agent_message" && typeof item.text === "string") {
+        return { kind: "token", text: item.text };
+      }
+      const activity = activityFromCodexItem(item);
+      return activity ? { kind: "activity", activity } : null;
+    }
+    if (/web_search|search/i.test(type)) {
+      const url = typeof event.url === "string" ? event.url : undefined;
+      return { kind: "activity", activity: { kind: "searching", label: url ? `Searching ${domainFromUrl(url)}` : "Searching web", url, domain: url ? domainFromUrl(url) : undefined } };
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function activityFromCodexItem(item: Record<string, unknown> | undefined): RunActivity | null {
+  if (!item) return null;
+  const type = String(item.type ?? "");
+  const text = typeof item.text === "string" ? item.text : "";
+  if (/web_search|search/i.test(type) || /\bsearching\b/i.test(text)) {
+    const url = firstUrl(text);
+    return { kind: "searching", label: url ? `Searching ${domainFromUrl(url)}` : "Searching web", url, domain: url ? domainFromUrl(url) : undefined };
+  }
+  if (/tool|function/i.test(type)) {
+    return { kind: "tool", label: "Using tool", tool: type };
+  }
+  return null;
+}
+
+function firstUrl(text: string): string | undefined {
+  return text.match(/https?:\/\/[^\s)]+/i)?.[0];
+}
+
+function domainFromUrl(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+async function recordRunSource(
+  supabase: SupabaseClient,
+  input: RunExecutionInput,
+  activity: Extract<RunActivity, { kind: "searching" }>,
+): Promise<void> {
+  if (!activity.url) return;
+  await supabase.from("run_sources").insert({
+    user_id: input.userId,
+    run_id: input.runId,
+    competition_id: input.competitionId,
+    stage_id: input.stageId,
+    url: activity.url,
+    domain: activity.domain ?? domainFromUrl(activity.url),
+    provider: input.modelProvider,
+    captured_from: "provider_event",
+    metadata: { label: activity.label },
+  });
+}
+
+export function formatCliProgressLines(raw: string): string[] {
+  const lines = raw
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const intro = new Set<string>();
+  const commands = new Set<string>();
+  const errors = new Set<string>();
+
+  for (const line of lines) {
+    if (line.length > 500) continue;
+    if (/^OpenAI Codex\b/i.test(line)) intro.add(line);
+    if (/^model:\s+/i.test(line)) intro.add(line);
+    if (/^reasoning effort:\s+/i.test(line)) intro.add(line);
+    if (/^exec\b/i.test(line)) commands.add(line);
+    if (/^(succeeded|failed) in \d+/i.test(line)) commands.add(line);
+    if (/\bERROR\b|error:/i.test(line)) errors.add(line);
+    if (/^worker\b|^tool\b|^saved\b/i.test(line)) commands.add(line);
+  }
+
+  return [...intro, ...commands, ...errors].slice(-12);
 }
 
 async function callOpenAiApi(args: CallModelArgs): Promise<string> {

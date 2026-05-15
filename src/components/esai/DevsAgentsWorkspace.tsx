@@ -17,6 +17,7 @@ import type {
   DevsNeed,
   DevsProduces,
 } from "@/types/esai";
+import { buildModelPickerValue, getReasoningEffortsForModel, getSelectedModelOption, useModelOptions } from "./useModelOptions";
 
 type SideTab = "assistant" | "contracts" | "versions" | "template";
 
@@ -26,13 +27,15 @@ type ApiEnvelope<T> = {
   message?: string;
 };
 
-type AssistantModel = {
-  provider: string;
-  id: string;
-  label: string;
-};
-
 type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
+type ReasoningEffort = "low" | "medium" | "high" | "xhigh";
+
+const REASONING_LABELS: Record<ReasoningEffort, string> = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+  xhigh: "Extra High",
+};
 
 async function readData<T>(url: string): Promise<T[]> {
   const response = await fetch(url);
@@ -848,24 +851,22 @@ function AssistantDraftPanel({
   onNotice: (message: string) => void;
 }) {
   const [message, setMessage] = useState("");
-  const [models, setModels] = useState<AssistantModel[]>([]);
-  const [model, setModel] = useState("");
-  const [reasoningEffort, setReasoningEffort] = useState("medium");
+  const { models, selectedModel: model, setSelectedModel: setModel, modelsLoading } = useModelOptions();
+  const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>("medium");
   const [proposal, setProposal] = useState<null | {
     draftSkillContent: string;
     needs: DevsNeed[];
     produces: DevsProduces[];
     explanation: string;
   }>(null);
-
-  useEffect(() => {
-    void readData<AssistantModel>("/api/models")
-      .then((items) => {
-        setModels(items);
-        setModel((current) => current || items[0]?.id || "");
-      })
-      .catch((error: Error) => onNotice(error.message));
-  }, [onNotice]);
+  const reasoningEfforts = getReasoningEffortsForModel(models, model) as ReasoningEffort[];
+  const defaultReasoningEffort = getSelectedModelOption(models, model)?.defaultReasoningEffort as ReasoningEffort | undefined;
+  const activeReasoningEffort = reasoningEfforts.includes(reasoningEffort)
+    ? reasoningEffort
+    : defaultReasoningEffort && reasoningEfforts.includes(defaultReasoningEffort)
+      ? defaultReasoningEffort
+      : reasoningEfforts[0] ?? "medium";
+  const reasoningDisabled = reasoningEfforts.length === 0;
 
   async function askAssistant() {
     if (!model) {
@@ -876,7 +877,7 @@ function AssistantDraftPanel({
     const response = await fetch("/api/agent-draft-assistant", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ agentName: agent.name, message, model, reasoningEffort }),
+      body: JSON.stringify({ agentName: agent.name, message, model, reasoningEffort: activeReasoningEffort }),
     });
     const json = (await response.json()) as ApiEnvelope<{
       draftSkillContent: string;
@@ -897,22 +898,23 @@ function AssistantDraftPanel({
     <div className="assistant-draft-panel">
       <div className="assistant-model-controls">
         <select aria-label="Assistant model" value={model} onChange={(event) => setModel(event.target.value)}>
-          <option value="">Select model</option>
+          <option value="">{modelsLoading ? "Loading models..." : "Select model"}</option>
           {models.map((item) => (
-            <option key={`${item.provider}-${item.id}`} value={item.id}>
-              {item.label}
+            <option key={buildModelPickerValue(item)} value={buildModelPickerValue(item)}>
+              {item.label} ({item.provider})
             </option>
           ))}
         </select>
         <select
           aria-label="Assistant reasoning"
-          value={reasoningEffort}
-          onChange={(event) => setReasoningEffort(event.target.value)}
+          value={reasoningDisabled ? "" : activeReasoningEffort}
+          onChange={(event) => setReasoningEffort(event.target.value as ReasoningEffort)}
+          disabled={reasoningDisabled}
         >
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
-          <option value="xhigh">Extra High</option>
+          {reasoningDisabled ? <option value="">No thinking effort</option> : null}
+          {reasoningEfforts.map((effort) => (
+            <option key={effort} value={effort}>{REASONING_LABELS[effort]}</option>
+          ))}
         </select>
       </div>
       <textarea

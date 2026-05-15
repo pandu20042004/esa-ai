@@ -1,5 +1,6 @@
 import { errorResponse } from "@/lib/server/api-errors";
 import { getRequestUser, unauthorizedResponse } from "@/lib/server/auth";
+import { ensureCompetitionPipeline, getEssayCompartmentId } from "@/lib/server/pipeline-bootstrap";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -25,12 +26,15 @@ export async function GET(_request: Request, context: RouteContext<"/api/competi
 
   const { data: comp, error: cErr } = await supabase
     .from("competitions")
-    .select("id")
+    .select("id, compartment_id")
     .eq("id", id)
     .eq("user_id", user.id)
     .maybeSingle();
   if (cErr) return errorResponse({ message: cErr.message, code: "ERR_COMP_LOOKUP", status: 500 });
   if (!comp) return errorResponse({ message: "Competition not found.", code: "ERR_NOT_FOUND", status: 404 });
+
+  const compartmentId = comp.compartment_id ? String(comp.compartment_id) : await getEssayCompartmentId(supabase, user.id);
+  await ensureCompetitionPipeline(supabase, user.id, id, compartmentId);
 
   const { data: pipeline } = await supabase
     .from("competition_pipelines")

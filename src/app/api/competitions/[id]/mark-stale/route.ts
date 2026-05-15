@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { errorResponse } from "@/lib/server/api-errors";
 import { getRequestUser, unauthorizedResponse } from "@/lib/server/auth";
+import { closeStageSessions } from "@/lib/server/stage-sessions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const bodySchema = z.object({
@@ -64,6 +65,13 @@ export async function POST(request: Request, context: RouteContext<"/api/competi
     .neq("status", "stale")
     .select("id, file_name, producer_node_id");
   if (error) return errorResponse({ message: error.message, code: "ERR_STALE_UPDATE", status: 500 });
+
+  await closeStageSessions(supabase, {
+    userId: user.id,
+    competitionId: id,
+    stageId: parsed.data.fromStageKey,
+    status: "reset",
+  }).catch((cause) => console.error("[mark-stale] close stage session failed:", (cause as Error).message));
 
   return Response.json({ data: { stale: staled ?? [] } });
 }

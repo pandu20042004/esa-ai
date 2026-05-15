@@ -164,7 +164,7 @@ const SEED_STAGES: SeedStage[] = [
     templateKey: "ideation-agent",
     label: "Ideation",
     inputs: [{ key: "onboarding_map", acceptedRoles: ["onboarding_map"], required: true }],
-    outputs: [{ key: "ideation_output", role: "ideation_output", defaultFilename: "02_ideation_options.md" }],
+    outputs: [{ key: "ideation_output", role: "ideation_output", defaultFilename: "01_ideation.md" }],
   },
   {
     key: "research",

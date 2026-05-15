@@ -23,11 +23,11 @@ describe("dashboard overview flow", () => {
 
     // Wait for loading to finish and empty state to appear
     await waitFor(() => {
-      expect(screen.getByText("No competitions yet")).toBeInTheDocument();
+      expect(screen.getByText("Belum ada kompetisi")).toBeInTheDocument();
     });
     expect(screen.queryByText("Workflow Pipeline")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getAllByRole("button", { name: /Add Competition/i })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: /Tambah Kompetisi/i })[0]);
 
     expect(screen.getByText("Setup Kompetisi Baru")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Competition name")).toBeInTheDocument();

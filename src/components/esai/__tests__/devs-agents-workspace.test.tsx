@@ -171,9 +171,9 @@ describe("DevsAgentsWorkspace", () => {
     const expandButton = await screen.findByRole("button", { name: "Open full screen agent editor" });
 
     fireEvent.click(expandButton);
-    expect(screen.getByLabelText("Exit full screen prompt editor")).toBeInTheDocument();
-    fireEvent.click(screen.getByLabelText("Exit full screen prompt editor"));
-    expect(screen.queryByLabelText("Exit full screen prompt editor")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Exit full screen agent editor")).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("Exit full screen agent editor"));
+    expect(screen.queryByLabelText("Exit full screen agent editor")).not.toBeInTheDocument();
   });
 
   it("renders validation warnings as styled alerts", async () => {
@@ -340,7 +340,7 @@ describe("DevsAgentsWorkspace", () => {
         "/api/agent-draft-assistant",
         expect.objectContaining({
           method: "POST",
-          body: expect.stringContaining('"model":"gpt-5.5"'),
+          body: expect.stringContaining('"model":"codex-cli::gpt-5.5"'),
         }),
       ),
     );

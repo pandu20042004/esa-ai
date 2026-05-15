@@ -36,6 +36,24 @@ function mapCompetition(row: Record<string, unknown>): Competition {
   };
 }
 
+async function attachGuidebookFileId(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  competition: Competition,
+  userId: string,
+): Promise<Competition> {
+  if (!supabase) return competition;
+  const { data } = await supabase
+    .from("competition_files")
+    .select("id")
+    .eq("competition_id", competition.id)
+    .eq("user_id", userId)
+    .eq("file_role", "guidebook")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.id ? { ...competition, guidebookFileId: String(data.id) } : competition;
+}
+
 function mapFile(row: Record<string, unknown>): CompetitionFile {
   return {
     id: String(row.id),
@@ -137,7 +155,25 @@ export function createEsaiRepository(options: RepositoryOptions = {}) {
           .order("created_at", { ascending: false });
         if (error) throw new Error(error.message);
 
-        const competitions = (data ?? []).map(mapCompetition);
+        let competitions = (data ?? []).map(mapCompetition);
+        if (competitions.length > 0) {
+          const { data: guidebooks } = await supabase
+            .from("competition_files")
+            .select("id,competition_id")
+            .eq("user_id", userId)
+            .eq("file_role", "guidebook")
+            .in("competition_id", competitions.map((c) => c.id));
+          const guidebookByCompetition = new Map<string, string>();
+          for (const row of guidebooks ?? []) {
+            if (!guidebookByCompetition.has(String(row.competition_id))) {
+              guidebookByCompetition.set(String(row.competition_id), String(row.id));
+            }
+          }
+          competitions = competitions.map((competition) => ({
+            ...competition,
+            guidebookFileId: guidebookByCompetition.get(competition.id),
+          }));
+        }
 
         const fileIds = new Set<string>();
         for (const c of competitions) {
@@ -175,7 +211,8 @@ export function createEsaiRepository(options: RepositoryOptions = {}) {
         if (error) throw new Error(error.message);
         if (!data) return createApiEnvelope(null, { supabaseConfigured });
 
-        const comp = mapCompetition(data);
+        let comp = mapCompetition(data);
+        comp = await attachGuidebookFileId(supabase, comp, userId);
         const fileIds = [comp.posterFileId, comp.twibbonFileId, comp.userPhotoFileId, comp.combinedAssetFileId].filter(Boolean) as string[];
         const storageMap = new Map<string, string>();
         if (fileIds.length > 0) {
@@ -213,7 +250,7 @@ export function createEsaiRepository(options: RepositoryOptions = {}) {
           .single();
 
         if (error) throw new Error(error.message);
-        return createApiEnvelope(mapCompetition(data), { supabaseConfigured });
+        return createApiEnvelope(await attachGuidebookFileId(supabase, mapCompetition(data), userId), { supabaseConfigured });
       }
 
       const competition: Competition = {
@@ -343,7 +380,8 @@ export function createEsaiRepository(options: RepositoryOptions = {}) {
         if (updErr) throw new Error(updErr.message);
 
         const signedUrl = await signedCompetitionUrl(posterPath);
-        const comp = mapCompetition(updated);
+        let comp = mapCompetition(updated);
+        comp = await attachGuidebookFileId(supabase, comp, userId);
         return createApiEnvelope({ ...comp, posterImageUrl: signedUrl ?? undefined }, { supabaseConfigured });
       } catch (error) {
         await cleanup();
@@ -376,7 +414,7 @@ export function createEsaiRepository(options: RepositoryOptions = {}) {
         .single();
       if (error) throw new Error(error.message);
 
-      return createApiEnvelope(mapCompetition(data), { supabaseConfigured });
+      return createApiEnvelope(await attachGuidebookFileId(supabase, mapCompetition(data), userId), { supabaseConfigured });
     },
 
     async deleteCompetition(id: string) {
@@ -623,14 +661,14 @@ export function createEsaiRepository(options: RepositoryOptions = {}) {
         .single();
       if (error) throw new Error(error.message);
 
-      return createApiEnvelope(mapCompetition(data), { supabaseConfigured });
+      return createApiEnvelope(await attachGuidebookFileId(supabase, mapCompetition(data), userId), { supabaseConfigured });
     },
 
     async listCompetitionFiles(competitionId: string) {
       if (supabase && userId) {
         const { data, error } = await supabase
           .from("competition_files")
-          .select("*")
+          .select("id,competition_id,file_name,file_role,file_source,stage_id,artifact_key,artifact_role,producer_node_id,producer_agent_id,status,summary_text,approved,created_at")
           .eq("user_id", userId)
           .eq("competition_id", competitionId)
           .order("created_at", { ascending: false });
@@ -720,7 +758,7 @@ export function createEsaiRepository(options: RepositoryOptions = {}) {
       if (supabase && userId) {
         const { data, error } = await supabase
           .from("competition_files")
-          .select("*")
+          .select("id,competition_id,file_name,file_role,file_source,stage_id,artifact_key,artifact_role,producer_node_id,producer_agent_id,status,summary_text,approved,created_at")
           .eq("user_id", userId)
           .order("created_at", { ascending: false });
 

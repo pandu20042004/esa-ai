@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { BackendMode, Competition } from "@/types/esai";
+import type { BackendMode, Competition, CompetitionFile } from "@/types/esai";
 
 export function createApiEnvelope<TData>(
   data: TData,
@@ -97,10 +97,14 @@ export async function replaceCompetitionAssets(id: string, form: FormData): Prom
   return body.data;
 }
 
-import type { CompetitionFile } from "@/types/esai";
-
 export async function fetchCompetitionFiles(id: string): Promise<CompetitionFile[]> {
   const res = await fetch(`/api/competitions/${id}/files`, { cache: "no-store" });
+  const body = await handle<Envelope<CompetitionFile[]>>(res);
+  return body.data ?? [];
+}
+
+export async function fetchFiles(): Promise<CompetitionFile[]> {
+  const res = await fetch("/api/files", { cache: "no-store" });
   const body = await handle<Envelope<CompetitionFile[]>>(res);
   return body.data ?? [];
 }

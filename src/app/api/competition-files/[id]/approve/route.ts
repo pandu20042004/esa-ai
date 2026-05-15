@@ -1,5 +1,6 @@
 import { errorResponse } from "@/lib/server/api-errors";
 import { getRequestUser, unauthorizedResponse } from "@/lib/server/auth";
+import { closeStageSessions } from "@/lib/server/stage-sessions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(_request: Request, context: RouteContext<"/api/competition-files/[id]/approve">) {
@@ -33,6 +34,14 @@ export async function POST(_request: Request, context: RouteContext<"/api/compet
 
   // Bump competitions.current_stage_id if the stage has a known successor.
   const nextStage = NEXT_STAGE[String(file.stage_id ?? "")] ?? null;
+  if (file.competition_id && file.stage_id) {
+    await closeStageSessions(supabase, {
+      userId: user.id,
+      competitionId: String(file.competition_id),
+      stageId: String(file.stage_id),
+      status: "closed",
+    }).catch((error) => console.error("[approve] close stage session failed:", (error as Error).message));
+  }
   if (nextStage) {
     await supabase
       .from("competitions")

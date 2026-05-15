@@ -25,6 +25,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { RunEventEmitter, loadRunEvents } from "@/lib/server/run-events";
 import { executeRun, type RunExecutionInput } from "@/lib/server/run-execution";
+import { touchStageSession } from "@/lib/server/stage-sessions";
+import { toolProtocolInstructions } from "@/lib/server/tool-calls";
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -105,6 +107,8 @@ type ClaimedRun = {
   pipeline_id: string | null;
   pipeline_node_id: string | null;
   skill_version_id: string | null;
+  stage_session_id: string | null;
+  provider_session_id: string | null;
   model_provider: string;
   model_id: string;
   reasoning_effort: string | null;
@@ -129,6 +133,11 @@ async function runOne(supabase: SupabaseClient, run: ClaimedRun): Promise<void> 
     const skillContent = await loadSkillContent(supabase, String(run.skill_version_id));
     const inputFiles = extractInputFiles(run.context_snapshot);
     const userMessage = extractUserMessage(run.context_snapshot);
+    const webSearch = extractBoolean(run.context_snapshot, "webSearch");
+    const imageGeneration = extractBoolean(run.context_snapshot, "imageGeneration");
+    const searchMode = extractSearchMode(run.context_snapshot);
+    const providerSessionId = extractString(run.context_snapshot, "providerSessionId") || run.provider_session_id || null;
+    const stageSessionSummary = extractString(run.context_snapshot, "stageSessionSummary");
 
     const execInput: RunExecutionInput = {
       runId,
@@ -141,20 +150,55 @@ async function runOne(supabase: SupabaseClient, run: ClaimedRun): Promise<void> 
       modelProvider: String(run.model_provider),
       modelId: String(run.model_id),
       reasoningEffort: String(run.reasoning_effort ?? "medium"),
+      webSearch,
+      imageGeneration,
+      searchMode,
+      providerSessionId,
+      stageSessionSummary,
       inputFiles,
+      isCancelled: async () => {
+        const { data } = await supabase
+          .from("agent_runs")
+          .select("status")
+          .eq("id", runId)
+          .maybeSingle();
+        return data?.status === "cancelling" || data?.status === "cancelled";
+      },
     };
 
     const result = await executeRun(supabase, emitter, execInput);
 
-    if (result.status === "completed") {
+    if (run.stage_session_id) {
+      await touchStageSession(supabase, String(run.stage_session_id), {
+        providerSessionId: result.providerSessionId ?? providerSessionId ?? null,
+        summaryText: result.summaryText ?? stageSessionSummary ?? null,
+      }).catch((error) => console.error("[worker] stage session update failed:", (error as Error).message));
+    }
+
+    if (result.status === "cancelled") {
       await supabase
         .from("agent_runs")
         .update({
+          status: "cancelled",
+          completed_at: new Date().toISOString(),
+          error: "Run cancelled by user.",
+        })
+        .eq("id", runId);
+    } else if (result.status === "completed") {
+      await updateRunWithOptionalSession(supabase, runId, {
           status: "completed",
           completed_at: new Date().toISOString(),
           raw_log: result.assistantText.slice(0, 200_000),
-        })
-        .eq("id", runId);
+          provider_session_id: result.providerSessionId ?? providerSessionId ?? null,
+        });
+    } else if (result.status === "needs_choice") {
+      await updateRunWithOptionalSession(supabase, runId, {
+          status: "needs_choice",
+          completed_at: new Date().toISOString(),
+          raw_log: result.assistantText.slice(0, 200_000),
+          needs_user_choice: result.needsUserChoice ?? null,
+          provider_session_id: result.providerSessionId ?? providerSessionId ?? null,
+        });
     } else {
       await supabase
         .from("agent_runs")
@@ -180,6 +224,21 @@ async function runOne(supabase: SupabaseClient, run: ClaimedRun): Promise<void> 
   }
 }
 
+async function updateRunWithOptionalSession(
+  supabase: SupabaseClient,
+  runId: string,
+  patch: Record<string, unknown>,
+): Promise<void> {
+  const { error } = await supabase.from("agent_runs").update(patch).eq("id", runId);
+  if (!error) return;
+  if (!/provider_session_id|column .* does not exist/i.test(error.message)) {
+    throw new Error(`run update: ${error.message}`);
+  }
+  const { provider_session_id: _providerSessionId, ...legacyPatch } = patch;
+  const fallback = await supabase.from("agent_runs").update(legacyPatch).eq("id", runId);
+  if (fallback.error) throw new Error(`run update fallback: ${fallback.error.message}`);
+}
+
 async function loadSkillContent(supabase: SupabaseClient, skillVersionId: string): Promise<string> {
   const { data, error } = await supabase
     .from("agent_skill_versions")
@@ -188,7 +247,8 @@ async function loadSkillContent(supabase: SupabaseClient, skillVersionId: string
     .maybeSingle();
   if (error) throw new Error(`loadSkillContent: ${error.message}`);
   if (!data) throw new Error("Active skill version not found.");
-  return String(data.skill_content ?? "");
+  const content = String(data.skill_content ?? "");
+  return content.includes("## Tool protocol") ? content : `${content}\n${toolProtocolInstructions()}`;
 }
 
 function extractInputFiles(snapshot: Record<string, unknown> | null): RunExecutionInput["inputFiles"] {
@@ -201,6 +261,10 @@ function extractInputFiles(snapshot: Record<string, unknown> | null): RunExecuti
       fileName: String(f.fileName ?? ""),
       fileRole: String(f.fileRole ?? "guidebook"),
       contentText: typeof f.contentText === "string" ? f.contentText : null,
+      mimeType: typeof f.mimeType === "string" ? f.mimeType : null,
+      storageBucket: typeof f.storageBucket === "string" ? f.storageBucket : null,
+      storagePath: typeof f.storagePath === "string" ? f.storagePath : null,
+      signedUrl: typeof f.signedUrl === "string" ? f.signedUrl : null,
     }))
     .filter((f) => f.fileId.length > 0);
 }
@@ -208,6 +272,20 @@ function extractInputFiles(snapshot: Record<string, unknown> | null): RunExecuti
 function extractUserMessage(snapshot: Record<string, unknown> | null): string {
   const v = snapshot?.userMessage;
   return typeof v === "string" ? v : "";
+}
+
+function extractBoolean(snapshot: Record<string, unknown> | null, key: string): boolean {
+  return snapshot?.[key] === true;
+}
+
+function extractSearchMode(snapshot: Record<string, unknown> | null): "fast" | "balanced" | "deep" {
+  const value = snapshot?.searchMode;
+  return value === "fast" || value === "deep" || value === "balanced" ? value : "balanced";
+}
+
+function extractString(snapshot: Record<string, unknown> | null, key: string): string | null {
+  const value = snapshot?.[key];
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
 }
 
 async function recoverStuckRuns(supabase: SupabaseClient): Promise<void> {

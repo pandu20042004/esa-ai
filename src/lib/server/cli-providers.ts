@@ -13,12 +13,17 @@ export type CliProvider = {
   installed: boolean;
   color: string;
   models: CliModel[];
+  warnings?: string[];
 };
 
 export type CliModel = {
   id: string;
   label: string;
   provider: string;
+  description?: string;
+  reasoningEfforts?: string[];
+  defaultReasoningEffort?: string;
+  source?: string;
 };
 
 type ProviderSpec = {
@@ -27,7 +32,6 @@ type ProviderSpec = {
   command: string;
   color: string;
   versionFlag: string;
-  defaultModels: CliModel[];
   detectModels?: () => CliModel[];
 };
 
@@ -38,11 +42,6 @@ const KNOWN_PROVIDERS: ProviderSpec[] = [
     command: "claude",
     color: "#e8956d",
     versionFlag: "--version",
-    defaultModels: [
-      { id: "opus", label: "Claude Opus (alias)", provider: "claude-code" },
-      { id: "sonnet", label: "Claude Sonnet (alias)", provider: "claude-code" },
-      { id: "haiku", label: "Claude Haiku (alias)", provider: "claude-code" },
-    ],
     detectModels: detectClaudeModels,
   },
   {
@@ -51,13 +50,6 @@ const KNOWN_PROVIDERS: ProviderSpec[] = [
     command: "codex",
     color: "#10b981",
     versionFlag: "--version",
-    defaultModels: [
-      { id: "gpt-5.1-codex", label: "GPT-5.1 Codex", provider: "codex-cli" },
-      { id: "gpt-5.1", label: "GPT-5.1", provider: "codex-cli" },
-      { id: "gpt-5", label: "GPT-5", provider: "codex-cli" },
-      { id: "o3", label: "o3", provider: "codex-cli" },
-      { id: "o4-mini", label: "o4-mini", provider: "codex-cli" },
-    ],
     detectModels: detectCodexModels,
   },
   {
@@ -66,13 +58,15 @@ const KNOWN_PROVIDERS: ProviderSpec[] = [
     command: "gemini",
     color: "#6366f1",
     versionFlag: "--version",
-    defaultModels: [
-      { id: "gemini-3-pro", label: "Gemini 3 Pro", provider: "gemini-cli" },
-      { id: "gemini-3-flash", label: "Gemini 3 Flash", provider: "gemini-cli" },
-      { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro", provider: "gemini-cli" },
-      { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", provider: "gemini-cli" },
-    ],
     detectModels: detectGeminiModels,
+  },
+  {
+    id: "openclaw",
+    name: "OpenClaw",
+    command: "openclaw",
+    color: "#ef4444",
+    versionFlag: "--version",
+    detectModels: detectOpenClawModels,
   },
   {
     id: "devin",
@@ -80,7 +74,6 @@ const KNOWN_PROVIDERS: ProviderSpec[] = [
     command: "devin",
     color: "#6b7280",
     versionFlag: "--version",
-    defaultModels: [{ id: "devin-default", label: "Devin Default", provider: "devin" }],
   },
   {
     id: "opencode",
@@ -88,7 +81,6 @@ const KNOWN_PROVIDERS: ProviderSpec[] = [
     command: "opencode",
     color: "#10b981",
     versionFlag: "--version",
-    defaultModels: [{ id: "opencode-default", label: "OpenCode Default", provider: "opencode" }],
   },
   {
     id: "hermes",
@@ -96,19 +88,23 @@ const KNOWN_PROVIDERS: ProviderSpec[] = [
     command: "hermes",
     color: "#8b5cf6",
     versionFlag: "--version",
-    defaultModels: [{ id: "hermes-default", label: "Hermes Default", provider: "hermes" }],
   },
 ];
 
+function run(command: string, timeout = 5000, env?: Partial<NodeJS.ProcessEnv>): string {
+  return execSync(command, {
+    timeout,
+    encoding: "utf-8",
+    stdio: ["pipe", "pipe", "pipe"],
+    env: env ? { ...process.env, ...env } : process.env,
+  }).trim();
+}
+
 function detectVersion(command: string, flag: string): string | null {
   try {
-    const output = execSync(`${command} ${flag}`, {
-      timeout: 5000,
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-    }).trim();
+    const output = run(`${command} ${flag}`, 5000);
     const firstLine = output.split("\n")[0]?.trim() ?? "";
-    return firstLine.slice(0, 80) || command;
+    return firstLine.slice(0, 120) || command;
   } catch {
     return null;
   }
@@ -117,11 +113,7 @@ function detectVersion(command: string, flag: string): string | null {
 function isCommandAvailable(command: string): boolean {
   try {
     const whereCmd = process.platform === "win32" ? "where" : "which";
-    execSync(`${whereCmd} ${command}`, {
-      timeout: 3000,
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-    });
+    run(`${whereCmd} ${command}`, 3000);
     return true;
   } catch {
     return false;
@@ -130,117 +122,223 @@ function isCommandAvailable(command: string): boolean {
 
 // --- Per-provider model detection ----------------------------------------------------
 
-const CLAUDE_KNOWN_ALIASES: Array<{ id: string; label: string }> = [
-  { id: "opus", label: "Claude Opus (alias)" },
-  { id: "sonnet", label: "Claude Sonnet (alias)" },
-  { id: "haiku", label: "Claude Haiku (alias)" },
-  { id: "opus[1m]", label: "Claude Opus · 1M context" },
-  { id: "sonnet[1m]", label: "Claude Sonnet · 1M context" },
-];
-
-const CLAUDE_FULL_MODEL_REGEX = /\bclaude-(?:opus|sonnet|haiku)(?:-\d+(?:-\d+)?)?\b/gi;
-
-function detectClaudeModels(): CliModel[] {
-  const out = new Map<string, string>();
-
-  // Always include the common aliases so users can pick one even if we can't scrape anything.
-  for (const alias of CLAUDE_KNOWN_ALIASES) {
-    out.set(alias.id, alias.label);
-  }
-
-  // ~/.claude/settings.json `model` field is the currently configured model. Surface it first.
-  const settingsPath = path.join(homedir(), ".claude", "settings.json");
-  if (existsSync(settingsPath)) {
-    try {
-      const json = JSON.parse(readFileSync(settingsPath, "utf8"));
-      const m = typeof (json as { model?: unknown }).model === "string" ? (json as { model: string }).model : null;
-      if (m) out.set(m, labelForClaudeId(m) + " · configured");
-    } catch {
-      // ignore
-    }
-  }
-
-  // Scan `claude --help` ONLY for strings that look like `claude-<family>-<nn>` — avoid sweeping up
-  // plugin names or section headings that contain the word "claude".
-  try {
-    const help = execSync("claude --help", { timeout: 4000, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] });
-    const matches = help.match(CLAUDE_FULL_MODEL_REGEX) ?? [];
-    for (const m of matches) {
-      const id = m.toLowerCase();
-      if (!out.has(id)) out.set(id, labelForClaudeId(id));
-    }
-  } catch {
-    // ignore
-  }
-
-  return Array.from(out.entries()).map(([id, label]) => ({ id, label, provider: "claude-code" }));
+export function parseCodexDebugModels(raw: string): CliModel[] {
+  const parsed = JSON.parse(raw) as { models?: Array<Record<string, unknown>> };
+  const models = Array.isArray(parsed.models) ? parsed.models : [];
+  return models
+    .filter((model) => typeof model.slug === "string")
+    .filter((model) => {
+      const visibility = typeof model.visibility === "string" ? model.visibility : "list";
+      return visibility === "list";
+    })
+    .map((model) => ({
+      id: String(model.slug),
+      label: typeof model.display_name === "string" ? model.display_name : prettifyId(String(model.slug)),
+      provider: "codex-cli",
+      description: typeof model.description === "string" ? model.description : undefined,
+      reasoningEfforts: parseReasoningEfforts(model.supported_reasoning_levels),
+      defaultReasoningEffort: typeof model.default_reasoning_level === "string" ? model.default_reasoning_level : undefined,
+      source: "codex-debug-models",
+    }));
 }
 
-function labelForClaudeId(id: string): string {
-  if (id === "opus" || id === "sonnet" || id === "haiku") return `Claude ${id.charAt(0).toUpperCase()}${id.slice(1)} (alias)`;
-  if (id.startsWith("opus[") || id.startsWith("sonnet[")) return `Claude ${id}`;
-  if (id.startsWith("claude-")) {
-    return id
-      .replace(/^claude-/, "Claude ")
-      .replace(/-/g, " ")
-      .replace(/\b\w/g, (c) => c.toUpperCase())
-      .replace(/\bOpus\b/, "Opus")
-      .replace(/\bSonnet\b/, "Sonnet")
-      .replace(/\bHaiku\b/, "Haiku");
-  }
-  return id;
+function parseReasoningEfforts(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const efforts = value
+    .map((item) => (item && typeof item === "object" ? (item as Record<string, unknown>).effort : null))
+    .filter((effort): effort is string => typeof effort === "string" && effort.length > 0);
+  return efforts.length > 0 ? efforts : undefined;
 }
 
 function detectCodexModels(): CliModel[] {
-  // Codex doesn't have a `models list` subcommand. The known interactive picker exposes these ids.
-  // We also surface the user's configured `model` from ~/.codex/config.toml first.
-  const out = new Map<string, string>();
-
-  const baseIds: Array<{ id: string; label: string }> = [
-    { id: "gpt-5.5", label: "GPT-5.5" },
-    { id: "gpt-5.4", label: "GPT-5.4" },
-    { id: "gpt-5.4-mini", label: "GPT-5.4 mini" },
-    { id: "gpt-5.3-codex", label: "GPT-5.3-codex" },
-    { id: "gpt-5.2", label: "GPT-5.2" },
-  ];
-  for (const m of baseIds) out.set(m.id, m.label);
-
-  const configPath = path.join(homedir(), ".codex", "config.toml");
-  if (existsSync(configPath)) {
+  for (const command of ["codex debug models", "codex debug models --bundled"]) {
     try {
-      const text = readFileSync(configPath, "utf8");
-      // Match the first top-level `model = "..."` line (TOML) outside any [table] section.
-      const match = text.match(/^\s*model\s*=\s*"([^"]+)"/m);
-      if (match?.[1]) {
-        const id = match[1];
-        out.set(id, `${out.get(id) ?? id} · configured`);
-      }
+      const models = parseCodexDebugModels(run(command, 10_000));
+      if (models.length > 0) return markConfiguredModel(models, readCodexConfiguredModel());
     } catch {
-      // ignore
+      // try next source
     }
   }
 
-  return Array.from(out.entries()).map(([id, label]) => ({ id, label, provider: "codex-cli" }));
+  const configured = readCodexConfiguredModel();
+  return configured
+    ? [{ id: configured, label: `${prettifyId(configured)} (configured)`, provider: "codex-cli", source: "codex-config" }]
+    : [];
+}
+
+function readCodexConfiguredModel(): string | null {
+  const configPath = path.join(homedir(), ".codex", "config.toml");
+  if (!existsSync(configPath)) return null;
+  try {
+    const text = readFileSync(configPath, "utf8");
+    const match = text.match(/^\s*model\s*=\s*"([^"]+)"/m);
+    return match?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function detectClaudeModels(): CliModel[] {
+  const out = new Map<string, CliModel>();
+  const configured = readClaudeConfiguredModel();
+
+  if (configured) {
+    out.set(configured, {
+      id: configured,
+      label: `${labelForClaudeId(configured)} (configured)`,
+      provider: "claude-code",
+      source: "claude-settings",
+    });
+  }
+
+  try {
+    const help = run("claude --help", 5000);
+    const fullMatches = help.match(/\bclaude-(?:opus|sonnet|haiku)(?:-\d+(?:-\d+)?)?\b/gi) ?? [];
+    for (const match of fullMatches) {
+      const id = match.toLowerCase();
+      out.set(id, { id, label: labelForClaudeId(id), provider: "claude-code", source: "claude-help" });
+    }
+
+    const aliasMatches = help.match(/'((?:opus|sonnet|haiku)(?:\[[^\]]+\])?)'/gi) ?? [];
+    for (const rawAlias of aliasMatches) {
+      const id = rawAlias.replace(/'/g, "");
+      out.set(id, { id, label: labelForClaudeId(id), provider: "claude-code", source: "claude-help" });
+    }
+  } catch {
+    // configured model remains enough
+  }
+
+  return Array.from(out.values());
+}
+
+function readClaudeConfiguredModel(): string | null {
+  const settingsPath = path.join(homedir(), ".claude", "settings.json");
+  if (!existsSync(settingsPath)) return null;
+  try {
+    const json = JSON.parse(readFileSync(settingsPath, "utf8")) as { model?: unknown };
+    return typeof json.model === "string" ? json.model : null;
+  } catch {
+    return null;
+  }
+}
+
+export function parseGeminiModelCatalog(text: string): CliModel[] {
+  const ids = new Set<string>();
+  for (const match of text.matchAll(/"((?:auto-)?gemini-[a-z0-9._-]+)"/gi)) {
+    ids.add(match[1]);
+  }
+
+  return Array.from(ids)
+    .filter((id) => id === "auto-gemini-3" || id === "auto-gemini-2.5" || /^gemini-\d(?:\.\d)?[-_]/i.test(id))
+    .filter((id) => !id.endsWith("-base"))
+    .sort((a, b) => geminiRank(a) - geminiRank(b) || a.localeCompare(b))
+    .map((id) => ({
+      id,
+      label: geminiLabel(id),
+      provider: "gemini-cli",
+      source: "gemini-cli-catalog",
+    }));
 }
 
 function detectGeminiModels(): CliModel[] {
-  const out = new Map<string, string>();
-  for (const cmd of ["gemini models list", "gemini models"]) {
+  for (const command of ["gemini models list", "gemini models"]) {
     try {
-      const raw = execSync(cmd, { timeout: 4000, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] });
-      for (const rawLine of raw.split(/\r?\n/)) {
-        const id = rawLine.trim().split(/\s+/)[0];
-        if (!id) continue;
-        if (/^(NAME|MODEL|ID|---)/i.test(id)) continue;
-        if (!/^gemini-[a-z0-9._\-]+/i.test(id)) continue;
-        out.set(id, prettifyId(id));
-      }
-      if (out.size) break;
+      const raw = run(command, 8000, { GEMINI_CLI_TRUST_WORKSPACE: "true" });
+      const models = parseGeminiCommandList(raw);
+      if (models.length > 0) return models;
     } catch {
-      // ignore
+      // try installed catalog
     }
   }
-  return Array.from(out.entries()).map(([id, label]) => ({ id, label, provider: "gemini-cli" }));
+
+  const catalogText = readGeminiInstalledCatalog();
+  return catalogText ? parseGeminiModelCatalog(catalogText) : [];
+}
+
+function parseGeminiCommandList(raw: string): CliModel[] {
+  const out = new Map<string, CliModel>();
+  for (const rawLine of raw.split(/\r?\n/)) {
+    const id = rawLine.trim().split(/\s+/)[0];
+    if (!id) continue;
+    if (/^(NAME|MODEL|ID|---)/i.test(id)) continue;
+    if (!/^(auto-)?gemini-[a-z0-9._-]+/i.test(id)) continue;
+    out.set(id, { id, label: geminiLabel(id), provider: "gemini-cli", source: "gemini-models-list" });
+  }
+  return Array.from(out.values());
+}
+
+function readGeminiInstalledCatalog(): string | null {
+  try {
+    const globalRoot = run("npm root -g", 5000);
+    const candidates = [
+      path.join(globalRoot, "@google", "gemini-cli", "bundle", "docs", "cli", "model.md"),
+      path.join(globalRoot, "@google", "gemini-cli", "bundle", "docs", "reference", "configuration.md"),
+    ];
+    return candidates
+      .filter((candidate) => existsSync(candidate))
+      .map((candidate) => readFileSync(candidate, "utf8"))
+      .join("\n");
+  } catch {
+    return null;
+  }
+}
+
+export function parseOpenClawModelsStatus(raw: string): CliModel[] {
+  const parsed = JSON.parse(raw) as { defaultModel?: unknown; resolvedDefault?: unknown; allowed?: unknown };
+  const current = typeof parsed.resolvedDefault === "string"
+    ? parsed.resolvedDefault
+    : typeof parsed.defaultModel === "string"
+      ? parsed.defaultModel
+      : null;
+  const allowed = Array.isArray(parsed.allowed) ? parsed.allowed.filter((item): item is string => typeof item === "string") : [];
+
+  return allowed.map((id) => ({
+    id,
+    label: id === current ? `${id} (current)` : id,
+    provider: "openclaw",
+    source: "openclaw-models-status",
+  }));
+}
+
+function detectOpenClawModels(): CliModel[] {
+  try {
+    return parseOpenClawModelsStatus(run("openclaw models status --json", 10_000));
+  } catch {
+    return [];
+  }
+}
+
+function markConfiguredModel(models: CliModel[], configured: string | null): CliModel[] {
+  if (!configured) return models;
+  let found = false;
+  const marked = models.map((model) => {
+    if (model.id !== configured) return model;
+    found = true;
+    return { ...model, label: `${model.label} (current)` };
+  });
+  return found
+    ? marked
+    : [{ id: configured, label: `${prettifyId(configured)} (configured)`, provider: "codex-cli", source: "codex-config" }, ...marked];
+}
+
+function labelForClaudeId(id: string): string {
+  if (id.startsWith("claude-")) return prettifyId(id.replace(/^claude-/, "Claude "));
+  if (id.includes("[")) return `Claude ${id}`;
+  return `Claude ${prettifyId(id)} (alias)`;
+}
+
+function geminiLabel(id: string): string {
+  if (id === "auto-gemini-3") return "Auto (Gemini 3)";
+  if (id === "auto-gemini-2.5") return "Auto (Gemini 2.5)";
+  return prettifyId(id);
+}
+
+function geminiRank(id: string): number {
+  if (id === "auto-gemini-3") return 0;
+  if (id === "auto-gemini-2.5") return 1;
+  if (id.startsWith("gemini-3")) return 2;
+  if (id.startsWith("gemini-2.5")) return 3;
+  return 10;
 }
 
 function prettifyId(id: string): string {
@@ -280,15 +378,19 @@ export function detectCliProviders(forceRefresh = false): CliProvider[] {
   const providers: CliProvider[] = KNOWN_PROVIDERS.map((spec) => {
     const available = isCommandAvailable(spec.command);
     const version = available ? detectVersion(spec.command, spec.versionFlag) : null;
-
+    const warnings: string[] = [];
     let models: CliModel[] = [];
-    if (available) {
+
+    if (available && spec.detectModels) {
       try {
-        const detected = spec.detectModels?.() ?? [];
-        models = detected.length > 0 ? detected : spec.defaultModels;
-      } catch {
-        models = spec.defaultModels;
+        models = dedupeModels(spec.detectModels());
+      } catch (error) {
+        warnings.push((error as Error).message);
       }
+    }
+
+    if (available && models.length === 0 && spec.detectModels) {
+      warnings.push("No models discovered from this CLI.");
     }
 
     return {
@@ -299,6 +401,7 @@ export function detectCliProviders(forceRefresh = false): CliProvider[] {
       installed: available,
       color: spec.color,
       models,
+      warnings,
     };
   });
 
@@ -307,49 +410,51 @@ export function detectCliProviders(forceRefresh = false): CliProvider[] {
   return providers;
 }
 
-export function getApiProviderModels(): CliModel[] {
-  const models: CliModel[] = [];
-
-  if (process.env.OPENAI_API_KEY) {
-    models.push(
-      { id: "gpt-4.1", label: "GPT-4.1", provider: "openai-api" },
-      { id: "o3", label: "o3", provider: "openai-api" },
-      { id: "o4-mini", label: "o4-mini", provider: "openai-api" },
-    );
-  }
-
-  if (process.env.ANTHROPIC_API_KEY) {
-    models.push(
-      { id: "claude-opus-4", label: "Claude Opus 4", provider: "anthropic-api" },
-      { id: "claude-sonnet-4", label: "Claude Sonnet 4", provider: "anthropic-api" },
-    );
-  }
-
-  if (process.env.OPENROUTER_API_KEY) {
-    models.push(
-      { id: "openrouter/auto", label: "OpenRouter Auto", provider: "openrouter" },
-      { id: "anthropic/claude-opus-4", label: "Claude Opus 4 via OpenRouter", provider: "openrouter" },
-      { id: "openai/o3", label: "o3 via OpenRouter", provider: "openrouter" },
-      { id: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro via OpenRouter", provider: "openrouter" },
-    );
-  }
-
-  return models;
+function dedupeModels(models: CliModel[]): CliModel[] {
+  const seen = new Set<string>();
+  return models.filter((model) => {
+    const key = buildModelPickerValue(model);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
-/**
- * A deterministic fake provider used for local smoke tests and CI. Exposed only when
- * `ENABLE_MOCK_MODEL=true` is set; keeps dev unblocked when no CLI or API key is available.
- */
+export function buildModelPickerValue(model: Pick<CliModel, "provider" | "id">): string {
+  return `${model.provider}::${model.id}`;
+}
+
+export function getApiProviderModels(): CliModel[] {
+  return [
+    ...getEnvModels("openai-api", process.env.OPENAI_MODELS ?? process.env.OPENAI_MODEL),
+    ...getEnvModels("anthropic-api", process.env.ANTHROPIC_MODELS ?? process.env.ANTHROPIC_MODEL),
+    ...getEnvModels("openrouter", process.env.OPENROUTER_MODELS ?? process.env.OPENROUTER_MODEL),
+  ];
+}
+
+function getEnvModels(provider: string, value: string | undefined): CliModel[] {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((id) => ({ id, label: prettifyId(id), provider, source: "env" }));
+}
+
 export function getMockProviderModels(): CliModel[] {
   if (process.env.ENABLE_MOCK_MODEL !== "true") return [];
-  return [{ id: "mock-onboarding", label: "Mock Onboarding Runner", provider: "mock-cli" }];
+  return [{ id: "mock-onboarding", label: "Mock Onboarding Runner", provider: "mock-cli", source: "env" }];
 }
 
-export function getAllAvailableModels(): CliModel[] {
-  const cliProviders = detectCliProviders();
+export function getAllAvailableModels(forceRefresh = false): CliModel[] {
+  const cliProviders = detectCliProviders(forceRefresh);
   const cliModels = cliProviders.flatMap((p) => p.models);
   const apiModels = getApiProviderModels();
   const mockModels = getMockProviderModels();
   return [...cliModels, ...apiModels, ...mockModels];
+}
+
+export function getCachedAvailableModels(): CliModel[] {
+  if (!cachedProviders) return [];
+  return [...cachedProviders.flatMap((p) => p.models), ...getApiProviderModels(), ...getMockProviderModels()];
 }

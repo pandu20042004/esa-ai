@@ -4,10 +4,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type RunEventType =
   | "status"
+  | "activity"
+  | "progress"
   | "token"
   | "tool_call"
   | "tool_result"
   | "message"
+  | "choice"
   | "error";
 
 export type RunEventPayload = Record<string, unknown>;
